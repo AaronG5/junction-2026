@@ -10,4 +10,5 @@ Mano nuomone turi būti tokios funkcijos:
 Pagalbiniai dalykai:
 1. Turi veikti kaip google extention, bet turi egzistuoti ir native app. Patogiausia, kad nereiktų žinių scrollinti per mūsų appsą, bet jis visą info gautų.
 2. DI paleistas lokaliai - jis turi būti išmokytas ne tik paprastų propagandos analizės metodų, jis turi padėti naudotojui ir su bendriniais klausimais pavojaus metu (kadangi siekiama, kad būtų ir lokaliai runnintų). Į šią info įeina pasiruošimas karui, pirmoji pagalba.
+3. Semantinis šaltinių vertinimas DI. Jei sutampa net kelių skirtingų kalbų bus flagginti. Qdrant incoming!
 
