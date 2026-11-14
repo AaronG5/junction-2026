@@ -34,7 +34,9 @@ describe("routing", () => {
 
   it("landing links to the dashboard home", () => {
     renderApp("/");
-    expect(screen.getByRole("link", { name: /open the dashboard/i })).toHaveAttribute("href", "/dashboard/narratives");
+    const links = screen.getAllByRole("link", { name: /open the dashboard/i });
+    expect(links.length).toBeGreaterThanOrEqual(3);
+    for (const l of links) expect(l).toHaveAttribute("href", "/dashboard/narratives");
   });
 });
 

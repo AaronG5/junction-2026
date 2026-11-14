@@ -227,7 +227,8 @@ export interface Story {
   trend: { posts: number; changePct: number | null };
   headline: string;
   sub: string;
-  post: { author: string; where: string; text: string; translation: string };
+  /** url: the post on its platform, analyzed by "Open the full report". */
+  post: { author: string; where: string; text: string; translation: string; url?: string };
   claim: { headline: string; text: string; verdict: Verdict; explanation: string; evidence: string };
   origin: { headline: string; chain: { meta: string; name: string; kind: string }[] };
   travel: { headline: string; copies: number; accounts: number; timeLabel: string; languages: { name: string; count: number }[] };
