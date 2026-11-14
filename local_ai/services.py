@@ -106,6 +106,20 @@ def http_get(url, timeout=3):
         return None, b""
 
 
+def http_post_json(url, payload, timeout=30):
+    """POST JSON. Returns (status, body); status None means no answer at all
+    (not listening yet, or the answer took longer than the timeout)."""
+    request = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
+                                     headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as resp:
+            return resp.status, resp.read()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read()
+    except (urllib.error.URLError, OSError):
+        return None, b""
+
+
 # ---- Docker -------------------------------------------------------------------
 
 def _docker_ready():
@@ -303,14 +317,23 @@ def start_llama_swap(binary, config_hash):
     pid, running_hash, running_port = _read_pid()
     if _pid_alive(pid):
         if running_hash == config_hash and running_port == port and llama_swap_running():
-            ui.ok(f"AI server already running at {swap_url(env)}")
+            ui.ok(f"AI server already running at {swap_public_url(env)}")
             return True
         ui.info("Configuration changed; restarting the AI server...")
         stop_llama_swap()
 
     if not port_free(port):
+        # An AI server we didn't start (an earlier run whose pid file is gone,
+        # say) keeps its own models in memory. Starting a second one next to it
+        # can leave too little memory for these models to load.
+        orphan = http_get(f"http://127.0.0.1:{port}/running")[0] == 200
         new = next_free_port(port, _other_ports(env, "LLAMA_SWAP_PORT"))
         ui.warn(f"Port {port} is already used by another program; using {new} for the AI server.")
+        if orphan:
+            ui.warn(f"What answers on port {port} looks like another AI server, probably one an "
+                    f"earlier run left behind. It is holding models in memory: stop it (--stop, "
+                    f"or end the llama-swap process) and run the launcher again, or the models "
+                    f"here may load slowly or run out of memory.")
         set_env_values({"LLAMA_SWAP_PORT": str(new)})
         port = str(new)
 
@@ -341,19 +364,87 @@ def start_llama_swap(binary, config_hash):
     return False
 
 
-def wait_models_loaded(timeout=900):
-    """Wait until both preloaded models report ready (first load can take a while)."""
-    url = swap_url() + "/running"
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        status, body = http_get(url)
+# The smallest real request for each model: llama-swap starts the model to
+# answer it, so a 200 means it is loaded - no guessing from status endpoints.
+WARMUP = {
+    "chat": ("/v1/chat/completions", {"model": "chat", "stream": False, "max_tokens": 1,
+                                      "messages": [{"role": "user", "content": "ok"}]}),
+    "embedding": ("/v1/embeddings", {"model": "embedding", "input": "ok"}),
+}
+MODEL_NAMES = {"chat": "chat model", "embedding": "embedding model"}
+# How long one model may take to load. The generated config gives llama-swap
+# itself 600 s (healthCheckTimeout), so waiting much longer only hides a failure.
+LOAD_TIMEOUT = 600
+
+
+def _log_tail(name="llama-swap.log", lines=2):
+    """The last lines of the AI server log, to show why a model didn't load."""
+    try:
+        text = (paths.LOGS_DIR / name).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    return " | ".join(line.strip() for line in text.splitlines() if line.strip())[-400:] if text else ""
+
+
+def _running_states():
+    """What llama-swap says about the models it has started, e.g. 'chat: ready'."""
+    status, body = http_get(swap_url() + "/running")
+    if status != 200:
+        return ""
+    try:
+        running = json.loads(body).get("running", [])
+        return ", ".join(f"{r.get('model')}: {r.get('state')}" for r in running if r.get("model"))
+    except (ValueError, AttributeError):
+        return ""
+
+
+def _elapsed(seconds):
+    minutes, seconds = divmod(int(seconds), 60)
+    return f"{minutes} min {seconds:02d} s" if minutes else f"{seconds} s"
+
+
+def load_model(alias, timeout=LOAD_TIMEOUT, report_every=20):
+    """Load one model by asking it the question the app will ask later: the
+    answer only comes once the model is in memory. Printing the time and what
+    llama-swap reports keeps a slow first load from looking like a hang.
+
+    This also recovers a model that an earlier run left stopped or crashed:
+    llama-swap starts it again for the request, which a status poll never does.
+    """
+    path, payload = WARMUP[alias]
+    name = MODEL_NAMES.get(alias, alias)
+    url = swap_url() + path
+    started = last_report = time.time()
+    while True:
+        left = timeout - (time.time() - started)
+        if left <= 0:
+            ui.warn(f"The {name} has not loaded in {_elapsed(timeout)}. "
+                    f"Details: {paths.LOGS_DIR / 'llama-swap.log'}")
+            tail = _log_tail()
+            if tail:
+                ui.info(f"Last from the AI server: {tail}")
+            return False
+        status, body = http_post_json(url, payload, timeout=min(left, report_every))
         if status == 200:
-            try:
-                running = json.loads(body).get("running", [])
-                states = [r.get("state") for r in running]
-                if len(states) >= 2 and all(s == "ready" for s in states):
-                    return True
-            except (ValueError, AttributeError):
-                pass
-        time.sleep(2)
-    return False
+            ui.ok(f"The {name} is loaded and answering ({_elapsed(time.time() - started)})")
+            return True
+        if status in (400, 404):
+            # The model isn't in the config; waiting cannot fix that.
+            ui.warn(f"The AI server does not know the '{alias}' model "
+                    f"({status}: {body[:200].decode('utf-8', 'replace').strip()}). "
+                    f"Check {paths.SWAP_CONFIG}.")
+            return False
+        now = time.time()
+        if now - last_report >= report_every:
+            states = _running_states()
+            ui.info(f"Still loading the {name} ({_elapsed(now - started)}"
+                    + (f"; {states}" if states else "") + ")...")
+            last_report = now
+        time.sleep(1)
+
+
+def wait_models_loaded(timeout=None):
+    """Load both models the app needs. Returns True when both answer."""
+    timeout = timeout or int(read_env().get("LLAMA_LOAD_TIMEOUT") or LOAD_TIMEOUT)
+    results = [load_model(alias, timeout) for alias in ("chat", "embedding")]
+    return all(results)

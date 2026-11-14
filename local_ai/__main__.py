@@ -200,13 +200,13 @@ def step_ai_server(ctx):
         return
     if not services.start_llama_swap(ctx.swap_binary, ctx.config_hash):
         raise ui.StepFailed("The AI server could not be started.")
-    ui.info("Loading the models into memory (first time can take a few minutes)...")
+    ui.info("Loading the models into memory. The first time takes a few minutes; progress "
+            f"is reported below, in detail at {services.swap_public_url()}/ui.")
     if services.wait_models_loaded():
-        ui.ok("Models loaded and ready")
         ctx.results["ai"] = True
     else:
-        ui.warn(f"Models are still loading or failed; see {paths.LOGS_DIR / 'llama-swap.log'} "
-                f"and the llama-swap page at {services.swap_url()}/ui")
+        ui.warn(f"The dashboard will start, but analysing needs the AI. Full log: "
+                f"{paths.LOGS_DIR / 'llama-swap.log'}, status page: {services.swap_public_url()}/ui")
 
 
 def step_database(ctx):
