@@ -86,11 +86,20 @@ Connection handling (PyMySQL), plus a **migrations runner**. `init.sql` counts a
 - `settings`: key/value storage for the data-source choice and sharing (it moves off the browser in B7).
 - `clusters.change_pct` and similar summary fields, so the list doesn't recompute them on every request.
 
+**Migration `0003`** keeps those values sensible: map positions must be 0–100, `first_seen` can't be after `last_seen`, and `change_pct` is wide enough for huge growth.
+
+**When a migration fails:** MySQL commits schema changes immediately, so nothing can be rolled back. The run stops at the failing statement, names the file and the statement, doesn't record the migration and doesn't run later ones. It remembers the attempt (`schema_migration_attempts`). After the fix, the repeated attempt skips statements that already took effect ("column already exists" for `ALTER TABLE … ADD`, and so on) and reports each skip. A first attempt never skips anything, so typos can't hide. Hence: one change per statement.
+
 **Tests** (`integration`)
 - On an empty database all migrations apply. Running them again changes nothing.
 - A database that already has `init.sql` (like yours) gets only the new migrations, and existing rows survive.
-- A failing migration is rolled back and reported by its file name. Later migrations don't run.
-- The expected tables, columns and indexes exist after migrating.
+- A failing migration behaves as described above; a fixed one finishes on the next run.
+- Mistakes on a first attempt (typo in a DROP, duplicate column, taken name) stop the run.
+- Two runs at once on the same database are refused (a named MySQL lock).
+- The expected tables, columns, indexes and checks exist after migrating.
+- Connections are utf8mb4 and UTC; errors are plain sentences and never show the password.
+
+**Run it:** `uv run python backend/migrate.py` (add `--status` to only list applied and pending migrations). Integration tests use a throwaway `veritas_test_<random>` database made with the root login from `.env` and always dropped; your `veritas_lens` database is never touched.
 
 ### B3: read-only API, matching the demo
 Endpoints for every screen:
