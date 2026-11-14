@@ -54,6 +54,7 @@ tests/
 data/
   positives/telegram_channels.json      # input (committed)
   raw/telegram/<username>/page-001.html # scraped HTML (gitignored)
+  raw/telegram/<username>/meta.json     # region, request ids, whether the channel's end was reached
   parsed/telegram/<username>.json       # parsed posts
   parsed/telegram/_report.json          # per-channel run summary
 pyproject.toml                          # uv project: dependencies, Python version
@@ -90,7 +91,9 @@ Notes:
 
 - Empty pages usually mean one of three things: the owner turned off the web preview, the channel was deleted or renamed, or Telegram blocks the channel in the request's region (for example EU-sanctioned media). The RU retry addresses the last one.
 - `t.me/s` is rendered server-side, so `run_js` shouldn't be needed.
-- HTTP errors (401, 429, 5xx, timeouts) follow the Oxylabs page's retry rules, not this fallback. On a 401, stop the whole run and tell the user.
+- A region block shows up as the channel's landing page (`Telegram: View @<username>`) instead of the preview. `sputniklive` needed RU on 2026-11-14.
+- An empty page 1 is saved as `empty-<region>.html` for inspection but isn't cached, so the next run tries that channel again.
+- HTTP errors (401, 429, 5xx, timeouts) follow the Oxylabs page's retry rules, not this fallback. On a 401, or a 429 that outlasts the retries (rate limit or spent quota), stop the whole run and tell the user.
 
 ### Raw HTML
 
@@ -124,8 +127,9 @@ Each channel's output is `data/parsed/telegram/<username>.json`: a JSON array, n
 
 Rules:
 
-- These selectors match Telegram's markup at the time of writing. Check them against a real saved page before relying on them. If they've changed, update this file.
-- Take `content` from the post's own text block, not from a reply or forward quote inside it (`.tgme_widget_message_reply`).
+- These selectors were checked against real pages on 2026-11-14. None of the 51 channels signs its posts, so the signature selector is still unverified. If the markup changes, update this file.
+- Take `content` from the post's own text block, not from a reply quote inside it (`.tgme_widget_message_reply`). The quote uses the same `.tgme_widget_message_text` class, so filter by ancestry, not by class.
+- Posts the web preview can't show ("Please open Telegram to view this post") have no text block, so they come out as media-only.
 - Turn `<br>` into `\n`. Keep link text but drop the URLs. Keep emoji, unescape HTML entities and trim surrounding whitespace. Don't translate the text or clean it in any other way.
 - Keep media-only posts, with `"content": ""`.
 - Skip service messages such as "channel created" or "message pinned" (`.service_message`).
@@ -151,6 +155,7 @@ uv run python -m scrapers.telegram                                  # all channe
 uv run python -m scrapers.telegram --posts 50                       # 50 posts per channel
 uv run python -m scrapers.telegram --posts 10 --channels cop_lt,infalt
 uv run python -m scrapers.telegram --refresh                        # ignore saved raw HTML
+uv run python -m scrapers.telegram --workers 1                      # one channel at a time (default 4)
 uv run python -m unittest discover -s tests
 ```
 
