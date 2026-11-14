@@ -131,6 +131,8 @@ A **demo loader** (`veritas/db/demo.py`) turns `shared/demo/demo-data.json` (exp
 ### B4: vector search (Qdrant)
 Create the collections from [docker/qdrant/collections.json](../docker/qdrant/collections.json), with aliases and payload indexes. Then: store post vectors, find similar posts (with platform, language and date filters), and find the nearest cluster centre for a new post.
 
+**How it works (built):** `veritas/vectors.py` talks to Qdrant's REST API with httpx (no extra client library). `uv run python backend/setup_vectors.py` creates what's missing (collections, payload indexes, aliases; `--remove-orphans` also sweeps vectors of deleted posts). A collection made for another embedding model is refused with a plain message instead of being mixed. `veritas/content.py` keeps MySQL and Qdrant in step: a post's vector carries its filter fields (platform, language, published_at, cluster, ...); deleting posts commits the MySQL delete only after Qdrant confirmed, so a failure leaves both untouched. The demo data has no vectors (it has no AI output to embed); B6 fills Qdrant from real posts.
+
 **Tests** (`integration`; hand-made vectors, no AI needed)
 - Collection setup can be repeated safely, and the aliases point to the right collections.
 - Similar-post search returns the nearest vectors first and respects the filters.
