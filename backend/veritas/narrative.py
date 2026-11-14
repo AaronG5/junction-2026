@@ -22,7 +22,7 @@ Bank layout (`NARRATIVE_BANK_DIR`, built by propaganda/gemma in the Decode the N
   sources/telegram/emb.npy
 Missing parts are skipped; the endpoints still answer (with fewer fields).
 
-Environment: NARRATIVE_BANK_DIR (default data/narrative_bank), NARRATIVE_JUDGE_URL (Modal playground base URL),
+Defaults are built in (JUDGE_URL and BANK_DIR below). Optional overrides: NARRATIVE_BANK_DIR, NARRATIVE_JUDGE_URL ("off" = no judge),
 NARRATIVE_JUDGE_WORKERS (default 4), NARRATIVE_FEEDBACK (default data/narrative_feedback.jsonl).
 """
 from __future__ import annotations
@@ -45,6 +45,9 @@ import numpy as np
 
 log = logging.getLogger("veritas.narrative")
 ROOT = Path(__file__).resolve().parents[2]
+# The fine-tuned Gemma judge (Modal). Env NARRATIVE_JUDGE_URL overrides it; "off" disables the judge.
+JUDGE_URL = "https://augustasrink--ppg-playground-playground-web.us-east.modal.run"
+BANK_DIR = ROOT / "data" / "narrative_bank"
 
 DEFAULT_THRESHOLDS = {
     "copy_strong": 0.95,     # whole-post cosine: copy/translation of a bank post (calibrated on the 256-d model;
@@ -314,8 +317,9 @@ def get_engine(ai_factory: Callable) -> Engine:
     global _engine
     with _engine_lock:
         if _engine is None:
-            bank = Bank.load(Path(os.environ.get("NARRATIVE_BANK_DIR") or ROOT / "data" / "narrative_bank"))
-            url = os.environ.get("NARRATIVE_JUDGE_URL", "")
+            bank = Bank.load(Path(os.environ.get("NARRATIVE_BANK_DIR") or BANK_DIR))
+            url = os.environ.get("NARRATIVE_JUDGE_URL") or JUDGE_URL
+            url = "" if url == "off" else url
             ai = ai_factory()
             _engine = Engine(bank, embed=lambda texts: ai.embed_documents(list(texts)),
                              judge=modal_judge(url) if url else None,
