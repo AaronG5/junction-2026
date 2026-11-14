@@ -9,3 +9,6 @@ logs/
 __pycache__/
 *.pyc
 .venv/
+
+# Scraped data (docs/oxylabs-telegram-scrape.md)
+data/raw/
