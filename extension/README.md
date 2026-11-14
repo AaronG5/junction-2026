@@ -35,7 +35,7 @@ It works in Chrome, Edge, Brave and other Chromium browsers, version 116 or late
 | Show all badges | off | A tiny grey dot on posts where nothing was found. |
 | Sensitivity | normal | **Strict** shows the judge's flag only when `score ≥ 0.75`. Source matches and coordination are shown in both modes. |
 | Mock mode | off | On X too, answer from `src/mock.js` and send nothing over the network. About 5% of posts get flagged, chosen by a hash of the id. The fast path takes 300 ms, the judge 3 s. |
-| Backend URL | `https://augustasrink--ppg-playground-playground-web.us-east.modal.run` | Where `/api/ext/*` lives. |
+| Backend URL | `https://augustasrink--ppg-ext-web.us-east.modal.run` | Where `/api/ext/*` lives. |
 
 The settings live in `chrome.storage.sync`. The counters (scanned, flagged) cover the current browser session.
 

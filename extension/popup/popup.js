@@ -2,7 +2,7 @@
 /* global chrome */
 const DEFAULTS = {
   enabled: true,
-  baseUrl: 'https://augustasrink--ppg-playground-playground-web.us-east.modal.run',
+  baseUrl: 'https://augustasrink--ppg-ext-web.us-east.modal.run',
   showAll: false,
   sensitivity: 'normal',
   mock: false,
