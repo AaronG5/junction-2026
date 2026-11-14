@@ -62,6 +62,19 @@ export function matchesStatus(v: Verdict, s: StatusFilter): boolean {
   return s === "all" || v === s;
 }
 
+/** Spaces trimmed from a search (spelled out so the backend's copy behaves the same). */
+const QUERY_TRIM = /^[ \t\n\r\f\v\u00a0\ufeff]+|[ \t\n\r\f\v\u00a0\ufeff]+$/g;
+
+/**
+ * Claim search: case-insensitive substring match; accents are significant
+ * ("a" doesn't match "ą"); an empty search matches everything.
+ * Shared cases: shared/cases/filters.json "matchesQuery".
+ */
+export function matchesQuery(text: string, query: string): boolean {
+  const q = query.replace(QUERY_TRIM, "").toLowerCase();
+  return !q || text.toLowerCase().includes(q);
+}
+
 /** True when anything differs from the given defaults. */
 export function isFiltered(f: Filters, defaults: Filters): boolean {
   return f.platform !== defaults.platform || f.range !== defaults.range || f.status !== defaults.status;

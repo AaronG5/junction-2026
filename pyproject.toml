@@ -5,6 +5,7 @@ description = "Veritas Lens: disinformation analysis you can run on your own com
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.162.5",
+    "pydantic>=2.14.3",
     "uvicorn>=0.54.0",
 ]
 

@@ -1,0 +1,1068 @@
+{
+  "run": {
+    "date": "2026-11-14",
+    "posts": 18420,
+    "clusters": 14,
+    "unclustered": 1904
+  },
+  "clusters": [
+    {
+      "id": 12,
+      "name": "NATO “provocations” at the Belarus border",
+      "size": 1284,
+      "changePct": 38,
+      "accounts": 212,
+      "status": "false",
+      "platforms": [
+        "Telegram",
+        "Facebook"
+      ],
+      "firstSeen": "2026-11-02",
+      "lastSeen": "2026-11-14",
+      "languages": [
+        {
+          "code": "ru",
+          "name": "Russian",
+          "share": 47
+        },
+        {
+          "code": "lt",
+          "name": "Lithuanian",
+          "share": 41
+        },
+        {
+          "code": "xx",
+          "name": "English",
+          "share": 12
+        }
+      ],
+      "typical": [
+        {
+          "id": "p-4521",
+          "url": "https://t.me/kanalas_b/4521",
+          "text": "NATO tankai vėl provokuoja prie Baltarusijos sienos…",
+          "author": "@kanalas_b",
+          "where": "Telegram channel · Lithuanian"
+        },
+        {
+          "id": "p-a-881",
+          "text": "Танки НАТО снова провоцируют у белорусской границы",
+          "author": "@kanal_a",
+          "where": "Telegram channel · Russian"
+        }
+      ],
+      "edge": [
+        {
+          "id": "p-fb-77",
+          "text": "Pratybos prie sienos: ar tikrai reikia jas rengti dabar?",
+          "author": "Tiesos balsas",
+          "where": "Facebook page · Lithuanian",
+          "note": "Asks a question instead of claiming aggression. Sits next to the media-distrust cluster."
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EU sanctions will double electricity prices",
+      "size": 962,
+      "changePct": 12,
+      "accounts": 148,
+      "status": "false",
+      "platforms": [
+        "Telegram",
+        "Facebook"
+      ],
+      "firstSeen": "2026-10-28",
+      "lastSeen": "2026-11-13",
+      "languages": [
+        {
+          "code": "ru",
+          "name": "Russian",
+          "share": 52
+        },
+        {
+          "code": "lt",
+          "name": "Lithuanian",
+          "share": 38
+        },
+        {
+          "code": "xx",
+          "name": "Other",
+          "share": 10
+        }
+      ],
+      "typical": [
+        {
+          "id": "p-e-1",
+          "url": "https://t.me/kanalas_b/4498",
+          "text": "Elektros kainos kils 40% dėl ES sankcijų…",
+          "author": "@kanalas_b",
+          "where": "Telegram channel · Lithuanian"
+        },
+        {
+          "id": "p-e-2",
+          "text": "Из-за санкций ЕС свет в Литве подорожает вдвое",
+          "author": "@novosti_baltii",
+          "where": "Telegram channel · Russian"
+        }
+      ],
+      "edge": [
+        {
+          "id": "p-e-3",
+          "text": "Šildymo sezonas brangsta: kaip sutaupyti?",
+          "author": "Taupi šeima",
+          "where": "Facebook group · Lithuanian",
+          "note": "Practical advice. Same topic, no claim about sanctions."
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Election counting is rigged",
+      "size": 741,
+      "changePct": -5,
+      "accounts": 97,
+      "status": "unverified",
+      "platforms": [
+        "Telegram"
+      ],
+      "firstSeen": "2026-10-31",
+      "lastSeen": "2026-11-10",
+      "languages": [
+        {
+          "code": "ru",
+          "name": "Russian",
+          "share": 30
+        },
+        {
+          "code": "lt",
+          "name": "Lithuanian",
+          "share": 64
+        },
+        {
+          "code": "xx",
+          "name": "Other",
+          "share": 6
+        }
+      ],
+      "typical": [
+        {
+          "id": "p-v-1",
+          "text": "Rinkimų komisija slepia balsų skaičiavimo klaidas",
+          "author": "@kanalas_b",
+          "where": "Telegram channel · Lithuanian"
+        },
+        {
+          "id": "p-v-2",
+          "text": "ЦИК Литвы скрывает ошибки подсчёта",
+          "author": "@kanal_a",
+          "where": "Telegram channel · Russian"
+        }
+      ],
+      "edge": [
+        {
+          "id": "p-v-3",
+          "text": "Kaip veikia balsų skaičiavimas: paaiškinimas",
+          "author": "Pilietinė iniciatyva",
+          "where": "Facebook page · Lithuanian",
+          "note": "An explainer that uses the same words. Probably not part of the narrative."
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Refugees get bigger benefits than pensioners",
+      "size": 533,
+      "changePct": 21,
+      "accounts": 71,
+      "status": "misleading",
+      "platforms": [
+        "Facebook",
+        "Telegram"
+      ],
+      "firstSeen": "2026-10-25",
+      "lastSeen": "2026-11-14",
+      "languages": [
+        {
+          "code": "ru",
+          "name": "Russian",
+          "share": 44
+        },
+        {
+          "code": "lt",
+          "name": "Lithuanian",
+          "share": 52
+        },
+        {
+          "code": "xx",
+          "name": "Other",
+          "share": 4
+        }
+      ],
+      "typical": [
+        {
+          "id": "p-r-1",
+          "text": "Pabėgėliai gauna didesnes išmokas nei pensininkai",
+          "author": "Tiesa be cenzūros",
+          "where": "Facebook page · Lithuanian"
+        },
+        {
+          "id": "p-r-2",
+          "text": "Беженцы получают больше пенсионеров",
+          "author": "@novosti_baltii",
+          "where": "Telegram channel · Russian"
+        }
+      ],
+      "edge": [
+        {
+          "id": "p-r-3",
+          "text": "Savivaldybė skelbia paramos pabėgėliams tvarką",
+          "author": "Municipality page",
+          "where": "Facebook page · Lithuanian",
+          "note": "Official notice about the same benefits. Gets quoted out of context."
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Western media hide the truth",
+      "size": 410,
+      "changePct": 4,
+      "accounts": 88,
+      "status": "misleading",
+      "platforms": [
+        "Telegram"
+      ],
+      "firstSeen": "2026-10-21",
+      "lastSeen": "2026-11-12",
+      "languages": [
+        {
+          "code": "ru",
+          "name": "Russian",
+          "share": 58
+        },
+        {
+          "code": "lt",
+          "name": "Lithuanian",
+          "share": 33
+        },
+        {
+          "code": "xx",
+          "name": "Other",
+          "share": 9
+        }
+      ],
+      "typical": [
+        {
+          "id": "p-m-1",
+          "text": "Kodėl apie tai tyli mūsų žiniasklaida?",
+          "author": "@kanalas_b",
+          "where": "Telegram channel · Lithuanian"
+        },
+        {
+          "id": "p-m-2",
+          "text": "Западные СМИ скрывают правду о провокациях",
+          "author": "@kanal_a",
+          "where": "Telegram channel · Russian"
+        }
+      ],
+      "edge": [
+        {
+          "id": "p-m-3",
+          "text": "Visuomeninis transliuotojas atsakė į kritiką dėl reportažo",
+          "author": "News site",
+          "where": "Website · Lithuanian",
+          "note": "A media outlet answering criticism. Same vocabulary, opposite side."
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Baltic power grid will collapse this winter",
+      "size": 288,
+      "changePct": null,
+      "accounts": 42,
+      "status": "unverified",
+      "platforms": [
+        "Telegram"
+      ],
+      "firstSeen": "2026-11-10",
+      "lastSeen": "2026-11-14",
+      "languages": [
+        {
+          "code": "ru",
+          "name": "Russian",
+          "share": 61
+        },
+        {
+          "code": "lt",
+          "name": "Lithuanian",
+          "share": 35
+        },
+        {
+          "code": "xx",
+          "name": "Other",
+          "share": 4
+        }
+      ],
+      "typical": [
+        {
+          "id": "p-g-1",
+          "text": "Šią žiemą Baltijos elektros tinklas sugrius",
+          "author": "@kanalas_b",
+          "where": "Telegram channel · Lithuanian"
+        },
+        {
+          "id": "p-g-2",
+          "text": "Энергосистема Прибалтики рухнет зимой",
+          "author": "@kanal_a",
+          "where": "Telegram channel · Russian"
+        }
+      ],
+      "edge": [
+        {
+          "id": "p-g-3",
+          "text": "Sinchronizacija su Europa: ką tai reiškia namų ūkiams",
+          "author": "News site",
+          "where": "Website · Lithuanian",
+          "note": "Neutral explainer on the same topic."
+        }
+      ]
+    }
+  ],
+  "total": 6,
+  "counts": {
+    "all": 6,
+    "true": 0,
+    "false": 2,
+    "misleading": 2,
+    "unverified": 2
+  },
+  "points": [
+    {
+      "x": 5,
+      "y": 87.87,
+      "clusterId": null
+    },
+    {
+      "x": 31.03,
+      "y": 23.95,
+      "clusterId": null
+    },
+    {
+      "x": 70.64,
+      "y": 52.94,
+      "clusterId": null
+    },
+    {
+      "x": 34.64,
+      "y": 72.68,
+      "clusterId": null
+    },
+    {
+      "x": 72.96,
+      "y": 53.86,
+      "clusterId": null
+    },
+    {
+      "x": 66.61,
+      "y": 62.23,
+      "clusterId": null
+    },
+    {
+      "x": 78.51,
+      "y": 26.78,
+      "clusterId": null
+    },
+    {
+      "x": 38.68,
+      "y": 68.71,
+      "clusterId": null
+    },
+    {
+      "x": 67.82,
+      "y": 9.85,
+      "clusterId": null
+    },
+    {
+      "x": 66.55,
+      "y": 47.11,
+      "clusterId": null
+    },
+    {
+      "x": 88.02,
+      "y": 77.67,
+      "clusterId": null
+    },
+    {
+      "x": 16.06,
+      "y": 51.17,
+      "clusterId": null
+    },
+    {
+      "x": 88.09,
+      "y": 66.97,
+      "clusterId": null
+    },
+    {
+      "x": 62.94,
+      "y": 56.97,
+      "clusterId": null
+    },
+    {
+      "x": 87.08,
+      "y": 86.75,
+      "clusterId": null
+    },
+    {
+      "x": 38.5,
+      "y": 35.18,
+      "clusterId": null
+    },
+    {
+      "x": 80.35,
+      "y": 34.9,
+      "clusterId": null
+    },
+    {
+      "x": 18.73,
+      "y": 31.79,
+      "clusterId": null
+    },
+    {
+      "x": 43.56,
+      "y": 31.54,
+      "clusterId": null
+    },
+    {
+      "x": 89.35,
+      "y": 55.16,
+      "clusterId": null
+    },
+    {
+      "x": 70.63,
+      "y": 84.01,
+      "clusterId": null
+    },
+    {
+      "x": 10.28,
+      "y": 29.61,
+      "clusterId": null
+    },
+    {
+      "x": 55.46,
+      "y": 50.79,
+      "clusterId": null
+    },
+    {
+      "x": 42.93,
+      "y": 22.37,
+      "clusterId": null
+    },
+    {
+      "x": 86.81,
+      "y": 9.94,
+      "clusterId": null
+    },
+    {
+      "x": 37.89,
+      "y": 35.97,
+      "clusterId": null
+    },
+    {
+      "x": 29.63,
+      "y": 41.5,
+      "clusterId": 12
+    },
+    {
+      "x": 22.03,
+      "y": 30.43,
+      "clusterId": 12
+    },
+    {
+      "x": 13.82,
+      "y": 38.62,
+      "clusterId": 12
+    },
+    {
+      "x": 21.01,
+      "y": 35.85,
+      "clusterId": 12
+    },
+    {
+      "x": 17.36,
+      "y": 35.38,
+      "clusterId": 12
+    },
+    {
+      "x": 22.03,
+      "y": 37.96,
+      "clusterId": 12
+    },
+    {
+      "x": 19.73,
+      "y": 31.07,
+      "clusterId": 12
+    },
+    {
+      "x": 27.41,
+      "y": 43.3,
+      "clusterId": 12
+    },
+    {
+      "x": 10.81,
+      "y": 48.25,
+      "clusterId": 12
+    },
+    {
+      "x": 24.11,
+      "y": 41.54,
+      "clusterId": 12
+    },
+    {
+      "x": 16.69,
+      "y": 48.54,
+      "clusterId": 12
+    },
+    {
+      "x": 26.68,
+      "y": 40.48,
+      "clusterId": 12
+    },
+    {
+      "x": 23.18,
+      "y": 38.19,
+      "clusterId": 12
+    },
+    {
+      "x": 39.89,
+      "y": 38.69,
+      "clusterId": 12
+    },
+    {
+      "x": 18.59,
+      "y": 38.39,
+      "clusterId": 12
+    },
+    {
+      "x": 24.33,
+      "y": 44.63,
+      "clusterId": 12
+    },
+    {
+      "x": 9.57,
+      "y": 55.49,
+      "clusterId": 12
+    },
+    {
+      "x": 29.87,
+      "y": 51.5,
+      "clusterId": 12
+    },
+    {
+      "x": 36.55,
+      "y": 35.25,
+      "clusterId": 12
+    },
+    {
+      "x": 25.94,
+      "y": 28.24,
+      "clusterId": 12
+    },
+    {
+      "x": 26.07,
+      "y": 36.87,
+      "clusterId": 12
+    },
+    {
+      "x": 32.09,
+      "y": 49,
+      "clusterId": 12
+    },
+    {
+      "x": 18.63,
+      "y": 40.78,
+      "clusterId": 12
+    },
+    {
+      "x": 26.25,
+      "y": 38.69,
+      "clusterId": 12
+    },
+    {
+      "x": 19.52,
+      "y": 36.6,
+      "clusterId": 12
+    },
+    {
+      "x": 21.19,
+      "y": 29.56,
+      "clusterId": 12
+    },
+    {
+      "x": 20.8,
+      "y": 31.73,
+      "clusterId": 12
+    },
+    {
+      "x": 21.2,
+      "y": 33.75,
+      "clusterId": 12
+    },
+    {
+      "x": 19.24,
+      "y": 39.03,
+      "clusterId": 12
+    },
+    {
+      "x": 28.65,
+      "y": 38.77,
+      "clusterId": 12
+    },
+    {
+      "x": 28.32,
+      "y": 31.37,
+      "clusterId": 12
+    },
+    {
+      "x": 28.75,
+      "y": 40.79,
+      "clusterId": 12
+    },
+    {
+      "x": 28.47,
+      "y": 32.61,
+      "clusterId": 12
+    },
+    {
+      "x": 16.49,
+      "y": 35.09,
+      "clusterId": 12
+    },
+    {
+      "x": 67.48,
+      "y": 18.49,
+      "clusterId": 7
+    },
+    {
+      "x": 61.19,
+      "y": 26.7,
+      "clusterId": 7
+    },
+    {
+      "x": 58.06,
+      "y": 27.63,
+      "clusterId": 7
+    },
+    {
+      "x": 66.23,
+      "y": 25.09,
+      "clusterId": 7
+    },
+    {
+      "x": 64.72,
+      "y": 23.03,
+      "clusterId": 7
+    },
+    {
+      "x": 66.87,
+      "y": 34.43,
+      "clusterId": 7
+    },
+    {
+      "x": 73.48,
+      "y": 37.09,
+      "clusterId": 7
+    },
+    {
+      "x": 68.67,
+      "y": 32.06,
+      "clusterId": 7
+    },
+    {
+      "x": 58.12,
+      "y": 17.91,
+      "clusterId": 7
+    },
+    {
+      "x": 62.42,
+      "y": 26.68,
+      "clusterId": 7
+    },
+    {
+      "x": 55.94,
+      "y": 27.47,
+      "clusterId": 7
+    },
+    {
+      "x": 66.87,
+      "y": 34.66,
+      "clusterId": 7
+    },
+    {
+      "x": 68.02,
+      "y": 18.94,
+      "clusterId": 7
+    },
+    {
+      "x": 72.95,
+      "y": 21.12,
+      "clusterId": 7
+    },
+    {
+      "x": 56.55,
+      "y": 26.5,
+      "clusterId": 7
+    },
+    {
+      "x": 59.86,
+      "y": 42.54,
+      "clusterId": 7
+    },
+    {
+      "x": 69.7,
+      "y": 33.57,
+      "clusterId": 7
+    },
+    {
+      "x": 63.37,
+      "y": 29.94,
+      "clusterId": 7
+    },
+    {
+      "x": 63.52,
+      "y": 21.92,
+      "clusterId": 7
+    },
+    {
+      "x": 55.73,
+      "y": 20.09,
+      "clusterId": 7
+    },
+    {
+      "x": 61.87,
+      "y": 22.97,
+      "clusterId": 7
+    },
+    {
+      "x": 66.57,
+      "y": 28.89,
+      "clusterId": 7
+    },
+    {
+      "x": 55.32,
+      "y": 27.46,
+      "clusterId": 7
+    },
+    {
+      "x": 70.56,
+      "y": 31.42,
+      "clusterId": 7
+    },
+    {
+      "x": 62.63,
+      "y": 26.35,
+      "clusterId": 7
+    },
+    {
+      "x": 63.79,
+      "y": 28.66,
+      "clusterId": 7
+    },
+    {
+      "x": 72.78,
+      "y": 68.63,
+      "clusterId": 3
+    },
+    {
+      "x": 65.72,
+      "y": 67.11,
+      "clusterId": 3
+    },
+    {
+      "x": 71.6,
+      "y": 65.24,
+      "clusterId": 3
+    },
+    {
+      "x": 75.13,
+      "y": 70.72,
+      "clusterId": 3
+    },
+    {
+      "x": 73.21,
+      "y": 66.38,
+      "clusterId": 3
+    },
+    {
+      "x": 74.29,
+      "y": 78.1,
+      "clusterId": 3
+    },
+    {
+      "x": 86.78,
+      "y": 78.08,
+      "clusterId": 3
+    },
+    {
+      "x": 76.12,
+      "y": 72.65,
+      "clusterId": 3
+    },
+    {
+      "x": 71.39,
+      "y": 78.31,
+      "clusterId": 3
+    },
+    {
+      "x": 77.77,
+      "y": 66.75,
+      "clusterId": 3
+    },
+    {
+      "x": 75.15,
+      "y": 68.04,
+      "clusterId": 3
+    },
+    {
+      "x": 70.26,
+      "y": 71.06,
+      "clusterId": 3
+    },
+    {
+      "x": 71.48,
+      "y": 74.92,
+      "clusterId": 3
+    },
+    {
+      "x": 60.7,
+      "y": 60.95,
+      "clusterId": 3
+    },
+    {
+      "x": 73.68,
+      "y": 65.97,
+      "clusterId": 3
+    },
+    {
+      "x": 72.26,
+      "y": 72.53,
+      "clusterId": 3
+    },
+    {
+      "x": 67.7,
+      "y": 67.8,
+      "clusterId": 3
+    },
+    {
+      "x": 75.13,
+      "y": 67.54,
+      "clusterId": 3
+    },
+    {
+      "x": 68.66,
+      "y": 70.81,
+      "clusterId": 3
+    },
+    {
+      "x": 76.01,
+      "y": 71.22,
+      "clusterId": 3
+    },
+    {
+      "x": 74.75,
+      "y": 81.6,
+      "clusterId": 3
+    },
+    {
+      "x": 37.71,
+      "y": 75.15,
+      "clusterId": 15
+    },
+    {
+      "x": 37.43,
+      "y": 75.75,
+      "clusterId": 15
+    },
+    {
+      "x": 46.61,
+      "y": 70.28,
+      "clusterId": 15
+    },
+    {
+      "x": 30.74,
+      "y": 76.88,
+      "clusterId": 15
+    },
+    {
+      "x": 49.89,
+      "y": 68.52,
+      "clusterId": 15
+    },
+    {
+      "x": 38.64,
+      "y": 72.03,
+      "clusterId": 15
+    },
+    {
+      "x": 32.14,
+      "y": 80.83,
+      "clusterId": 15
+    },
+    {
+      "x": 40.21,
+      "y": 72.71,
+      "clusterId": 15
+    },
+    {
+      "x": 37.89,
+      "y": 74.29,
+      "clusterId": 15
+    },
+    {
+      "x": 30.91,
+      "y": 71.82,
+      "clusterId": 15
+    },
+    {
+      "x": 41.13,
+      "y": 86.24,
+      "clusterId": 15
+    },
+    {
+      "x": 31.16,
+      "y": 70.28,
+      "clusterId": 15
+    },
+    {
+      "x": 47.57,
+      "y": 85.21,
+      "clusterId": 15
+    },
+    {
+      "x": 39.05,
+      "y": 74.49,
+      "clusterId": 15
+    },
+    {
+      "x": 42.79,
+      "y": 79.36,
+      "clusterId": 15
+    },
+    {
+      "x": 36.19,
+      "y": 71.78,
+      "clusterId": 15
+    },
+    {
+      "x": 53.09,
+      "y": 50.07,
+      "clusterId": 9
+    },
+    {
+      "x": 52.21,
+      "y": 48.94,
+      "clusterId": 9
+    },
+    {
+      "x": 45.11,
+      "y": 54.88,
+      "clusterId": 9
+    },
+    {
+      "x": 45.85,
+      "y": 53.16,
+      "clusterId": 9
+    },
+    {
+      "x": 48.22,
+      "y": 52.91,
+      "clusterId": 9
+    },
+    {
+      "x": 46.05,
+      "y": 48.52,
+      "clusterId": 9
+    },
+    {
+      "x": 48.41,
+      "y": 48.74,
+      "clusterId": 9
+    },
+    {
+      "x": 43.88,
+      "y": 51.29,
+      "clusterId": 9
+    },
+    {
+      "x": 48.43,
+      "y": 57.15,
+      "clusterId": 9
+    },
+    {
+      "x": 48.99,
+      "y": 52.34,
+      "clusterId": 9
+    },
+    {
+      "x": 48.04,
+      "y": 43.45,
+      "clusterId": 9
+    },
+    {
+      "x": 42.3,
+      "y": 50.03,
+      "clusterId": 9
+    },
+    {
+      "x": 42.72,
+      "y": 50.16,
+      "clusterId": 9
+    },
+    {
+      "x": 86.46,
+      "y": 39.78,
+      "clusterId": 21
+    },
+    {
+      "x": 82.26,
+      "y": 38.38,
+      "clusterId": 21
+    },
+    {
+      "x": 81.1,
+      "y": 36.53,
+      "clusterId": 21
+    },
+    {
+      "x": 88.24,
+      "y": 46.52,
+      "clusterId": 21
+    },
+    {
+      "x": 82.05,
+      "y": 38.4,
+      "clusterId": 21
+    },
+    {
+      "x": 82.85,
+      "y": 44.78,
+      "clusterId": 21
+    },
+    {
+      "x": 93.3,
+      "y": 35.67,
+      "clusterId": 21
+    },
+    {
+      "x": 80.18,
+      "y": 33.5,
+      "clusterId": 21
+    },
+    {
+      "x": 90.62,
+      "y": 37.35,
+      "clusterId": 21
+    }
+  ]
+}

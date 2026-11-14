@@ -1,0 +1,26 @@
+{
+  "sources": [
+    {
+      "id": "tiesa_be_cenzuros",
+      "name": "Tiesa be cenzūros",
+      "kind": "Page · Lithuanian · 9.1k followers",
+      "platform": "Facebook",
+      "posts30d": 410,
+      "originalPct": 3,
+      "nearCopyPct": 77,
+      "mainTopic": "Refugees",
+      "openFlags": 7
+    },
+    {
+      "id": "taupi_seima",
+      "name": "Taupi šeima",
+      "kind": "Group · Lithuanian · 12k members",
+      "platform": "Facebook",
+      "posts30d": 260,
+      "originalPct": 81,
+      "nearCopyPct": 6,
+      "mainTopic": "Everyday prices",
+      "openFlags": 0
+    }
+  ]
+}

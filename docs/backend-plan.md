@@ -81,7 +81,7 @@ Pydantic models for every type in `types.ts`, the fixture export script, and the
 Connection handling (PyMySQL), plus a **migrations runner**. `init.sql` counts as `0001`, and new files in `docker/mysql/migrations/` run once each, recorded in `schema_migrations`. This lets existing installs get schema changes without losing data.
 
 **Migration `0002`** adds what the screens need and the schema lacks:
-- `post_clusters.map_x`, `map_y`: the post's position on the cluster map.
+- `post_clusters.map_x`, `map_y` as `DECIMAL(5,2)`: the post's position on the cluster map, 0–100 with 2 decimals, exactly as in the fixtures. Map points are returned in a fixed order: posts that fit no cluster first, then each cluster's points, clusters in list order.
 - `clusters.main_claim_id`: the claim that sets a narrative's status.
 - `settings`: key/value storage for the data-source choice and sharing (it moves off the browser in B7).
 - `clusters.change_pct` and similar summary fields, so the list doesn't recompute them on every request.
@@ -95,12 +95,16 @@ Connection handling (PyMySQL), plus a **migrations runner**. `init.sql` counts a
 ### B3: read-only API, matching the demo
 Endpoints for every screen:
 - `/api/narratives`, `/api/claims`, `/api/sources`, `/api/sources/{id}`
-- `/api/trending`, `/api/stories/{id}`
+- `/api/trending`, `/api/stories/{id}`, `/api/trace?url=…`
 
 A **demo loader** turns `shared/fixtures/` into database rows and Qdrant points. The launcher's `--demo-data` flag uses it later. Without that flag, no demo data is ever loaded.
 
 **Tests**
-- **Parity (the key test):** after loading the demo data, each endpoint returns exactly what the frontend's demo mode returns for the same filters. If this passes, the screens work against the real backend unchanged.
+- **Parity (the key test):** after loading the demo data, every manifest entry marked `"replay": "exact"` is replayed with the same method, path, query and body.
+  - The backend must answer with the entry's `status`, and with JSON equal to the fixture once parsed (numbers compared by value, key order ignored). This includes the error answers and their plain-language messages.
+  - Entries marked `"shape"` (live system status, AI output) only have to validate against their model.
+  - If this passes, the screens work against the real backend unchanged.
+- **Claim search** follows `matchesQuery` from the shared cases: case-insensitive, with accents significant. MySQL's default collation ignores accents, so either filter in Python or search with a binary collation.
 - The shared filter cases are run through every list endpoint, including status counts that ignore the status filter itself.
 - An empty database gives empty lists and zero counts, not errors.
 - Unknown source or story → JSON 404 with the same message the frontend shows.

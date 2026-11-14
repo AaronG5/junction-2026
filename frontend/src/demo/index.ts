@@ -4,7 +4,7 @@
  */
 import { ApiError, isSupportedLink, type Api } from "../api/client";
 import { ANALYZE_STEPS, type Claim, type Cluster, type MapPoint, type StatusCounts, type Verdict } from "../api/types";
-import { matchesPlatform, matchesStatus, overlaps, resolveRange } from "../lib/filters";
+import { matchesPlatform, matchesQuery, matchesStatus, overlaps, resolveRange } from "../lib/filters";
 import { channelReports, claims, clusters, postReport, run, sources, stories, systemStatus } from "./data";
 
 export { DEMO_DATA_MARKER } from "./data";
@@ -23,12 +23,17 @@ function countStatuses<T>(items: T[], verdictOf: (t: T) => Verdict): StatusCount
   return counts;
 }
 
-/** Deterministic pseudo-random map points (stand-in for real UMAP coordinates). */
+/**
+ * Deterministic pseudo-random map points (stand-in for real UMAP coordinates).
+ * Contract details the backend must match (B3): coordinates have 2 decimals
+ * (stored as DECIMAL(5,2)); order = posts that fit no cluster first, then each
+ * matching cluster's points, clusters in the same order as the cluster list.
+ */
 function mapPoints(visible: Cluster[]): MapPoint[] {
   let seed = 7;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const gauss = () => Math.sqrt(-2 * Math.log(rnd() || 1e-9)) * Math.cos(2 * Math.PI * rnd());
-  const clamp = (v: number) => Math.max(2, Math.min(98, v));
+  const clamp = (v: number) => Math.round(Math.max(2, Math.min(98, v)) * 100) / 100;
   const points: MapPoint[] = [];
   for (let i = 0; i < 26; i++) points.push({ x: clamp(5 + rnd() * 90), y: clamp(5 + rnd() * 90), clusterId: null });
   const ids = new Set(visible.map((c) => c.id));
@@ -63,9 +68,8 @@ export const demoApi: Api = {
   async claims(f) {
     await wait();
     const r = resolveRange(f);
-    const q = (f.query ?? "").trim().toLowerCase();
     const base = claims.filter((c: Claim) =>
-      (!q || c.text.toLowerCase().includes(q)) &&
+      matchesQuery(c.text, f.query ?? "") &&
       matchesPlatform(c.platforms, f.platform) &&
       overlaps(c.firstSeen, c.lastSeen, r));
     return clone({

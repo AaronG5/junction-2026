@@ -1,0 +1,207 @@
+{
+  "url": "https://t.me/kanalas_b/4521",
+  "analyzedAt": "2026-11-14T12:00:00.000Z",
+  "answeredFrom": "the central server (2,184 related posts) and this computer",
+  "post": {
+    "author": "@kanalas_b",
+    "sourceId": "kanalas_b",
+    "where": "Telegram channel · 18.4k subscribers",
+    "originalLanguage": "Lithuanian",
+    "original": [
+      {
+        "text": "„NATO tankai vėl "
+      },
+      {
+        "text": "provokuoja",
+        "flag": "Loaded language"
+      },
+      {
+        "text": " prie Baltarusijos sienos. "
+      },
+      {
+        "text": "Kodėl apie tai tyli mūsų žiniasklaida?",
+        "flag": "Media distrust"
+      },
+      {
+        "text": "“"
+      }
+    ],
+    "translation": [
+      {
+        "text": "“NATO tanks are "
+      },
+      {
+        "text": "provoking",
+        "flag": "Loaded language"
+      },
+      {
+        "text": " at the Belarusian border again. "
+      },
+      {
+        "text": "Why is our media silent about it?",
+        "flag": "Media distrust"
+      },
+      {
+        "text": "”"
+      }
+    ]
+  },
+  "verdict": {
+    "verdict": "misleading",
+    "summary": "1 false claim, 1 misleading"
+  },
+  "manipulation": 7,
+  "spread": {
+    "copies": 41,
+    "languages": 3,
+    "hours": 6
+  },
+  "earliest": {
+    "name": "rt.com",
+    "note": "3 h before this post · state media (RU)"
+  },
+  "chain": [
+    {
+      "name": "rt.com",
+      "kind": "News site · state media (RU)",
+      "language": "EN",
+      "time": "08:00"
+    },
+    {
+      "name": "@kanal_a",
+      "kind": "Telegram channel",
+      "language": "RU",
+      "time": "09:30",
+      "relation": "translation"
+    },
+    {
+      "name": "@kanalas_b",
+      "kind": "This post",
+      "language": "LT",
+      "time": "11:00",
+      "relation": "forward",
+      "isThisPost": true
+    },
+    {
+      "name": "Tiesa be cenzūros",
+      "kind": "Facebook page",
+      "language": "LT",
+      "time": "12:40",
+      "relation": "share"
+    }
+  ],
+  "moreCopies": 37,
+  "claims": [
+    {
+      "id": 1,
+      "text": "NATO tanks are carrying out provocations at the Belarusian border.",
+      "verdict": "false",
+      "explanation": "The tanks are part of a scheduled exercise about 40 km from the border, announced a week earlier. Border reports for that day list no incidents.",
+      "evidenceSummary": "2 sources contradict it",
+      "seenSummary": "Seen in 23 posts, 3 languages"
+    },
+    {
+      "id": 2,
+      "text": "Lithuanian media are not reporting it.",
+      "verdict": "misleading",
+      "explanation": "National outlets covered the exercise; they did not report a provocation because none was recorded.",
+      "evidenceSummary": "3 articles found",
+      "seenSummary": "Seen in 11 posts, 2 languages"
+    }
+  ],
+  "similar": [
+    {
+      "language": "EN",
+      "author": "rt.com",
+      "where": "News site",
+      "text": "NATO armour stages provocations near Belarus, sources say",
+      "relation": "Earliest source",
+      "similarity": 0.79
+    },
+    {
+      "language": "RU",
+      "author": "@kanal_a",
+      "where": "Telegram channel",
+      "text": "Танки НАТО снова провоцируют у белорусской границы",
+      "relation": "Translation",
+      "similarity": 0.81
+    },
+    {
+      "language": "LT",
+      "author": "Tiesa be cenzūros",
+      "where": "Facebook page",
+      "text": "NATO tankai vėl provokuoja prie Baltarusijos sienos…",
+      "relation": "Share",
+      "similarity": 0.97
+    },
+    {
+      "language": "LT",
+      "author": "Jonas P.",
+      "where": "in Baltijos balsas · Telegram group",
+      "text": "Matot? NATO tankai vėl provokuoja prie sienos",
+      "relation": "Near copy",
+      "similarity": 0.93
+    },
+    {
+      "language": "PL",
+      "author": "@prawda_wschod",
+      "where": "Telegram channel",
+      "text": "Czołgi NATO znowu prowokują przy granicy z Białorusią",
+      "relation": "Paraphrase",
+      "similarity": 0.77
+    }
+  ],
+  "categories": [
+    {
+      "name": "Anti-NATO",
+      "score": 0.9,
+      "method": "Matched by similarity, confirmed by Gemma"
+    },
+    {
+      "name": "Media distrust",
+      "score": 0.62,
+      "method": "Matched by similarity only"
+    }
+  ],
+  "reading": {
+    "tone": "Alarmist",
+    "intent": "Make readers distrust NATO and local media",
+    "techniques": [
+      {
+        "name": "Loaded language",
+        "detail": "“provokuoja” frames a routine exercise as aggression."
+      },
+      {
+        "name": "Media distrust",
+        "detail": "A rhetorical question suggests a cover-up without evidence."
+      },
+      {
+        "name": "No source",
+        "detail": "No place, date or source is given for the claim."
+      }
+    ],
+    "model": "gemma-4-E4B-it · prompt v3 · ran on this computer"
+  },
+  "cluster": {
+    "id": 12,
+    "name": "NATO “provocations” at the Belarus border",
+    "summary": "1,284 posts in the last 7 days · up 38% on the week before",
+    "languages": [
+      {
+        "code": "ru",
+        "name": "Russian",
+        "share": 47
+      },
+      {
+        "code": "lt",
+        "name": "Lithuanian",
+        "share": 41
+      },
+      {
+        "code": "xx",
+        "name": "English",
+        "share": 12
+      }
+    ]
+  }
+}

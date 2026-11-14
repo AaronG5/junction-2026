@@ -1,0 +1,187 @@
+{
+  "claims": [
+    {
+      "id": 1,
+      "verdict": "false",
+      "platforms": [
+        "Telegram",
+        "Facebook"
+      ],
+      "firstSeen": "2026-11-03",
+      "lastSeen": "2026-11-13",
+      "posts": 23,
+      "languages": [
+        "ru",
+        "lt",
+        "en"
+      ],
+      "clusterId": 12,
+      "text": "NATO tanks are carrying out provocations at the Belarusian border.",
+      "explanation": "The tanks are part of an exercise announced a week earlier, held about 40 km from the border. Border reports for that day list no incidents.",
+      "evidence": [
+        {
+          "source": "Border guard daily report",
+          "stance": "contradicts",
+          "note": "No incidents recorded on the Belarus section."
+        },
+        {
+          "source": "Armed forces exercise announcement",
+          "stance": "contradicts",
+          "note": "Lists the exercise area and dates; the area is inland."
+        }
+      ],
+      "checkedBy": "web search + Gemma",
+      "confidence": 0.86,
+      "checkedAt": "2026-11-04"
+    },
+    {
+      "id": 2,
+      "verdict": "misleading",
+      "platforms": [
+        "Telegram"
+      ],
+      "firstSeen": "2026-11-03",
+      "lastSeen": "2026-11-09",
+      "posts": 11,
+      "languages": [
+        "lt",
+        "ru"
+      ],
+      "clusterId": 9,
+      "text": "Lithuanian media are not reporting it.",
+      "explanation": "National outlets covered the exercise. They did not report a provocation because none was recorded.",
+      "evidence": [
+        {
+          "source": "3 national news articles",
+          "stance": "contradicts",
+          "note": "Each describes the exercise as planned and routine."
+        }
+      ],
+      "checkedBy": "web search + Gemma",
+      "confidence": 0.78,
+      "checkedAt": "2026-11-04"
+    },
+    {
+      "id": 3,
+      "verdict": "false",
+      "platforms": [
+        "Telegram",
+        "Facebook"
+      ],
+      "firstSeen": "2026-10-30",
+      "lastSeen": "2026-11-11",
+      "posts": 38,
+      "languages": [
+        "ru",
+        "lt"
+      ],
+      "clusterId": 7,
+      "text": "Electricity prices will double because of EU sanctions.",
+      "explanation": "The regulator's published forecast for next quarter is a change of a few percent. Sanctions do not set household tariffs.",
+      "evidence": [
+        {
+          "source": "Energy regulator tariff forecast",
+          "stance": "contradicts",
+          "note": "Forecast change is in single digits."
+        }
+      ],
+      "checkedBy": "web search + Gemma",
+      "confidence": 0.82,
+      "checkedAt": "2026-10-31"
+    },
+    {
+      "id": 4,
+      "verdict": "unverified",
+      "platforms": [
+        "Telegram"
+      ],
+      "firstSeen": "2026-11-01",
+      "lastSeen": "2026-11-07",
+      "posts": 17,
+      "languages": [
+        "lt",
+        "ru"
+      ],
+      "clusterId": 3,
+      "text": "The election commission is hiding vote-counting errors.",
+      "explanation": "No evidence either way yet. Recount results are due next week.",
+      "evidence": [
+        {
+          "source": "Election commission recount notice",
+          "stance": "neither",
+          "note": "Confirms a recount in two districts, says nothing about hidden errors."
+        }
+      ],
+      "checkedBy": "web search + Gemma",
+      "confidence": 0.41,
+      "checkedAt": "2026-11-02"
+    },
+    {
+      "id": 5,
+      "verdict": "misleading",
+      "platforms": [
+        "Facebook",
+        "Telegram"
+      ],
+      "firstSeen": "2026-10-25",
+      "lastSeen": "2026-11-12",
+      "posts": 29,
+      "languages": [
+        "lt",
+        "ru"
+      ],
+      "clusterId": 15,
+      "text": "Refugees receive higher benefits than pensioners.",
+      "explanation": "Compares a one-time settlement grant with a monthly pension. Monthly support for refugees is lower than the average pension.",
+      "evidence": [
+        {
+          "source": "Municipal support rules for refugees",
+          "stance": "contradicts",
+          "note": "Monthly amount is below the average pension."
+        },
+        {
+          "source": "Social insurance pension statistics",
+          "stance": "context",
+          "note": "Average pension for comparison."
+        }
+      ],
+      "checkedBy": "web search + Gemma",
+      "confidence": 0.74,
+      "checkedAt": "2026-10-26"
+    },
+    {
+      "id": 6,
+      "verdict": "true",
+      "platforms": [
+        "Facebook"
+      ],
+      "firstSeen": "2026-11-01",
+      "lastSeen": "2026-11-05",
+      "posts": 9,
+      "languages": [
+        "lt"
+      ],
+      "clusterId": null,
+      "text": "A protest against new taxes will take place in Vilnius this week.",
+      "explanation": "The city lists a permitted gathering at that time and place.",
+      "evidence": [
+        {
+          "source": "City events and permits list",
+          "stance": "supports",
+          "note": "Gathering approved for that evening."
+        }
+      ],
+      "checkedBy": "web search + Gemma",
+      "confidence": 0.9,
+      "checkedAt": "2026-11-02"
+    }
+  ],
+  "total": 7,
+  "counts": {
+    "all": 6,
+    "true": 1,
+    "false": 2,
+    "misleading": 2,
+    "unverified": 1
+  }
+}

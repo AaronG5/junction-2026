@@ -1,0 +1,36 @@
+{
+  "ai": {
+    "running": true,
+    "chatModel": "gemma-4-E2B-it",
+    "chatModelNote": "Runs fully on the graphics card · reads images",
+    "embeddingModel": "embeddinggemma-300m",
+    "embeddingNote": "768 numbers per post · 100+ languages",
+    "hardware": "RTX 4070 Laptop · 8 GB",
+    "hardwareNote": "32 GB memory · 313 GB free disk",
+    "upgrade": {
+      "model": "gemma-4-26B-A4B-it",
+      "downloadGb": 15.4,
+      "note": "It gives better analyses but answers a little slower."
+    }
+  },
+  "services": [
+    {
+      "name": "AI server",
+      "role": "llama-swap · OpenAI-compatible API",
+      "address": "127.0.0.1:8080",
+      "running": true
+    },
+    {
+      "name": "Database",
+      "role": "MySQL 8.4 · posts, sources, claims",
+      "address": "127.0.0.1:3307",
+      "running": true
+    },
+    {
+      "name": "Vector search",
+      "role": "Qdrant · similar-post search",
+      "address": "127.0.0.1:6335",
+      "running": true
+    }
+  ]
+}

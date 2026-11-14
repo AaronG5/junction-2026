@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import linkCases from "../../../shared/cases/links.json";
 import { defaultFilters } from "../lib/filters";
 import { ApiError, BackendUnavailable, api, httpApi, isDemoMode, isSupportedLink } from "./client";
 
@@ -120,12 +121,7 @@ describe("demo mode", () => {
   });
 });
 
-describe("isSupportedLink", () => {
-  it.each([
-    "https://t.me/kanalas_b/4521", "t.me/kanalas_b", "http://telegram.me/x",
-    "https://www.facebook.com/page/posts/1", "https://m.facebook.com/groups/2", "fb.com/x", "  https://t.me/x  ",
-  ])("accepts %s", (url) => expect(isSupportedLink(url)).toBe(true));
-
-  it.each(["", "hello", "https://example.com/t.me/x", "https://t.me/", "ftp://t.me/x", "https://facebook.com.evil.io/x"])(
-    "rejects %s", (url) => expect(isSupportedLink(url)).toBe(false));
+describe("isSupportedLink (shared cases: shared/cases/links.json)", () => {
+  it.each(linkCases.accept)("accepts %j", (url) => expect(isSupportedLink(url)).toBe(true));
+  it.each(linkCases.reject)("rejects %j", (url) => expect(isSupportedLink(url)).toBe(false));
 });

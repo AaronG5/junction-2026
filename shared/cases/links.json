@@ -1,0 +1,40 @@
+{
+  "_comment": "Which links Veritas Lens accepts (Telegram and Facebook). Read by frontend/src/api/client.test.ts and backend/tests/test_b1_shared_cases.py. Escapes like \\ufeff are JSON escapes for invisible characters.",
+  "accept": [
+    "https://t.me/kanalas_b/4521",
+    "t.me/kanalas_b",
+    "http://telegram.me/x",
+    "https://www.facebook.com/page/posts/1",
+    "https://m.facebook.com/groups/2",
+    "fb.com/x",
+    "  https://t.me/x  ",
+    "HTTPS://T.ME/Upper/1",
+    "\ufeffhttps://t.me/x",
+    "\u00a0https://t.me/x\u00a0",
+    "\thttps://t.me/x\n",
+    "https://www.facebook.com/permalink.php?story_fbid=123&id=456",
+    "https://t.me/kanalas_b/4521?single#comment"
+  ],
+  "reject": [
+    "",
+    "   ",
+    "hello",
+    "https://example.com/t.me/x",
+    "https://t.me/",
+    "ftp://t.me/x",
+    "https://facebook.com.evil.io/x",
+    "https://notfacebook.com/x",
+    "https://t.me.evil.io/x",
+    "javascript:alert(1)//t.me/x",
+    "https://t.me/\ufeff",
+    "https://t.me/\u0085x",
+    "\u0085https://t.me/x",
+    "\u001chttps://t.me/x",
+    "https://t.me/\u001cx",
+    "https://faceboo\u212a.com/x",
+    "http\u017f://t.me/x",
+    "https://t.me/x some trailing text",
+    "https://t.me/kanalas_b/ą",
+    "https://t.me/x\u2028"
+  ]
+}

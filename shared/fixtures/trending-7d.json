@@ -1,0 +1,225 @@
+{
+  "stories": [
+    {
+      "id": "nato-border",
+      "platform": "Telegram",
+      "status": "false",
+      "firstSeen": "2026-11-02",
+      "lastSeen": "2026-11-14",
+      "topic": "Anti-NATO",
+      "trend": {
+        "posts": 1284,
+        "changePct": 38
+      },
+      "headline": "“NATO tanks are provoking at the Belarus border again”",
+      "sub": "Telegram · Lithuanian",
+      "post": {
+        "url": "https://t.me/kanalas_b/4521",
+        "author": "@kanalas_b",
+        "where": "Telegram channel",
+        "text": "„NATO tankai vėl provokuoja prie Baltarusijos sienos. Kodėl apie tai tyli mūsų žiniasklaida?“",
+        "translation": "“NATO tanks are provoking at the Belarusian border again. Why is our media silent about it?”"
+      },
+      "claim": {
+        "headline": "Its main claim doesn't hold up.",
+        "text": "NATO tanks are carrying out provocations at the border",
+        "verdict": "false",
+        "explanation": "The tanks are part of an exercise announced a week earlier, held about 40 km from the border. Border reports for that day list no incidents.",
+        "evidence": "The border guard's daily report and the armed forces' exercise announcement both contradict it."
+      },
+      "origin": {
+        "headline": "It started on Russian state media, 3 hours earlier.",
+        "chain": [
+          {
+            "meta": "08:00 · English",
+            "name": "rt.com",
+            "kind": "News site · Russian state media"
+          },
+          {
+            "meta": "09:30 · Russian · translated",
+            "name": "@kanal_a",
+            "kind": "Telegram channel"
+          },
+          {
+            "meta": "11:00 · Lithuanian · forwarded",
+            "name": "@kanalas_b",
+            "kind": "The post you picked"
+          },
+          {
+            "meta": "12:40 · Lithuanian · shared",
+            "name": "Tiesa be cenzūros",
+            "kind": "Facebook page"
+          }
+        ]
+      },
+      "travel": {
+        "headline": "Within 6 hours it had been copied 41 times, in three languages.",
+        "copies": 41,
+        "accounts": 29,
+        "timeLabel": "6 h",
+        "languages": [
+          {
+            "name": "Russian",
+            "count": 19
+          },
+          {
+            "name": "Lithuanian",
+            "count": 17
+          },
+          {
+            "name": "English",
+            "count": 5
+          }
+        ]
+      },
+      "narrative": {
+        "headline": "Yes. It's one of 1,284 posts telling the same story this week.",
+        "name": "NATO “provocations” at the Belarus border",
+        "stats": "1,284 posts from 212 accounts this week · up 38% on the week before"
+      }
+    },
+    {
+      "id": "electricity",
+      "platform": "Telegram",
+      "status": "false",
+      "firstSeen": "2026-10-28",
+      "lastSeen": "2026-11-13",
+      "topic": "Energy prices",
+      "trend": {
+        "posts": 962,
+        "changePct": 12
+      },
+      "headline": "“EU sanctions will double electricity prices in Lithuania”",
+      "sub": "Telegram · Russian",
+      "post": {
+        "url": "https://t.me/novosti_baltii/20871",
+        "author": "@novosti_baltii",
+        "where": "Telegram channel",
+        "text": "„Из-за санкций ЕС свет в Литве подорожает вдвое уже этой зимой.“",
+        "translation": "“Because of EU sanctions, electricity in Lithuania will cost twice as much this winter.”"
+      },
+      "claim": {
+        "headline": "Its main claim doesn't hold up.",
+        "text": "Electricity prices will double because of EU sanctions",
+        "verdict": "false",
+        "explanation": "The energy regulator forecasts a change of a few percent for next quarter. Sanctions don't set household tariffs.",
+        "evidence": "The energy regulator's published tariff forecast contradicts it."
+      },
+      "origin": {
+        "headline": "It started in a Russian-language channel, then crossed into Lithuanian.",
+        "chain": [
+          {
+            "meta": "07:10 · Russian",
+            "name": "@energy_insider_ru",
+            "kind": "Telegram channel"
+          },
+          {
+            "meta": "08:30 · Russian · near copy",
+            "name": "@novosti_baltii",
+            "kind": "The post you picked"
+          },
+          {
+            "meta": "18:20 · Lithuanian · translated",
+            "name": "@kanalas_b",
+            "kind": "Telegram channel"
+          },
+          {
+            "meta": "next day 09:05 · Lithuanian · shared",
+            "name": "Taupi šeima",
+            "kind": "Facebook group · 12k members"
+          }
+        ]
+      },
+      "travel": {
+        "headline": "Over two days it was copied 38 times, mostly in Russian.",
+        "copies": 38,
+        "accounts": 24,
+        "timeLabel": "2 days",
+        "languages": [
+          {
+            "name": "Russian",
+            "count": 23
+          },
+          {
+            "name": "Lithuanian",
+            "count": 15
+          }
+        ]
+      },
+      "narrative": {
+        "headline": "Yes. It's part of a storyline about energy and sanctions.",
+        "name": "EU sanctions will double electricity prices",
+        "stats": "962 posts from 148 accounts this week · up 12% on the week before"
+      }
+    },
+    {
+      "id": "refugee-benefits",
+      "platform": "Facebook",
+      "status": "misleading",
+      "firstSeen": "2026-10-25",
+      "lastSeen": "2026-11-14",
+      "topic": "Refugees",
+      "trend": {
+        "posts": 533,
+        "changePct": 21
+      },
+      "headline": "“Refugees get bigger benefits than pensioners”",
+      "sub": "Facebook · Lithuanian",
+      "post": {
+        "url": "https://www.facebook.com/tiesabecenzuros/posts/1188",
+        "author": "Tiesa be cenzūros",
+        "where": "Facebook page",
+        "text": "„Pabėgėliai gauna didesnes išmokas nei mūsų pensininkai. Kas čia vyksta?“",
+        "translation": "“Refugees get bigger benefits than our pensioners. What is going on?”"
+      },
+      "claim": {
+        "headline": "It's not false, but it's misleading.",
+        "text": "Refugees receive higher benefits than pensioners",
+        "verdict": "misleading",
+        "explanation": "It compares a one-time settling-in grant with a monthly pension. Monthly support for refugees is lower than the average pension.",
+        "evidence": "Municipal support rules and pension statistics: the monthly amounts don't support the comparison."
+      },
+      "origin": {
+        "headline": "It started in Russian, four and a half hours earlier.",
+        "chain": [
+          {
+            "meta": "10:00 · Russian",
+            "name": "@novosti_baltii",
+            "kind": "Telegram channel"
+          },
+          {
+            "meta": "14:30 · Lithuanian · translated",
+            "name": "Tiesa be cenzūros",
+            "kind": "The post you picked"
+          },
+          {
+            "meta": "16:10 · Lithuanian · near copy",
+            "name": "Baltijos balsas",
+            "kind": "Telegram group · 4.2k members"
+          }
+        ]
+      },
+      "travel": {
+        "headline": "In three days it was copied 29 times, mostly in Lithuanian.",
+        "copies": 29,
+        "accounts": 21,
+        "timeLabel": "3 days",
+        "languages": [
+          {
+            "name": "Lithuanian",
+            "count": 18
+          },
+          {
+            "name": "Russian",
+            "count": 11
+          }
+        ]
+      },
+      "narrative": {
+        "headline": "Yes. It feeds a growing storyline about refugees and welfare.",
+        "name": "Refugees get bigger benefits than pensioners",
+        "stats": "533 posts from 71 accounts this week · up 21% on the week before"
+      }
+    }
+  ]
+}

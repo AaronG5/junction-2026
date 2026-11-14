@@ -124,6 +124,16 @@ export const api: Api = {
 };
 
 /** Telegram or Facebook link to a post, channel, group or page. */
+/**
+ * The rule is spelled out character by character (no \s, \S or trim()), so the
+ * backend's copy in backend/veritas/links.py behaves identically: same spaces
+ * trimmed, ASCII-only case folding, and the rest of the link must be printable
+ * ASCII up to the end. Shared cases: shared/cases/links.json.
+ */
+const LINK_SPACE = "[ \t\n\r\f\v\u00a0\ufeff]";
+const TRIM = new RegExp(`^${LINK_SPACE}+|${LINK_SPACE}+$`, "g");
+const LINK = /^(https?:\/\/)?(t\.me|telegram\.me|(www\.|m\.)?facebook\.com|fb\.com)\/[!-~]+$/i;
+
 export function isSupportedLink(value: string): boolean {
-  return /^(https?:\/\/)?(t\.me|telegram\.me|(www\.|m\.)?facebook\.com|fb\.com)\/\S+/i.test(value.trim());
+  return LINK.test(value.replace(TRIM, ""));
 }

@@ -14,11 +14,15 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from veritas.config import Settings
+from veritas.config import ROOT, Settings
 from veritas.main import create_app
 
 # Requests in tests are addressed to 127.0.0.1, like real ones (other host names are refused).
 BASE_URL = "http://127.0.0.1"
+
+SHARED = ROOT / "shared"
+FIXTURES = SHARED / "fixtures"
+CASES = SHARED / "cases"
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
