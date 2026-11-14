@@ -148,12 +148,12 @@
       "replay": "exact"
     },
     {
-      "file": "trace-t.me-someone-42.json",
+      "file": "trace-electricity.json",
       "model": "Story",
       "method": "GET",
       "path": "/api/trace",
       "query": {
-        "url": "https://t.me/someone/42"
+        "url": "t.me/Novosti_Baltii/20871/?single"
       },
       "status": 200,
       "replay": "exact"

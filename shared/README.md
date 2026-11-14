@@ -3,7 +3,8 @@
 | Folder | What | Who reads it |
 |---|---|---|
 | `fixtures/` | One JSON file per API answer: exactly what the frontend's demo mode returns, error answers (`{"detail": …}`) included. `manifest.json` describes each file (see below). | Backend tests (B1: models; B3: same answers from the real API), frontend freshness test |
-| `cases/` | Rule tables both sides implement: `filters.json` (date ranges, "active between", platform, status, claim search) and `links.json` (accepted links). | Frontend Vitest and backend pytest |
+| `cases/` | Rule tables both sides implement: `filters.json` (date ranges, "active between", platform, status, claim search) and `links.json` (accepted links, and `keys`: the one spelling a link is looked up by). | Frontend Vitest and backend pytest |
+| `demo/demo-data.json` | All of the frontend's demo data, in the API's shapes. Generated with the fixtures. | Backend demo loader (`backend/demo_data.py`) and the B3 tests |
 
 **What `manifest.json` records for each file:**
 - the API call behind it: method, path, query and body;

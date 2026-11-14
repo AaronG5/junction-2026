@@ -35,88 +35,6 @@
       "checkedAt": "2026-11-04"
     },
     {
-      "id": 2,
-      "verdict": "misleading",
-      "platforms": [
-        "Telegram"
-      ],
-      "firstSeen": "2026-11-03",
-      "lastSeen": "2026-11-09",
-      "posts": 11,
-      "languages": [
-        "lt",
-        "ru"
-      ],
-      "clusterId": 9,
-      "text": "Lithuanian media are not reporting it.",
-      "explanation": "National outlets covered the exercise. They did not report a provocation because none was recorded.",
-      "evidence": [
-        {
-          "source": "3 national news articles",
-          "stance": "contradicts",
-          "note": "Each describes the exercise as planned and routine."
-        }
-      ],
-      "checkedBy": "web search + Gemma",
-      "confidence": 0.78,
-      "checkedAt": "2026-11-04"
-    },
-    {
-      "id": 3,
-      "verdict": "false",
-      "platforms": [
-        "Telegram",
-        "Facebook"
-      ],
-      "firstSeen": "2026-10-30",
-      "lastSeen": "2026-11-11",
-      "posts": 38,
-      "languages": [
-        "ru",
-        "lt"
-      ],
-      "clusterId": 7,
-      "text": "Electricity prices will double because of EU sanctions.",
-      "explanation": "The regulator's published forecast for next quarter is a change of a few percent. Sanctions do not set household tariffs.",
-      "evidence": [
-        {
-          "source": "Energy regulator tariff forecast",
-          "stance": "contradicts",
-          "note": "Forecast change is in single digits."
-        }
-      ],
-      "checkedBy": "web search + Gemma",
-      "confidence": 0.82,
-      "checkedAt": "2026-10-31"
-    },
-    {
-      "id": 4,
-      "verdict": "unverified",
-      "platforms": [
-        "Telegram"
-      ],
-      "firstSeen": "2026-11-01",
-      "lastSeen": "2026-11-07",
-      "posts": 17,
-      "languages": [
-        "lt",
-        "ru"
-      ],
-      "clusterId": 3,
-      "text": "The election commission is hiding vote-counting errors.",
-      "explanation": "No evidence either way yet. Recount results are due next week.",
-      "evidence": [
-        {
-          "source": "Election commission recount notice",
-          "stance": "neither",
-          "note": "Confirms a recount in two districts, says nothing about hidden errors."
-        }
-      ],
-      "checkedBy": "web search + Gemma",
-      "confidence": 0.41,
-      "checkedAt": "2026-11-02"
-    },
-    {
       "id": 5,
       "verdict": "misleading",
       "platforms": [
@@ -148,6 +66,88 @@
       "checkedBy": "web search + Gemma",
       "confidence": 0.74,
       "checkedAt": "2026-10-26"
+    },
+    {
+      "id": 3,
+      "verdict": "false",
+      "platforms": [
+        "Telegram",
+        "Facebook"
+      ],
+      "firstSeen": "2026-10-30",
+      "lastSeen": "2026-11-11",
+      "posts": 38,
+      "languages": [
+        "ru",
+        "lt"
+      ],
+      "clusterId": 7,
+      "text": "Electricity prices will double because of EU sanctions.",
+      "explanation": "The regulator's published forecast for next quarter is a change of a few percent. Sanctions do not set household tariffs.",
+      "evidence": [
+        {
+          "source": "Energy regulator tariff forecast",
+          "stance": "contradicts",
+          "note": "Forecast change is in single digits."
+        }
+      ],
+      "checkedBy": "web search + Gemma",
+      "confidence": 0.82,
+      "checkedAt": "2026-10-31"
+    },
+    {
+      "id": 2,
+      "verdict": "misleading",
+      "platforms": [
+        "Telegram"
+      ],
+      "firstSeen": "2026-11-03",
+      "lastSeen": "2026-11-09",
+      "posts": 11,
+      "languages": [
+        "lt",
+        "ru"
+      ],
+      "clusterId": 9,
+      "text": "Lithuanian media are not reporting it.",
+      "explanation": "National outlets covered the exercise. They did not report a provocation because none was recorded.",
+      "evidence": [
+        {
+          "source": "3 national news articles",
+          "stance": "contradicts",
+          "note": "Each describes the exercise as planned and routine."
+        }
+      ],
+      "checkedBy": "web search + Gemma",
+      "confidence": 0.78,
+      "checkedAt": "2026-11-04"
+    },
+    {
+      "id": 4,
+      "verdict": "unverified",
+      "platforms": [
+        "Telegram"
+      ],
+      "firstSeen": "2026-11-01",
+      "lastSeen": "2026-11-07",
+      "posts": 17,
+      "languages": [
+        "lt",
+        "ru"
+      ],
+      "clusterId": 3,
+      "text": "The election commission is hiding vote-counting errors.",
+      "explanation": "No evidence either way yet. Recount results are due next week.",
+      "evidence": [
+        {
+          "source": "Election commission recount notice",
+          "stance": "neither",
+          "note": "Confirms a recount in two districts, says nothing about hidden errors."
+        }
+      ],
+      "checkedBy": "web search + Gemma",
+      "confidence": 0.41,
+      "checkedAt": "2026-11-02"
     },
     {
       "id": 6,

@@ -28,6 +28,11 @@ describe("shared contract fixtures", () => {
     }
   });
 
+  it("the demo data for the backend's loader matches too", () => {
+    const seed = readFileSync(resolve(__dirname, "../../../shared/demo/demo-data.json"), "utf8").replace(/\r\n/g, "\n");
+    expect(seed).toBe(toFileText(built.seed));
+  });
+
   it("no stale files are left in the folder", () => {
     const expected = new Set(["manifest.json", ...Object.keys(built.files)]);
     const present = readdirSync(dir).filter((n: string) => n.endsWith(".json"));

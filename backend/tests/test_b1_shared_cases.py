@@ -10,7 +10,7 @@ from conftest import CASES
 from veritas.filters import (
     DateRange, matches_platform, matches_query, matches_status, overlaps, range_from_params, resolve_range, shift_days,
 )
-from veritas.links import is_supported_link
+from veritas.links import is_supported_link, link_key
 
 FILTERS = json.loads((CASES / "filters.json").read_text(encoding="utf-8"))
 LINKS = json.loads((CASES / "links.json").read_text(encoding="utf-8"))
@@ -81,3 +81,13 @@ def test_unknown_range_is_an_error() -> None:
 def test_a_reversed_range_from_parameters_filters_nothing() -> None:
     r = range_from_params("2026-12-01", "2026-11-01")
     assert r.invalid and overlaps("2000-01-01", "2000-01-02", r)
+
+
+@pytest.mark.parametrize("url, key", LINKS["keys"])
+def test_link_key(url: str, key: str) -> None:
+    assert link_key(url) == key
+
+
+@pytest.mark.parametrize("key", [k for _, k in LINKS["keys"]])
+def test_link_key_is_stable(key: str) -> None:
+    assert link_key(key) == key

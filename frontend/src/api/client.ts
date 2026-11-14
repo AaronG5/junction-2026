@@ -137,3 +137,33 @@ const LINK = /^(https?:\/\/)?(t\.me|telegram\.me|(www\.|m\.)?facebook\.com|fb\.c
 export function isSupportedLink(value: string): boolean {
   return LINK.test(value.replace(TRIM, ""));
 }
+
+const HOST_ALIASES: Record<string, string> = { "telegram.me": "t.me", "fb.com": "facebook.com" };
+
+/**
+ * One spelling per link, for looking it up: spaces trimmed, no http(s)://, no
+ * www. or m., telegram.me = t.me, fb.com = facebook.com, no #part, no trailing
+ * slash, ASCII lowercase, and no ?query (tracking) except on .php pages such as
+ * Facebook's story.php?story_fbid=…, where the query says which post it is.
+ * "HTTPS://T.me/Kanal/5/?x=1" -> "t.me/kanal/5".
+ * Same as link_key() in backend/veritas/links.py (shared cases: links.json "keys").
+ */
+export function linkKey(value: string): string {
+  let s = value.replace(TRIM, "").replace(/^https?:\/\//i, "");
+  const hash = s.indexOf("#");
+  if (hash >= 0) s = s.slice(0, hash);
+  const q = s.indexOf("?");
+  let query = "";
+  if (q >= 0) {
+    query = s.slice(q);
+    s = s.slice(0, q);
+  }
+  s = s.replace(/\/+$/, "");
+  if (/\.php$/i.test(s) && query.length > 1) s += query;
+  s = s.replace(/[A-Z]/g, (c) => c.toLowerCase());
+  const slash = s.indexOf("/");
+  let host = slash >= 0 ? s.slice(0, slash) : s;
+  const path = slash >= 0 ? s.slice(slash) : "";
+  host = host.replace(/^(www\.|m\.)/, "");
+  return (HOST_ALIASES[host] ?? host) + path;
+}

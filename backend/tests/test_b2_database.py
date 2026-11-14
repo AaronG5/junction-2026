@@ -9,13 +9,11 @@ from __future__ import annotations
 
 import dataclasses
 import io
-import os
 import re
 import secrets
 import socket
 import sys
 import uuid
-from contextlib import contextmanager
 from decimal import Decimal
 from pathlib import Path
 from typing import Iterator
@@ -24,7 +22,8 @@ import pymysql
 import pytest
 
 import migrate as migrate_cli
-from veritas.config import ROOT, Settings, read_env_file
+from conftest import admin_connection, scratch_database
+from veritas.config import Settings
 from veritas.db import DatabaseUnavailable, connect, connection
 from veritas.db import migrations as mig
 from veritas.db.migrations import Migration, MigrationError, discover, migrate, pending, split_sql
@@ -281,41 +280,9 @@ def test_cli_reports_bad_settings(monkeypatch, capsys):
 
 # --------------------------------------------------------------------------- integration
 
-def _root_settings() -> Settings:
-    env = read_env_file(ROOT / ".env") if (ROOT / ".env").is_file() else {}
-    root_password = os.environ.get("MYSQL_ROOT_PASSWORD") or env.get("MYSQL_ROOT_PASSWORD", "")
-    return dataclasses.replace(Settings.load(), mysql_user="root", mysql_password=root_password, mysql_database="")
-
-
-@contextmanager
-def _admin() -> Iterator[pymysql.connections.Connection]:
-    try:
-        conn = connect(_root_settings(), database="")
-    except DatabaseUnavailable as exc:
-        pytest.skip(f"MySQL not available for integration tests: {exc}")
-    try:
-        yield conn
-    finally:
-        conn.close()
-
-
-@contextmanager
-def _scratch(name: str | None = None) -> Iterator[Settings]:
-    """A brand-new empty database, dropped afterwards whatever happens."""
-    name = name or f"veritas_test_{secrets.token_hex(6)}"
-    with _admin() as admin:
-        try:
-            with admin.cursor() as cur:
-                cur.execute(f"CREATE DATABASE `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci")
-            yield dataclasses.replace(_root_settings(), mysql_database=name)
-        finally:
-            with admin.cursor() as cur:
-                cur.execute(f"DROP DATABASE IF EXISTS `{name}`")
-
-
 @pytest.fixture
 def scratch_db() -> Iterator[Settings]:
-    with _scratch() as settings:
+    with scratch_database() as settings:
         yield settings
 
 
@@ -374,8 +341,11 @@ def _mark_started(conn, version: str) -> None:
         mig._started_before(cur, version)
 
 
-EXPECTED_TABLES = set(re.findall(r"^CREATE TABLE IF NOT EXISTS (\w+)", mig.INIT_SQL.read_text(encoding="utf-8"),
-                                 re.MULTILINE)) | {"settings", "schema_migration_attempts"}
+EXPECTED_TABLES = {
+    name for m in discover()
+    for name in re.findall(r"^CREATE TABLE IF NOT EXISTS (\w+)", m.path.read_text(encoding="utf-8"), re.MULTILINE)
+} | {"schema_migration_attempts"}
+assert {"settings", "source_profiles", "stories"} <= EXPECTED_TABLES
 
 
 @pytest.mark.integration
@@ -551,7 +521,7 @@ class TestMigrateIntegration:
             with conn.cursor() as cur:
                 cur.execute("ALTER TABLE post_clusters ADD CONSTRAINT chk_post_clusters_map_x CHECK (map_x BETWEEN 0 AND 100)")
             notes: list[str] = []
-            assert migrate(conn, on_skip=notes.append) == ["0003_value_checks"]
+            assert migrate(conn, on_skip=notes.append) == REAL_VERSIONS[2:]
             assert len(notes) == 1 and "check already exists" in notes[0]
 
     def test_another_run_in_progress_is_refused(self, scratch_db, monkeypatch):
@@ -570,13 +540,13 @@ class TestMigrateIntegration:
             assert _lock_free(conn)  # and released after the run
 
     def test_lock_name_fits_for_the_longest_database_name(self):
-        with _scratch("veritas_test_" + secrets.token_hex(4) + "x" * 43) as settings:  # 64 characters
+        with scratch_database("veritas_test_" + secrets.token_hex(4) + "x" * 43) as settings:  # 64 characters
             assert len(settings.mysql_database) == 64
             with connection(settings) as conn:
                 assert migrate(conn) == REAL_VERSIONS
 
     def test_no_database_selected_is_a_plain_error(self):
-        with _admin() as admin:
+        with admin_connection() as admin:
             with pytest.raises(MigrationError, match="No database is selected"):
                 migrate(admin)
 
@@ -620,7 +590,7 @@ class TestMigrateIntegration:
 
     def test_non_ascii_password_logs_in(self, scratch_db):
         user, password = f"vt_{secrets.token_hex(4)}", "Žalgiris-ąčę-" + secrets.token_hex(4)
-        with _admin() as admin, admin.cursor() as cur:
+        with admin_connection() as admin, admin.cursor() as cur:
             cur.execute("CREATE USER %s@'%%' IDENTIFIED BY %s", (user, password))
             try:
                 with connection(scratch_db, user=user, password=password, database="") as conn:

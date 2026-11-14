@@ -26,10 +26,11 @@ globalThis.Date = FrozenDate as DateConstructor;
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, "../../shared/fixtures");
+const seedPath = resolve(here, "../../shared/demo/demo-data.json");
 const check = process.argv.includes("--check");
 
 const { buildFixtures, toFileText } = await import("../src/demo/fixtures");
-const { manifest, files } = await buildFixtures();
+const { manifest, files, seed } = await buildFixtures();
 const wanted: Record<string, string> = { "manifest.json": toFileText(manifest) };
 for (const [name, value] of Object.entries(files)) wanted[name] = toFileText(value);
 
@@ -43,16 +44,20 @@ if (check) {
   if (existsSync(outDir)) {
     for (const name of readdirSync(outDir)) if (name.endsWith(".json") && !(name in wanted)) problems.push(`no longer produced: ${name}`);
   }
+  if (!existsSync(seedPath)) problems.push("missing: shared/demo/demo-data.json");
+  else if (readFileSync(seedPath, "utf8").replace(/\r\n/g, "\n") !== toFileText(seed)) problems.push("out of date: shared/demo/demo-data.json");
   if (problems.length) {
     console.error("Shared fixtures are not up to date. Run: npm run export:fixtures\n  " + problems.join("\n  "));
     process.exit(1);
   }
-  console.log(`Shared fixtures are up to date (${Object.keys(wanted).length} files).`);
+  console.log(`Shared fixtures are up to date (${Object.keys(wanted).length} files + demo data).`);
 } else {
   if (existsSync(outDir)) {
     for (const name of readdirSync(outDir)) if (name.endsWith(".json")) rmSync(join(outDir, name));
   }
   mkdirSync(outDir, { recursive: true });
   for (const [name, text] of Object.entries(wanted)) writeFileSync(join(outDir, name), text, "utf8");
-  console.log(`Wrote ${Object.keys(wanted).length} files to ${outDir}`);
+  mkdirSync(dirname(seedPath), { recursive: true });
+  writeFileSync(seedPath, toFileText(seed), "utf8");
+  console.log(`Wrote ${Object.keys(wanted).length} files to ${outDir}, and ${seedPath}`);
 }

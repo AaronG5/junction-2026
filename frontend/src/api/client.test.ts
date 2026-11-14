@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import linkCases from "../../../shared/cases/links.json";
 import { defaultFilters } from "../lib/filters";
-import { ApiError, BackendUnavailable, api, httpApi, isDemoMode, isSupportedLink } from "./client";
+import { ApiError, BackendUnavailable, api, httpApi, isDemoMode, isSupportedLink, linkKey } from "./client";
 
 // Records whether the demo module was ever loaded.
 const demoState = vi.hoisted(() => ({ loaded: false }));
@@ -124,4 +124,11 @@ describe("demo mode", () => {
 describe("isSupportedLink (shared cases: shared/cases/links.json)", () => {
   it.each(linkCases.accept)("accepts %j", (url) => expect(isSupportedLink(url)).toBe(true));
   it.each(linkCases.reject)("rejects %j", (url) => expect(isSupportedLink(url)).toBe(false));
+});
+
+describe("linkKey (shared cases: shared/cases/links.json keys)", () => {
+  it.each(linkCases.keys)("%j -> %j", (url, key) => expect(linkKey(url)).toBe(key));
+  it("is stable: a key is its own key", () => {
+    for (const [, key] of linkCases.keys) expect(linkKey(key)).toBe(key);
+  });
 });

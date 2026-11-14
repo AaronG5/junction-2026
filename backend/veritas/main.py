@@ -24,6 +24,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import __version__
 from .config import Settings
+from .db import DatabaseUnavailable
 from .routes import ROUTERS
 
 log = logging.getLogger("veritas")
@@ -103,6 +104,11 @@ def _add_error_handlers(app: FastAPI, dist: Path) -> None:
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
         return JSONResponse({"detail": _describe_validation(exc)}, status_code=422)
+
+    @app.exception_handler(DatabaseUnavailable)
+    async def database_unavailable(request: Request, exc: DatabaseUnavailable) -> JSONResponse:
+        # The message is already plain language and never contains the password.
+        return JSONResponse({"detail": str(exc)}, status_code=503)
 
     @app.exception_handler(Exception)
     async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:

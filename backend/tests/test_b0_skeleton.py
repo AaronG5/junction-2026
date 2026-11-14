@@ -50,11 +50,11 @@ def test_unknown_api_address_is_a_json_404(client, path: str, method: str) -> No
 def test_an_endpoints_own_404_message_reaches_the_user(settings: Settings) -> None:
     app = create_app(settings)
 
-    @app.get("/api/sources/{source_id}")
+    @app.get("/api/test-only/sources/{source_id}")
     def source(source_id: str) -> None:
         raise HTTPException(404, "There is no report for this source yet.")
 
-    r = make_client(settings, app).get("/api/sources/nobody")
+    r = make_client(settings, app).get("/api/test-only/sources/nobody")
     assert r.status_code == 404
     assert r.json() == {"detail": "There is no report for this source yet."}
 

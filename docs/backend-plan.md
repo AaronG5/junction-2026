@@ -106,7 +106,14 @@ Endpoints for every screen:
 - `/api/narratives`, `/api/claims`, `/api/sources`, `/api/sources/{id}`
 - `/api/trending`, `/api/stories/{id}`, `/api/trace?url=…`
 
-A **demo loader** turns `shared/fixtures/` into database rows and Qdrant points. The launcher's `--demo-data` flag uses it later. Without that flag, no demo data is ever loaded.
+**How it works (built):**
+- The screens show summaries ("1,284 posts from 212 accounts", a source's share of near copies, a story's origin chain). The analysis jobs work these out and store them (migration `0004_read_models`: summary columns on `claims`, `clusters.stats`, `source_profiles`, `stories`). The API only filters, sorts and counts them, in Python with `veritas/filters.py`, so it follows the shared rule tables exactly (code: `veritas/queries.py`, `veritas/routes/screens.py`).
+- Verdicts: the database's finer verdicts show as the four the screens know (`mostly_false` → false, `mixed` → misleading, `unverifiable` → unverified).
+- Orders: narratives largest first, claims most recently seen first, sources most near copies first, stories most posts first; ties by id. The frontend's demo sorts the same way.
+- `/api/trace?url=…` finds the story whose post is that link, however the link is written (`linkKey()` / `link_key()`, shared cases in `links.json` "keys"). An unknown post → 404 "We haven't collected that post yet…". (The frontend's demo still shows an example story for unknown links.)
+- `/api/analyze` and `/api/system` come in B6 and B7; the parity test lists them so they can't be forgotten.
+
+A **demo loader** (`veritas/db/demo.py`) turns `shared/demo/demo-data.json` (exported with the fixtures) into database rows; Qdrant points follow in B4. Run it with `uv run python backend/demo_data.py` (`--remove` to delete it); the launcher's `--demo-data` flag will use it. It moves the demo's dates so its "today" is today. It only loads into an empty database (or one holding demo data, which it replaces). Without being asked, no demo data is ever loaded.
 
 **Tests**
 - **Parity (the key test):** after loading the demo data, every manifest entry marked `"replay": "exact"` is replayed with the same method, path, query and body.

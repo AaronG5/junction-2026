@@ -9,6 +9,7 @@ Test types (see docs/backend-plan.md):
 from __future__ import annotations
 
 import re
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -59,3 +60,50 @@ def make_client(settings: Settings, app=None) -> TestClient:
 @pytest.fixture
 def client(settings: Settings) -> TestClient:
     return make_client(settings)
+
+
+# --------------------------------------------------------------------------- throwaway databases
+
+def root_settings() -> Settings:
+    """The MySQL root login from .env (or MYSQL_ROOT_PASSWORD), no database selected."""
+    import dataclasses
+    import os
+
+    from veritas.config import read_env_file
+
+    env = read_env_file(ROOT / ".env") if (ROOT / ".env").is_file() else {}
+    root_password = os.environ.get("MYSQL_ROOT_PASSWORD") or env.get("MYSQL_ROOT_PASSWORD", "")
+    return dataclasses.replace(Settings.load(), mysql_user="root", mysql_password=root_password, mysql_database="")
+
+
+@contextmanager
+def admin_connection():
+    """A root connection; skips the test when MySQL isn't available."""
+    from veritas.db import DatabaseUnavailable, connect
+
+    try:
+        conn = connect(root_settings(), database="")
+    except DatabaseUnavailable as exc:
+        pytest.skip(f"MySQL not available for integration tests: {exc}")
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
+@contextmanager
+def scratch_database(name: str | None = None):
+    """A brand-new empty database (veritas_test_<random>), dropped afterwards whatever happens.
+    Yields Settings pointing at it (root login). Your veritas_lens database is never touched."""
+    import dataclasses
+    import secrets
+
+    name = name or f"veritas_test_{secrets.token_hex(6)}"
+    with admin_connection() as admin:
+        try:
+            with admin.cursor() as cur:
+                cur.execute(f"CREATE DATABASE `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci")
+            yield dataclasses.replace(root_settings(), mysql_database=name)
+        finally:
+            with admin.cursor() as cur:
+                cur.execute(f"DROP DATABASE IF EXISTS `{name}`")
