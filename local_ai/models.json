@@ -1,0 +1,109 @@
+{
+  "_comment": [
+    "Catalog of Gemma chat models the launcher can choose from, plus the embedding model.",
+    "size_gb: download size in decimal GB (as shown on Hugging Face). The launcher re-checks the",
+    "real size and SHA-256 from Hugging Face before downloading.",
+    "kv_gb: rough KV-cache memory estimate at the default context size (16k tokens). Gemma uses",
+    "sliding-window attention, so this is small; llama.cpp's own auto-fit corrects the rest.",
+    "quality: higher is better; the launcher picks the highest-quality model that fits.",
+    "active_params_b: parameters used per token (matters for CPU speed; MoE models use fewer).",
+    "mmproj: vision projector, downloaded alongside when the model has one (image input)."
+  ],
+  "chat_models": [
+    {
+      "id": "gemma-3-1b-it",
+      "family": "gemma-3", "params_b": 1, "active_params_b": 1, "moe": false, "quality": 1,
+      "repo": "ggml-org/gemma-3-1b-it-GGUF",
+      "file": "gemma-3-1b-it-Q4_K_M.gguf", "size_gb": 0.81,
+      "mmproj": null,
+      "kv_gb": 0.15, "license": "gemma"
+    },
+    {
+      "id": "gemma-3n-E2B-it",
+      "family": "gemma-3n", "params_b": 5, "active_params_b": 2, "moe": false, "quality": 2,
+      "repo": "unsloth/gemma-3n-E2B-it-GGUF",
+      "file": "gemma-3n-E2B-it-Q4_K_M.gguf", "size_gb": 3.03,
+      "mmproj": null,
+      "kv_gb": 0.2, "license": "gemma"
+    },
+    {
+      "id": "gemma-4-E2B-it",
+      "family": "gemma-4", "params_b": 5, "active_params_b": 2, "moe": false, "quality": 3,
+      "repo": "ggml-org/gemma-4-E2B-it-GGUF",
+      "file": "gemma-4-E2B-it-Q4_0.gguf", "size_gb": 2.84,
+      "mmproj": {"file": "mmproj-gemma-4-E2B-it-Q8_0.gguf", "size_gb": 0.56},
+      "kv_gb": 0.2, "license": "apache-2.0"
+    },
+    {
+      "id": "gemma-3-4b-it",
+      "family": "gemma-3", "params_b": 4, "active_params_b": 4, "moe": false, "quality": 4,
+      "repo": "ggml-org/gemma-3-4b-it-GGUF",
+      "file": "gemma-3-4b-it-Q4_K_M.gguf", "size_gb": 2.49,
+      "mmproj": {"file": "mmproj-model-f16.gguf", "size_gb": 0.85},
+      "kv_gb": 0.4, "license": "gemma"
+    },
+    {
+      "id": "gemma-3n-E4B-it",
+      "family": "gemma-3n", "params_b": 8, "active_params_b": 4, "moe": false, "quality": 5,
+      "repo": "unsloth/gemma-3n-E4B-it-GGUF",
+      "file": "gemma-3n-E4B-it-Q4_K_M.gguf", "size_gb": 4.54,
+      "mmproj": null,
+      "kv_gb": 0.3, "license": "gemma"
+    },
+    {
+      "id": "gemma-4-E4B-it",
+      "family": "gemma-4", "params_b": 8, "active_params_b": 4, "moe": false, "quality": 6,
+      "repo": "ggml-org/gemma-4-E4B-it-GGUF",
+      "file": "gemma-4-E4B-it-Q4_0.gguf", "size_gb": 4.59,
+      "mmproj": {"file": "mmproj-gemma-4-E4B-it-Q8_0.gguf", "size_gb": 0.56},
+      "kv_gb": 0.3, "license": "apache-2.0"
+    },
+    {
+      "id": "gemma-3-12b-it",
+      "family": "gemma-3", "params_b": 12, "active_params_b": 12, "moe": false, "quality": 7,
+      "repo": "ggml-org/gemma-3-12b-it-GGUF",
+      "file": "gemma-3-12b-it-Q4_K_M.gguf", "size_gb": 7.30,
+      "mmproj": {"file": "mmproj-model-f16.gguf", "size_gb": 0.85},
+      "kv_gb": 0.8, "license": "gemma"
+    },
+    {
+      "id": "gemma-4-12B-it",
+      "family": "gemma-4", "params_b": 12, "active_params_b": 12, "moe": false, "quality": 8,
+      "repo": "ggml-org/gemma-4-12B-it-GGUF",
+      "file": "gemma-4-12B-it-Q4_0.gguf", "size_gb": 7.22,
+      "mmproj": {"file": "mmproj-gemma-4-12B-it-Q8_0.gguf", "size_gb": 0.16},
+      "kv_gb": 0.8, "license": "apache-2.0"
+    },
+    {
+      "id": "gemma-3-27b-it",
+      "family": "gemma-3", "params_b": 27, "active_params_b": 27, "moe": false, "quality": 9,
+      "repo": "ggml-org/gemma-3-27b-it-GGUF",
+      "file": "gemma-3-27b-it-Q4_K_M.gguf", "size_gb": 16.55,
+      "mmproj": {"file": "mmproj-model-f16.gguf", "size_gb": 0.86},
+      "kv_gb": 1.2, "license": "gemma"
+    },
+    {
+      "id": "gemma-4-26B-A4B-it",
+      "family": "gemma-4", "params_b": 26, "active_params_b": 4, "moe": true, "quality": 10,
+      "repo": "ggml-org/gemma-4-26B-A4B-it-GGUF",
+      "file": "gemma-4-26B-A4B-it-Q4_0.gguf", "size_gb": 14.62,
+      "mmproj": {"file": "mmproj-gemma-4-26B-A4B-it-Q8_0.gguf", "size_gb": 0.81},
+      "kv_gb": 0.6, "license": "apache-2.0"
+    },
+    {
+      "id": "gemma-4-31B-it",
+      "family": "gemma-4", "params_b": 31, "active_params_b": 31, "moe": false, "quality": 11,
+      "repo": "ggml-org/gemma-4-31B-it-GGUF",
+      "file": "gemma-4-31B-it-Q4_0.gguf", "size_gb": 17.99,
+      "mmproj": {"file": "mmproj-gemma-4-31B-it-Q8_0.gguf", "size_gb": 0.81},
+      "kv_gb": 1.5, "license": "apache-2.0"
+    }
+  ],
+  "embedding_model": {
+    "id": "embeddinggemma-300m",
+    "repo": "ggml-org/embeddinggemma-300M-GGUF",
+    "file": "embeddinggemma-300M-Q8_0.gguf", "size_gb": 0.33,
+    "dimensions": 768, "ctx": 2048,
+    "memory_gb": 0.6, "license": "gemma"
+  }
+}

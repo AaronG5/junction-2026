@@ -1,0 +1,48 @@
+# MySQL + Qdrant for the self-hosted setup. Started by the launcher with
+# `docker compose --env-file ../.env up -d`; values come from the generated .env.
+# Ports are bound to 127.0.0.1 only: the databases are never exposed to the
+# local network (important on shared/public Wi-Fi).
+name: junction-ai
+
+services:
+  mysql:
+    # MySQL Community Server is GPLv2. It runs as a separate, unmodified
+    # service the app talks to over the network, so it does not affect this
+    # project's MIT license. Use an MIT client library (PyMySQL) in app code.
+    image: mysql:8.4
+    container_name: junction-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?run the launcher to generate .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-junction}
+      MYSQL_USER: ${MYSQL_USER:-junction}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?run the launcher to generate .env}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Runs only when the data volume is first created. After changing
+      # init.sql on an existing install, apply migrations instead (or reset
+      # with `docker compose down -v`, which deletes all data).
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  qdrant:
+    image: qdrant/qdrant:v1.18.2
+    container_name: junction-qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${QDRANT_PORT:-6333}:6333"
+      - "127.0.0.1:${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  mysql_data:
+  qdrant_data:
