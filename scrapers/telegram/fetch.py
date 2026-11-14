@@ -20,6 +20,7 @@ Per channel (docs/oxylabs-telegram-scrape.md):
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
@@ -134,6 +135,20 @@ class _Coverage:
         return any(r_lo <= lo and hi <= r_hi for r_lo, r_hi in self._ranges)
 
 
+def _sha256(html: str) -> str:
+    return hashlib.sha256(html.encode("utf-8")).hexdigest()
+
+
+def _page_matches(entry: dict, html: str, ids: Sequence[int]) -> bool:
+    """Is this file still the page meta.json says it is? Uses the content hash, or
+    for pages saved before hashes were recorded, the message-id range."""
+    if entry.get("sha256"):
+        return entry["sha256"] == _sha256(html)
+    if entry.get("minId") is not None:
+        return bool(ids) and min(ids) == entry["minId"] and max(ids) == entry["maxId"]
+    return True                  # oldest format: nothing recorded to check against
+
+
 def _page_range(before: int | None, ids: Sequence[int]) -> tuple[int, int] | None:
     """Ids a page covers. ?before=B with no messages means nothing below B exists."""
     if not ids:
@@ -196,8 +211,17 @@ class PageCache:
         self.meta["pages"].append({
             "file": name, "url": url, "requestId": request_id, "before": before,
             "minId": min(ids) if ids else None, "maxId": max(ids) if ids else None,
+            "sha256": _sha256(html),
             "scrapedAt": to_utc_iso(datetime.now(timezone.utc)),
         })
+        self.write_meta()
+
+    def drop(self, entries: Sequence[dict]) -> None:
+        """Forget pages (and delete their files), e.g. ones whose content is wrong."""
+        files = {e["file"] for e in entries}
+        for name in files:
+            (self.dir / name).unlink(missing_ok=True)
+        self.meta["pages"] = [p for p in self.meta["pages"] if p["file"] not in files]
         self.write_meta()
 
     def mark_empty_before(self, before: int) -> None:
@@ -267,8 +291,17 @@ def fetch_channel(client: Scraper, channel: Channel, n: int | None, raw_root: Pa
             coverage.add(*span)
         return span
 
+    broken = []
     for entry, html in cache.pages():
-        absorb(parse_page(html, channel.name), entry.get("before"))
+        parsed = parse_page(html, channel.name)
+        if _page_matches(entry, html, parsed.message_ids):
+            absorb(parsed, entry.get("before"))
+        else:
+            broken.append(entry)
+    if broken:
+        log.warning("%s: %d saved page(s) don't match meta.json (overwritten?); dropping them "
+                    "so they're fetched again", channel.username, len(broken))
+        cache.drop(broken)
     if cache.meta.get("exhausted") and not cache.meta["emptyBefore"] and coverage.lowest:
         cache.meta["emptyBefore"] = coverage.lowest     # migrate caches from before id ranges
         cache.write_meta()

@@ -115,6 +115,7 @@ Notes:
   - Re-fetched posts replace their saved versions, so edits are picked up.
   - If page 1 fails (an API error, or no posts in either region), the channel keeps its saved posts and is marked `partial` with the reason.
 - `--refresh` throws the saved pages away and starts over. It can't be combined with `--update`.
+- Each saved page records a sha256 of its HTML. A page whose file doesn't match `meta.json` (by hash, or by id range for pages saved before hashes) is dropped on load and fetched again.
 - Add `data/raw/` to `.gitignore`. Don't commit scraped output unless the user asks.
 
 ## Parsing

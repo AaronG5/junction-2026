@@ -356,6 +356,34 @@ class CacheTests(FetchTestCase):
         fetch_channel(client, chan(), 40, self.raw)
         self.assertEqual(client.calls[-1], ("https://t.me/s/chan?before=81", "RU"))
 
+    def test_a_page_overwritten_by_another_crawl_is_dropped_and_fetched_again(self):
+        client = FakeTelegram({"chan": 100})
+        fetch_channel(client, chan(), 40, self.raw)                           # 81..100, 61..80
+        folder = self.raw / "chan"
+        # What two crawls at once did: another process wrote a different page under this name.
+        (folder / "page-002.html").write_text((folder / "page-001.html").read_text(encoding="utf-8"),
+                                              encoding="utf-8")
+        result = fetch_channel(client, chan(), 40, self.raw)
+        self.assertEqual(client.calls[-1], ("https://t.me/s/chan?before=81", None))
+        self.assertEqual(len(client.calls), 3)
+        self.assertEqual(ids_of(result), list(range(100, 60, -1)))
+        self.assertEqual([p["file"] for p in PageCache(folder).meta["pages"]],
+                         ["page-001.html", "page-002.html"])
+
+    def test_pages_without_hashes_are_checked_by_id_range(self):
+        client = FakeTelegram({"chan": 100})
+        fetch_channel(client, chan(), 40, self.raw)
+        folder = self.raw / "chan"
+        meta = json.loads((folder / "meta.json").read_text(encoding="utf-8"))
+        for page in meta["pages"]:
+            del page["sha256"]                                                # saved before hashes
+        (folder / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
+        (folder / "page-002.html").write_text((folder / "page-001.html").read_text(encoding="utf-8"),
+                                              encoding="utf-8")
+        result = fetch_channel(client, chan(), 40, self.raw)
+        self.assertEqual(len(client.calls), 3)
+        self.assertEqual(ids_of(result), list(range(100, 60, -1)))
+
     def test_refresh_scrapes_again(self):
         client = FakeTelegram({"chan": 100})
         fetch_channel(client, chan(), 20, self.raw)
