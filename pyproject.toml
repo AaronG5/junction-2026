@@ -11,6 +11,12 @@ dependencies = [
     "uvicorn>=0.54.0",
 ]
 
+[project.optional-dependencies]
+clustering = [
+    "scikit-learn>=1.5",
+    "umap-learn>=0.5.7",
+]
+
 [tool.uv]
 # Not an installable package: uv only manages the environment the launcher
 # and (later) the backend run in. Run everything with `uv run ...`.

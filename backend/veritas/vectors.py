@@ -200,6 +200,29 @@ class Qdrant:
             if offset is None:
                 return
 
+    def vectors(self, alias: str, *, flt: dict | None = None, batch: int = 256) -> Iterator[tuple[str, list[float], dict]]:
+        """Every point (id, vector, payload) matching the filter, in pages."""
+        offset = None
+        while True:
+            body: dict = {"limit": batch, "with_payload": True, "with_vector": [VECTOR_NAME]}
+            if flt:
+                body["filter"] = flt
+            if offset is not None:
+                body["offset"] = offset
+            page = self._request("POST", f"/collections/{self.name(alias)}/points/scroll", body)
+            for p in page["points"]:
+                vector = p.get("vector") or {}
+                yield str(p["id"]), list(vector.get(VECTOR_NAME, []) if isinstance(vector, dict) else vector), p.get("payload") or {}
+            offset = page.get("next_page_offset")
+            if offset is None:
+                return
+
+    def set_payload(self, alias: str, ids: Iterable[str | uuid.UUID | bytes], payload: dict) -> None:
+        points = [_point_id(i) for i in ids]
+        if points:
+            self._request("POST", f"/collections/{self.name(alias)}/points/payload?wait=true",
+                          {"payload": payload, "points": points})
+
     def search(self, alias: str, vector: Sequence[float], *, limit: int = 10, flt: dict | None = None,
                min_score: float | None = None) -> list[Hit]:
         body: dict = {"query": self._check_vector(alias, vector), "using": VECTOR_NAME,

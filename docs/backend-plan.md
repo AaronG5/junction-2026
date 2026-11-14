@@ -245,6 +245,14 @@ A batch job:
 
 This needs heavier packages, so it'll be an optional install: `uv sync --extra clustering`.
 
+**How it works (built):** `veritas/clustering.py`, run with `uv run python backend/cluster.py --days 7` after `uv sync --extra clustering` (umap-learn + scikit-learn's HDBSCAN; scikit-learn's version avoids the separate `hdbscan` package, which can need a compiler on Windows).
+- UMAP (5 dimensions for grouping, 2 for the map; fixed seed, `compatibility_layout=True` so results don't change with UMAP's next default) and HDBSCAN (`min_cluster_size = max(5, posts/40)`).
+- UMAP pulls lone posts into the nearest group, so membership is checked again in the original 768 numbers: a post less similar than 0.5 to its group's centre fits no group. (Found with the synthetic test: without it, all 10 scattered posts landed in groups.)
+- Each group: centre (stored in Qdrant `clusters`, also used to assign new posts at once), ranks (1 = most typical), 2 typical and 1 edge post, platforms and language shares, accounts, first/last seen, main claim (the claim most of its posts make), and a name and summary from Gemma (`prompts/cluster_name.v1.md`).
+- Narratives across runs: a new group whose centre is at least 0.85 similar to one from the previous run continues that narrative, and gets its week-on-week change; others start a new narrative.
+- Fewer than 20 posts in the window: no run, "no clusters" message. A failure marks the run failed, and the screens keep showing the last good run.
+- Not yet run on real data: the demo data has no vectors. Posts analyzed through "Analyze a link" (B6) or collected by the team's scraper get vectors, and then appear in the next run.
+
 **Tests**
 - **Synthetic data with known groups:** three clear groups are found, scattered points are marked as noise, and the same input always gives the same result.
 - Typical posts are the ones closest to the centre, and edge posts the farthest.
