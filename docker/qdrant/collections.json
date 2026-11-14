@@ -1,0 +1,69 @@
+{
+  "_comment": [
+    "Qdrant collections (DRAFT v0.2) -- see docs/data-architecture.md.",
+    "Each collection is versioned by embedding model; the app uses the alias.",
+    "Switching embedding models = create new collections, re-embed, move the alias.",
+    "Bodies below are passed as-is to PUT /collections/{name} and PUT /collections/{name}/index."
+  ],
+  "collections": [
+    {
+      "name": "posts__embeddinggemma_300m",
+      "alias": "posts",
+      "description": "One vector per post/article. Point id = posts.uuid. Used for similar-post search, cross-language matching and clustering.",
+      "config": {
+        "vectors": {"text": {"size": 768, "distance": "Cosine"}},
+        "on_disk_payload": true
+      },
+      "payload_indexes": {
+        "post_id": "integer",
+        "account_id": "integer",
+        "container_account_id": "integer",
+        "platform": "keyword",
+        "language": "keyword",
+        "post_type": "keyword",
+        "published_at": "datetime",
+        "cluster_id": "integer",
+        "origin": "keyword"
+      }
+    },
+    {
+      "name": "claims__embeddinggemma_300m",
+      "alias": "claims",
+      "description": "One vector per extracted claim. Point id = claims.uuid. Finds the same claim in other posts/languages so it is fact-checked once.",
+      "config": {
+        "vectors": {"text": {"size": 768, "distance": "Cosine"}},
+        "on_disk_payload": true
+      },
+      "payload_indexes": {
+        "claim_id": "integer",
+        "language": "keyword",
+        "verdict": "keyword"
+      }
+    },
+    {
+      "name": "categories__embeddinggemma_300m",
+      "alias": "categories",
+      "description": "One prototype vector per category (description + example posts). Point id = categories.prototype_uuid. First, cheap pass of 'which category does this post fall in'; Gemma confirms close calls.",
+      "config": {
+        "vectors": {"text": {"size": 768, "distance": "Cosine"}}
+      },
+      "payload_indexes": {
+        "category_id": "integer",
+        "is_active": "bool"
+      }
+    },
+    {
+      "name": "clusters__embeddinggemma_300m",
+      "alias": "clusters",
+      "description": "Cluster centroids. Point id = clusters.centroid_uuid. Assigns a newly analyzed post to the nearest known cluster/narrative instantly, without re-clustering.",
+      "config": {
+        "vectors": {"text": {"size": 768, "distance": "Cosine"}}
+      },
+      "payload_indexes": {
+        "cluster_id": "integer",
+        "run_id": "integer",
+        "narrative_id": "integer"
+      }
+    }
+  ]
+}
