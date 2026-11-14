@@ -96,7 +96,7 @@ export function FilterBar({
         <div className="fchips">
           {STATUSES.map((s) => (
             <button key={s} type="button" className="flt" aria-pressed={value.status === s} onClick={() => set({ status: s })}>
-              <StatusDot verdict={s} />
+              {s !== "all" && <StatusDot verdict={s} />}
               {s === "all" ? statusAllLabel : VERDICT_LABEL[s]}
               {counts && <span className="mono muted fcount">{counts[s]}</span>}
             </button>
