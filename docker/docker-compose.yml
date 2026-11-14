@@ -1,7 +1,9 @@
 # MySQL + Qdrant for the self-hosted setup. Started by the launcher with
 # `docker compose --env-file ../.env up -d`; values come from the generated .env.
-# Ports are bound to 127.0.0.1 only: the databases are never exposed to the
-# local network (important on shared/public Wi-Fi).
+# Ports follow DB_BIND_HOST from .env, which the launcher sets to 127.0.0.1:
+# nothing outside this computer needs the databases, so they stay off the local
+# network even when the dashboard is served to it (important on shared/public
+# Wi-Fi). `launch.sh --expose-databases` publishes them on BIND_HOST instead.
 name: junction-ai
 
 services:
@@ -19,7 +21,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?run the launcher to generate .env}
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
     ports:
-      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+      - "${DB_BIND_HOST:-127.0.0.1}:${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       # Runs only when the data volume is first created. After changing
@@ -38,8 +40,8 @@ services:
     container_name: junction-qdrant
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${QDRANT_PORT:-6333}:6333"
-      - "127.0.0.1:${QDRANT_GRPC_PORT:-6334}:6334"
+      - "${DB_BIND_HOST:-127.0.0.1}:${QDRANT_PORT:-6333}:6333"
+      - "${DB_BIND_HOST:-127.0.0.1}:${QDRANT_GRPC_PORT:-6334}:6334"
     volumes:
       - qdrant_data:/qdrant/storage
 

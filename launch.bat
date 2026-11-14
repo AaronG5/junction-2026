@@ -1,5 +1,9 @@
 @echo off
 rem Windows launcher: double-click this file, or run it from a terminal.
+rem Starts everything: the AI models, the databases, the dashboard build and
+rem the backend that serves it.
+rem Listens on this computer only. To serve a network (or a server), run it
+rem as:  launch.bat --host 0.0.0.0     (./launch.sh does that by default)
 rem All the work happens in Python (local_ai/), run through uv. uv also
 rem downloads a suitable Python by itself, so nothing else needs installing.
 setlocal

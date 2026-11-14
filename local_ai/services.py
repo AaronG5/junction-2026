@@ -15,6 +15,45 @@ from .state import read_env, set_env_values
 
 DOCKER_INSTALL_URL = "https://docs.docker.com/get-started/get-docker/"
 
+# Addresses that mean "this computer only"; anything else is reachable from the network.
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1", "[::1]")
+ANY_HOSTS = ("0.0.0.0", "::", "[::]")
+
+
+def bind_host(env=None):
+    """Where the dashboard and the AI server listen. .env is what counts here:
+    the launcher writes the choice there at the start of every run."""
+    return (env or read_env()).get("BIND_HOST") or "127.0.0.1"
+
+
+def db_bind_host(env=None):
+    """Where Docker publishes MySQL and Qdrant (.env DB_BIND_HOST)."""
+    return (env or read_env()).get("DB_BIND_HOST") or "127.0.0.1"
+
+
+def on_the_network(host):
+    return host not in LOOPBACK_HOSTS
+
+
+def lan_ip():
+    """This computer's address on its network. Sends nothing: a connected UDP
+    socket only makes the system pick the route it would use."""
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        try:
+            s.connect(("203.0.113.1", 9))  # TEST-NET-3, never actually routed
+            return s.getsockname()[0]
+        except OSError:
+            return "127.0.0.1"
+
+
+def reachable_host(env=None):
+    """The address to show users: for 0.0.0.0 that is this computer's own
+    network address, which is what they can type into a browser."""
+    host = bind_host(env)
+    if not on_the_network(host):
+        return "127.0.0.1"
+    return lan_ip() if host in ANY_HOSTS else host
+
 
 def port_free(port):
     """True if nothing listens on the port. Checks by connecting first: on
@@ -187,7 +226,8 @@ def start_docker_services():
             break
         time.sleep(1)
         status, _ = http_get(f"http://127.0.0.1:{env['QDRANT_PORT']}/readyz")
-    ui.ok(f"MySQL on 127.0.0.1:{env['MYSQL_PORT']}, Qdrant on 127.0.0.1:{env['QDRANT_PORT']}")
+    dbh = db_bind_host(env)
+    ui.ok(f"MySQL on {dbh}:{env['MYSQL_PORT']}, Qdrant on {dbh}:{env['QDRANT_PORT']}")
     return True
 
 
@@ -200,8 +240,15 @@ def stop_docker_services():
 # ---- llama-swap -----------------------------------------------------------------
 
 def swap_url(env=None):
+    """Always the loopback address: used for health checks and by the backend,
+    which runs on the same computer. Shown to users as swap_public_url()."""
     env = env or read_env()
     return f"http://127.0.0.1:{env.get('LLAMA_SWAP_PORT', '8080')}"
+
+
+def swap_public_url(env=None):
+    env = env or read_env()
+    return f"http://{reachable_host(env)}:{env.get('LLAMA_SWAP_PORT', '8080')}"
 
 
 def _read_pid():
@@ -269,7 +316,7 @@ def start_llama_swap(binary, config_hash):
 
     paths.LOGS_DIR.mkdir(parents=True, exist_ok=True)
     log = open(paths.LOGS_DIR / "llama-swap.log", "ab")
-    cmd = [str(binary), "-config", str(paths.SWAP_CONFIG), "-listen", f"127.0.0.1:{port}"]
+    cmd = [str(binary), "-config", str(paths.SWAP_CONFIG), "-listen", f"{bind_host(env)}:{port}"]
     if os.name == "nt":
         # Own hidden console (not DETACHED_PROCESS): it survives closing the
         # launcher window, and the llama-server children llama-swap spawns
@@ -287,7 +334,7 @@ def start_llama_swap(binary, config_hash):
             ui.err(f"The AI server stopped right away. Details: {paths.LOGS_DIR / 'llama-swap.log'}")
             return False
         if llama_swap_running():
-            ui.ok(f"AI server running at {swap_url()} (OpenAI-compatible API, /v1)")
+            ui.ok(f"AI server running at {swap_public_url()} (OpenAI-compatible API, /v1)")
             return True
         time.sleep(0.5)
     ui.warn(f"The AI server has not answered yet. Details: {paths.LOGS_DIR / 'llama-swap.log'}")

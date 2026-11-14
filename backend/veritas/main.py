@@ -5,8 +5,9 @@
 - There are no catch-all routes. An unmatched address reaches the 404 handler, which
   answers /api with JSON and everything else with the frontend, so endpoints added
   later always take precedence.
-- Only requests addressed to 127.0.0.1 / localhost are accepted (blocks DNS-rebinding
-  attacks from websites, see docs/backend-plan.md).
+- A loopback server only accepts requests addressed to 127.0.0.1 / localhost (blocks
+  DNS-rebinding attacks from websites, see docs/backend-plan.md). A server bound to the
+  network (BIND_HOST=0.0.0.0) accepts any host name, or those in ALLOWED_HOSTS.
 
 Start the server with  uv run python backend/run.py
 """

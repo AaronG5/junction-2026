@@ -4,13 +4,19 @@
 
 First run: detects hardware, picks and downloads a Gemma model, installs
 llama.cpp + llama-swap, starts MySQL/Qdrant and the AI server, then prepares
-the database and vector search, builds the dashboard and starts it at
-http://127.0.0.1:8000. Later runs skip everything already done (and work
-offline once installed).
+the database and vector search, builds the dashboard and starts it on
+port 8000. Later runs skip everything already done (and work offline once
+installed).
+
+Everything listens on BIND_HOST (.env): 127.0.0.1 for this computer only, or
+0.0.0.0 to serve the network, which is what a server install wants
+(./launch.sh, or --host 0.0.0.0). The choice is remembered in .env, so the
+backend server and Docker use the same one.
 
 To add a step: write a function taking the Context and append it to STEPS.
 """
 import argparse
+import os
 import sys
 from dataclasses import dataclass, field
 
@@ -18,7 +24,7 @@ if sys.version_info < (3, 10):
     sys.exit("Python 3.10 or newer is required. Download it from https://www.python.org/downloads/")
 
 from . import backend, download, hardware, paths, runtime, selector, services, swap_config, ui
-from .state import ensure_env, load_state, read_env, save_state
+from .state import ensure_env, load_state, read_env, save_state, set_env_values
 
 GEMMA_TERMS = "https://ai.google.dev/gemma/terms"
 
@@ -53,9 +59,45 @@ def is_downloaded(model):
 
 # ---- steps --------------------------------------------------------------------
 
+def resolve_hosts(args, env=None):
+    """Where the services should listen: --host / --local win, then a BIND_HOST
+    in the environment (how launch.sh passes its default), then what an earlier
+    run saved in .env. Returns (services, databases)."""
+    env = read_env() if env is None else env
+    default = os.environ.get("BIND_HOST") or env.get("BIND_HOST") or "127.0.0.1"
+    host = args.host or ("127.0.0.1" if args.local else default)
+    if args.expose_databases:
+        db_host = host
+    elif args.local:
+        db_host = "127.0.0.1"
+    else:
+        db_host = os.environ.get("DB_BIND_HOST") or env.get("DB_BIND_HOST") or "127.0.0.1"
+    return host, db_host
+
+
+def apply_network_settings(args):
+    """Write the choice to .env, so the AI server, the backend server and Docker
+    all agree on it - including later runs without the flag."""
+    host, db_host = resolve_hosts(args)
+    set_env_values({"BIND_HOST": host, "DB_BIND_HOST": db_host})
+
+    if not services.on_the_network(host):
+        ui.info("Listening on 127.0.0.1: this computer only (--host 0.0.0.0 serves the network).")
+        return host
+    where = services.lan_ip() if host in services.ANY_HOSTS else host
+    ui.info(f"Listening on {host}: the dashboard and the AI server are reachable from the "
+            f"network at {where}.")
+    if not services.on_the_network(db_host):
+        ui.info("MySQL and Qdrant stay on 127.0.0.1 (--expose-databases publishes them too).")
+    ui.warn("Nothing here asks for a password. On a server open to the internet, keep it behind "
+            "a reverse proxy that adds HTTPS and a login, or a firewall that only lets you in.")
+    return host
+
+
 def step_hardware(ctx):
     paths.ensure_dirs()
     ensure_env()
+    apply_network_settings(ctx.args)
     ctx.catalog = selector.load_catalog()
     ctx.hw = hardware.detect(force_cpu=ctx.args.cpu, disk_path=str(paths.MODELS_DIR))
     for line in hardware.describe(ctx.hw):
@@ -202,7 +244,7 @@ def step_backend(ctx):
         ui.info("Skipped (--no-backend)")
         return
     backend.start_backend()
-    ctx.results["dashboard"] = backend.backend_url()
+    ctx.results["dashboard"] = backend.dashboard_url()
 
 
 STEPS = [
@@ -234,16 +276,19 @@ def cmd_list_models(args):
         print(f"  {mark}{_label(c)}" if c.fits else f"  {mark}{c.model['id']:<20} {c.placement}")
 
 
-def cmd_status(_args):
+def cmd_status(args):
     env = read_env()
     state = load_state()
+    host, db_host = resolve_hosts(args, env)
+    print(f"Listening:  {host} (databases: {db_host})"
+          + ("" if services.on_the_network(host) else "  - this computer only"))
     print(f"Model:      {state.get('chat_model', 'not chosen yet')}")
-    print(f"AI server:  {'running at ' + services.swap_url(env) if services.llama_swap_running() else 'stopped'}")
+    print(f"AI server:  {'running at ' + services.swap_public_url(env) if services.llama_swap_running() else 'stopped'}")
     for port_key, name in (("MYSQL_PORT", "MySQL"), ("QDRANT_PORT", "Qdrant")):
         port = env.get(port_key)
         up = port and not services.port_free(port)
-        print(f"{name + ':':<11} {'listening on 127.0.0.1:' + port if up else 'stopped'}")
-    print(f"Dashboard:  {'running at ' + backend.backend_url(env) if backend.backend_running(env) else 'stopped'}")
+        print(f"{name + ':':<11} {f'listening on {db_host}:{port}' if up else 'stopped'}")
+    print(f"Dashboard:  {'running at ' + backend.dashboard_url(env) if backend.backend_running(env) else 'stopped'}")
 
 
 def cmd_stop(args):
@@ -266,6 +311,15 @@ def main():
                    help="compile llama.cpp instead of downloading the prebuilt release")
     p.add_argument("--bundled-runtime", action="store_true",
                    help="ignore llama.cpp/llama-swap already on this computer; use the pinned versions")
+    p.add_argument("--host", metavar="ADDRESS",
+                   help="address the dashboard and the AI server listen on: 0.0.0.0 to serve the "
+                        "network (use this on a server), 127.0.0.1 for this computer only. "
+                        "Remembered in .env.")
+    p.add_argument("--local", action="store_true",
+                   help="shorthand for --host 127.0.0.1: nothing is reachable from the network")
+    p.add_argument("--expose-databases", action="store_true",
+                   help="publish MySQL and Qdrant on --host too (off by default: nothing outside "
+                        "this computer needs them)")
     p.add_argument("--skip-docker", action="store_true", help="do not start MySQL/Qdrant")
     p.add_argument("--no-ai-server", action="store_true", help="set up everything but do not start llama-swap")
     p.add_argument("--no-backend", action="store_true", help="do not start the dashboard server")

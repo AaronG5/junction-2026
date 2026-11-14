@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import time
 from types import SimpleNamespace
@@ -14,7 +15,7 @@ from veritas.config import ROOT
 sys.path.insert(0, str(ROOT))  # the launcher package (local_ai/) lives at the repository root
 
 from local_ai import __main__ as launcher  # noqa: E402
-from local_ai import backend, ui  # noqa: E402
+from local_ai import backend, paths, services, state, ui  # noqa: E402
 from local_ai.hardware import GPU, Hardware  # noqa: E402
 from local_ai.selector import Candidate  # noqa: E402
 
@@ -42,6 +43,10 @@ def _ctx(**args):
     return launcher.Context(args=SimpleNamespace(**{**defaults, **args}), state={})
 
 
+def _net_args(**args):
+    return SimpleNamespace(**{**dict(host=None, local=False, expose_databases=False), **args})
+
+
 def test_demo_data_only_with_the_flag(monkeypatch):
     calls = []
     monkeypatch.setattr(backend, "load_demo_data", lambda: calls.append(1) or "Demo data loaded: 7 claims")
@@ -54,11 +59,96 @@ def test_demo_data_only_with_the_flag(monkeypatch):
 def test_backend_step_can_be_skipped(monkeypatch):
     started = []
     monkeypatch.setattr(backend, "start_backend", lambda *a, **k: started.append(1))
+    monkeypatch.setattr(backend, "read_env", lambda: {"BACKEND_PORT": "8000"})
     launcher.step_backend(_ctx(no_backend=True))
     assert started == []
     ctx = _ctx()
     launcher.step_backend(ctx)
-    assert started == [1] and ctx.results["dashboard"].startswith("http://127.0.0.1:")
+    assert started == [1] and ctx.results["dashboard"] == "http://127.0.0.1:8000"
+
+
+def test_the_dashboard_address_is_the_one_users_can_open(monkeypatch):
+    """Bound to every address, the launcher shows this computer's own address."""
+    monkeypatch.delenv("BIND_HOST", raising=False)
+    monkeypatch.setattr(backend, "read_env", lambda: {"BACKEND_PORT": "8000", "BIND_HOST": "0.0.0.0"})
+    monkeypatch.setattr(services, "lan_ip", lambda: "192.0.2.10")
+    assert backend.dashboard_url() == "http://192.0.2.10:8000"
+    # The health check always goes to this computer, wherever the server listens.
+    assert backend.backend_url() == "http://127.0.0.1:8000"
+
+
+# --------------------------------------------------------------------------- where things listen
+
+@pytest.fixture
+def env_file(tmp_path, monkeypatch):
+    """A throwaway .env, so the tests never touch the real one."""
+    monkeypatch.setattr(paths, "ENV_FILE", tmp_path / ".env")
+    monkeypatch.delenv("BIND_HOST", raising=False)
+    monkeypatch.delenv("DB_BIND_HOST", raising=False)
+    state.ensure_env()
+    return tmp_path / ".env"
+
+
+def test_a_new_install_listens_on_this_computer_only(env_file):
+    assert state.read_env()["BIND_HOST"] == "127.0.0.1"
+    assert state.read_env()["DB_BIND_HOST"] == "127.0.0.1"
+
+
+def test_the_host_choice_is_saved_for_every_service(env_file):
+    launcher.apply_network_settings(_net_args(host="0.0.0.0"))
+    env = state.read_env()
+    # The dashboard and the AI server are on the network; the databases are not.
+    assert env["BIND_HOST"] == "0.0.0.0"
+    assert env["DB_BIND_HOST"] == "127.0.0.1"
+    assert services.bind_host(env) == "0.0.0.0" and services.db_bind_host(env) == "127.0.0.1"
+
+    # The choice sticks without repeating the flag, and --expose-databases adds those.
+    launcher.apply_network_settings(_net_args(expose_databases=True))
+    env = state.read_env()
+    assert (env["BIND_HOST"], env["DB_BIND_HOST"]) == ("0.0.0.0", "0.0.0.0")
+
+    # --local puts everything back on this computer.
+    launcher.apply_network_settings(_net_args(local=True))
+    env = state.read_env()
+    assert (env["BIND_HOST"], env["DB_BIND_HOST"]) == ("127.0.0.1", "127.0.0.1")
+
+
+def test_launch_sh_passes_its_default_in_the_environment(env_file, monkeypatch):
+    monkeypatch.setenv("BIND_HOST", "0.0.0.0")
+    launcher.apply_network_settings(_net_args())
+    assert state.read_env()["BIND_HOST"] == "0.0.0.0"
+    # ...and a flag typed by the user still wins over it.
+    launcher.apply_network_settings(_net_args(local=True))
+    assert state.read_env()["BIND_HOST"] == "127.0.0.1"
+    launcher.apply_network_settings(_net_args(host="192.0.2.10"))
+    assert state.read_env()["BIND_HOST"] == "192.0.2.10"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="launch.sh is the Linux/macOS launcher")
+def test_launch_sh_serves_the_network_but_keeps_what_env_says(tmp_path):
+    """./launch.sh defaults to 0.0.0.0 and passes everything else through."""
+    script = tmp_path / "launch.sh"
+    script.write_bytes((ROOT / "launch.sh").read_bytes())
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    uv = fake_bin / "uv"  # stands in for uv: prints what the launcher would get
+    uv.write_text('#!/bin/sh\necho "BIND_HOST=$BIND_HOST"\necho "args=$*"\n', encoding="utf-8")
+    uv.chmod(0o755)
+
+    def run():
+        env = {**os.environ, "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"}
+        env.pop("BIND_HOST", None)
+        done = subprocess.run(["bash", str(script), "--demo-data"], capture_output=True,
+                              text=True, env=env, cwd=tmp_path, timeout=60)
+        assert done.returncode == 0, done.stderr
+        return done.stdout
+
+    out = run()
+    assert "BIND_HOST=0.0.0.0" in out
+    assert "args=run --directory" in out and "--demo-data" in out  # flags passed through
+
+    (tmp_path / ".env").write_text("# local install\nBIND_HOST=127.0.0.1\n", encoding="utf-8")
+    assert "BIND_HOST=127.0.0.1" in run()
 
 
 def test_migrations_run_once_per_launch(monkeypatch):

@@ -22,6 +22,12 @@ def save_state(state):
 # ---- .env -----------------------------------------------------------------
 
 ENV_DEFAULTS = {
+    # Where the dashboard and the AI server listen. 127.0.0.1 = this computer
+    # only; 0.0.0.0 = also reachable from the network (launcher flag --host).
+    "BIND_HOST": "127.0.0.1",
+    # MySQL and Qdrant are published separately: nothing outside this computer
+    # needs them, so they stay on 127.0.0.1 unless --expose-databases is used.
+    "DB_BIND_HOST": "127.0.0.1",
     "MYSQL_DATABASE": "veritas_lens",
     "MYSQL_USER": "veritas_lens",
     "MYSQL_PASSWORD": None,        # None -> random secret generated on first run

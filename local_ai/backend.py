@@ -15,7 +15,8 @@ import sys
 import time
 
 from . import paths, ui
-from .services import http_get, next_free_port, port_free, wait_port_released, _other_ports
+from .services import (http_get, next_free_port, on_the_network, port_free, reachable_host,
+                       wait_port_released, _other_ports)
 from .state import read_env, set_env_values
 
 BACKEND_DIR = paths.ROOT / "backend"
@@ -28,8 +29,17 @@ FRONTEND_INPUTS = ("src", "public", "index.html", "package.json", "package-lock.
 
 
 def backend_url(env=None):
+    """Loopback address, used for the health check: the launcher and the server
+    are on the same computer, whatever BIND_HOST the server listens on."""
     env = env or read_env()
     return f"http://127.0.0.1:{env.get('BACKEND_PORT', '8000')}"
+
+
+def dashboard_url(env=None):
+    """The address to tell the user about: this computer's network address when
+    the dashboard is bound to the network, loopback otherwise."""
+    env = env or read_env()
+    return f"http://{reachable_host(env)}:{env.get('BACKEND_PORT', '8000')}"
 
 
 def run_tool(script, *args, timeout=600):
@@ -187,7 +197,7 @@ def start_backend(wanted_hash=None, wait_seconds=30):
     pid, running_hash, running_port = _read_pid()
     if _pid_alive(pid):
         if running_hash == wanted_hash and running_port == port and backend_running(env):
-            ui.ok(f"Dashboard already running at {backend_url(env)}")
+            ui.ok(f"Dashboard already running at {dashboard_url(env)}")
             return "kept"
         ui.info("The app or its settings changed; restarting the dashboard server...")
         stop_backend()
@@ -203,13 +213,16 @@ def start_backend(wanted_hash=None, wait_seconds=30):
     paths.STATE_DIR.mkdir(parents=True, exist_ok=True)
     log = open(paths.LOGS_DIR / BACKEND_LOG, "ab")
     cmd = [sys.executable, str(BACKEND_DIR / "run.py")]
+    # The server reads .env itself, but an environment variable would win over
+    # it; hand it the address .env holds, so both always agree.
+    child_env = {**os.environ, "BIND_HOST": env.get("BIND_HOST", "127.0.0.1")}
     if os.name == "nt":
         flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
         proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-                                creationflags=flags, cwd=str(paths.ROOT))
+                                creationflags=flags, cwd=str(paths.ROOT), env=child_env)
     else:
         proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-                                start_new_session=True, cwd=str(paths.ROOT))
+                                start_new_session=True, cwd=str(paths.ROOT), env=child_env)
     BACKEND_PID.write_text(json.dumps({"pid": proc.pid, "hash": wanted_hash, "port": port}), encoding="utf-8")
 
     deadline = time.time() + wait_seconds
@@ -217,7 +230,10 @@ def start_backend(wanted_hash=None, wait_seconds=30):
         if proc.poll() is not None:
             raise ui.StepFailed(f"The dashboard server stopped right away. Details: {paths.LOGS_DIR / BACKEND_LOG}")
         if backend_running(read_env()):
-            ui.ok(f"Dashboard running at {backend_url()}")
+            env = read_env()
+            ui.ok(f"Dashboard running at {dashboard_url(env)}")
+            if on_the_network(env.get("BIND_HOST", "127.0.0.1")):
+                ui.info("Anyone who can reach this computer can open it: there is no login.")
             return "started"
         time.sleep(0.5)
     raise ui.StepFailed(f"The dashboard server didn't answer in time. Details: {paths.LOGS_DIR / BACKEND_LOG}")

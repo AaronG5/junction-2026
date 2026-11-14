@@ -115,7 +115,11 @@ export function System() {
                 </tbody>
               </table>
             </div>
-            <small className="muted">Everything listens on this computer only (127.0.0.1). Nothing is reachable from the network.</small>
+            <small className="muted">
+              These are the addresses the app uses on this computer. Whether the dashboard itself is
+              reachable from the network is chosen when you start it (<span className="mono">--host</span>;
+              127.0.0.1 means this computer only).
+            </small>
           </section>
         </>
       )}

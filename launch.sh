@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
 # Linux / macOS launcher (also works in Git Bash on Windows): ./launch.sh
+#
+# Starts the whole app with one command: the AI models (llama.cpp + llama-swap),
+# the databases (MySQL + Qdrant in Docker), the dashboard build (frontend/) and
+# the backend that serves it. Already-finished steps are skipped on later runs.
+#
+# Listens on 0.0.0.0 by default, so a server install is reachable from the web.
+# For this computer only:  ./launch.sh --local
+# A fixed address:         ./launch.sh --host 192.0.2.10
+# Other options:           ./launch.sh --help
+#
 # All the work happens in Python (local_ai/), run through uv. uv also
 # downloads a suitable Python by itself, so nothing else needs installing.
 set -euo pipefail
-cd "$(dirname "$0")"
+HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 find_uv() {
     if command -v uv >/dev/null 2>&1; then command -v uv; return; fi
@@ -39,4 +49,14 @@ if [ -z "$UV" ]; then
     exit 1
 fi
 
-exec "$UV" run --quiet python -m local_ai "$@"
+# Where everything should listen. A BIND_HOST already in the environment wins;
+# otherwise the choice saved in .env is kept, so editing it there sticks; and a
+# first run gets 0.0.0.0, reachable from the web when this is a server.
+# --host / --local on the command line still win over all of this.
+if [ -z "${BIND_HOST:-}" ] && [ -f "$HERE/.env" ]; then
+    BIND_HOST="$(sed -n 's/^[[:space:]]*BIND_HOST[[:space:]]*=[[:space:]]*//p' "$HERE/.env" \
+                 | tail -n 1 | tr -d '\r"'"'" )"
+fi
+export BIND_HOST="${BIND_HOST:-0.0.0.0}"
+
+exec "$UV" run --directory "$HERE" --quiet python -m local_ai "$@"

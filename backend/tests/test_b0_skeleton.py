@@ -300,20 +300,58 @@ def test_read_env_file_handles_missing_file(tmp_path: Path) -> None:
     assert read_env_file(tmp_path / "nope.env") == {}
 
 
-def test_server_listens_on_localhost_only(monkeypatch, tmp_path: Path) -> None:
-    """run.py must hand uvicorn 127.0.0.1, whatever the environment says."""
+def _uvicorn_call(monkeypatch) -> dict:
+    """Run run.py's main() with uvicorn.run faked; returns its arguments."""
     import uvicorn
 
     calls: list[dict] = []
     monkeypatch.setattr(uvicorn, "run", lambda app, **kw: calls.append({"app": app, **kw}))
-    monkeypatch.setenv("BACKEND_HOST", "0.0.0.0")
-    monkeypatch.setenv("HOST", "0.0.0.0")
-    monkeypatch.setenv("BACKEND_PORT", "8765")
     spec = importlib.util.spec_from_file_location("run_under_test", ROOT / "backend" / "run.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     module.main()
-    assert calls and calls[0]["host"] == "127.0.0.1" and calls[0]["port"] == 8765
+    assert calls
+    return calls[0]
+
+
+def test_server_listens_on_localhost_unless_told_otherwise(monkeypatch) -> None:
+    """A local install stays on 127.0.0.1: nothing of it is on the network."""
+    monkeypatch.setenv("BIND_HOST", "127.0.0.1")
+    monkeypatch.delenv("BACKEND_HOST", raising=False)
+    monkeypatch.setenv("BACKEND_PORT", "8765")
+    call = _uvicorn_call(monkeypatch)
+    assert call["host"] == "127.0.0.1" and call["port"] == 8765
+
+
+def test_bind_host_serves_the_network(monkeypatch) -> None:
+    """A server install (launch.sh --host 0.0.0.0) listens on every address."""
+    monkeypatch.setenv("BIND_HOST", "0.0.0.0")
+    monkeypatch.delenv("BACKEND_HOST", raising=False)
+    monkeypatch.setenv("BACKEND_PORT", "8000")
+    assert _uvicorn_call(monkeypatch)["host"] == "0.0.0.0"
+
+
+def test_where_the_server_listens_decides_which_host_names_are_allowed(tmp_path: Path) -> None:
+    missing = tmp_path / "missing.env"
+    local = Settings.load(env_file=missing, environ={})
+    assert (local.host, local.allowed_hosts, local.on_the_network) == \
+        ("127.0.0.1", ("127.0.0.1", "localhost"), False)
+    # On the network the browser addresses the server by name or public IP, which
+    # this process can't know, so any host name is accepted.
+    public = Settings.load(env_file=missing, environ={"BIND_HOST": "0.0.0.0"})
+    assert (public.host, public.allowed_hosts, public.on_the_network) == ("0.0.0.0", ("*",), True)
+    named = Settings.load(env_file=missing, environ={"BIND_HOST": "0.0.0.0",
+                                                     "ALLOWED_HOSTS": "veritas.example, 203.0.113.9"})
+    assert named.allowed_hosts == ("veritas.example", "203.0.113.9")
+    # BACKEND_HOST is the backend's own override of the shared BIND_HOST.
+    only_backend = Settings.load(env_file=missing, environ={"BIND_HOST": "0.0.0.0",
+                                                            "BACKEND_HOST": "127.0.0.1"})
+    assert only_backend.host == "127.0.0.1" and only_backend.allowed_hosts == ("127.0.0.1", "localhost")
+
+
+def test_a_server_on_the_network_answers_to_its_own_name(fake_dist: Path) -> None:
+    client = make_client(Settings(host="0.0.0.0", allowed_hosts=("*",), frontend_dist=fake_dist))
+    assert client.get("/api/health", headers={"host": "veritas.example"}).status_code == 200
 
 
 def test_importing_the_app_has_no_side_effects() -> None:

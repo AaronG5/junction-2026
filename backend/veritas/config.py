@@ -2,6 +2,13 @@
 
 Environment variables override .env, which is handy for tests and deployment.
 Passwords are kept out of repr(), so settings can be logged safely.
+
+The server listens on BIND_HOST (`.env`, default 127.0.0.1 = this computer only).
+Set it to 0.0.0.0 to serve a whole server to the network; the launcher's
+`--host` flag writes it. Host-header checking follows: a loopback server keeps
+the strict 127.0.0.1/localhost list (that is what blocks DNS rebinding from
+websites), a network server accepts any host name unless ALLOWED_HOSTS says
+which ones.
 """
 from __future__ import annotations
 
@@ -10,6 +17,25 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+
+# Addresses that mean "this computer only".
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1", "[::1]")
+
+
+def is_loopback(host: str) -> bool:
+    return host in LOOPBACK_HOSTS
+
+
+def allowed_hosts_for(host: str, configured: str = "") -> tuple[str, ...]:
+    """Which Host headers requests may carry. ALLOWED_HOSTS wins when set."""
+    names = tuple(h.strip() for h in configured.split(",") if h.strip())
+    if names:
+        return names
+    if is_loopback(host):
+        return ("127.0.0.1", "localhost")
+    # Reachable from the network: the browser addresses it by server name or IP,
+    # which this process cannot know, so any host name is accepted.
+    return ("*",)
 
 
 def read_env_file(path: Path) -> dict[str, str]:
@@ -53,6 +79,11 @@ class Settings:
     # Host names requests may be addressed to (blocks DNS rebinding). Ports are ignored.
     allowed_hosts: tuple[str, ...] = ("127.0.0.1", "localhost")
 
+    @property
+    def on_the_network(self) -> bool:
+        """True when the server is reachable from outside this computer."""
+        return not is_loopback(self.host)
+
     @classmethod
     def load(cls, env_file: Path | None = None, environ: dict[str, str] | None = None) -> "Settings":
         file_values = read_env_file(env_file if env_file is not None else ROOT / ".env")
@@ -77,8 +108,12 @@ class Settings:
         if not dist_path.is_absolute():
             dist_path = ROOT / dist_path  # relative to the repository, not the current folder
 
+        # BACKEND_HOST is the server's own override; BIND_HOST is what the
+        # launcher writes for every service at once.
+        host = get("BACKEND_HOST", get("BIND_HOST", "127.0.0.1"))
         return cls(
-            host="127.0.0.1",  # never exposed to the network; see docs/backend-plan.md
+            host=host,
+            allowed_hosts=allowed_hosts_for(host, get("ALLOWED_HOSTS", "")),
             port=get_port("BACKEND_PORT", 8000),
             mysql_host=get("MYSQL_HOST", "127.0.0.1"),
             mysql_port=get_port("MYSQL_PORT", 3306),

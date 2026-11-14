@@ -10,7 +10,7 @@ Everything runs on your own computer: the AI model, the search index and the dat
 - Windows: double-click `launch.bat`
 - Linux / macOS: run `./launch.sh`
 
-That's it. The first start checks your computer, picks the Gemma model that fits it best, downloads it, and starts everything. If the download is interrupted, start it again and it continues where it stopped. Later starts take seconds and work offline.
+That's it. The first start checks your computer, picks the Gemma model that fits it best, downloads it, and starts everything - the AI models, MySQL and Qdrant, the dashboard build and the server that serves it. If the download is interrupted, start it again and it continues where it stopped. Later starts take seconds and work offline.
 
 **You need:** [uv](https://docs.astral.sh/uv/) (the launcher offers to install it; uv brings its own Python) and [Docker Desktop](https://docs.docker.com/get-started/get-docker/) for the databases.
 
@@ -26,8 +26,19 @@ Developers: run Python through uv as well, e.g. `uv run python -m local_ai --sta
 | `--cpu` | Don't use the graphics card |
 | `--status` | Show what is running |
 | `--stop` | Stop everything |
+| `--host 0.0.0.0` | Serve the dashboard and the AI to the network (what `./launch.sh` does by default) |
+| `--local` | The opposite: this computer only |
+| `--expose-databases` | Publish MySQL and Qdrant on that address too |
 
-The AI is served at `http://127.0.0.1:8080/v1` as an OpenAI-compatible API, with two models: `chat` and `embedding`. Settings live in `.env` (created on first start).
+**Where it listens**
+
+`./launch.sh` serves the dashboard on `0.0.0.0:8000`, so a server install is reachable from the web. `launch.bat` and `./launch.sh --local` keep everything on `127.0.0.1` (this computer only). The choice is saved as `BIND_HOST` in `.env` - the backend server and Docker both read it - so later starts keep it, and editing it there works too.
+
+MySQL and Qdrant stay on `127.0.0.1` either way: nothing outside the machine needs them. `--expose-databases` publishes them on `BIND_HOST` as well.
+
+The dashboard has no login of its own, so on a server open to the internet put it behind a reverse proxy that adds HTTPS and a password, or a firewall that only lets you in. `ALLOWED_HOSTS=veritas.example` in `.env` limits which host names the backend answers to; without it a networked server answers to any.
+
+The AI is served at port 8080 (`/v1`) as an OpenAI-compatible API, with two models: `chat` and `embedding`, on the same address as the dashboard. Settings live in `.env` (created on first start).
 
 ## Frontend (developers)
 

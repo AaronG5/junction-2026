@@ -10,7 +10,7 @@ Goal: a backend that serves `/api/*` exactly as the frontend expects ([frontend/
   - FastAPI (MIT), Uvicorn (BSD), PyMySQL (MIT), qdrant-client (Apache-2.0), httpx (BSD), Pydantic (MIT), pytest (MIT)
   - umap-learn and hdbscan (BSD), only in the clustering phase
 - **The frontend contract is the source of truth.** The backend answers in exactly those shapes, and the tests prove it.
-- **Everything listens on 127.0.0.1 only.** Errors are always JSON (`{"detail": "…"}`) in plain words, so the frontend can show them as written.
+- **Everything listens on `BIND_HOST` (`.env`), 127.0.0.1 by default.** A local install is reachable from that computer only; a server install is started with `./launch.sh --host 0.0.0.0` (the default of `launch.sh`), which also widens the accepted `Host` headers, since the browser then addresses the server by name. MySQL and Qdrant stay on 127.0.0.1 unless `--expose-databases` is given. Errors are always JSON (`{"detail": "…"}`) in plain words, so the frontend can show them as written.
 - **Tests never touch real data.** They use a throwaway database (`veritas_test_<random>`) and Qdrant collections prefixed `test_<random>_`, both deleted afterwards.
 
 ## How frontend and backend are kept in agreement
@@ -224,7 +224,7 @@ New launcher steps:
 - apply database migrations
 - create the Qdrant collections
 - build the frontend when Node is available and the build is out of date (otherwise use a prebuilt copy)
-- start the backend in the background on `127.0.0.1:8000` (`BACKEND_PORT` in `.env`)
+- start the backend in the background on `BIND_HOST:8000` (`BIND_HOST` / `BACKEND_PORT` in `.env`)
 - `--demo-data` loads the demo data
 - `--stop` also stops the backend
 
