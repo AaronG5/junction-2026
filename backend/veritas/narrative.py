@@ -72,6 +72,28 @@ def clean(text: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"https?://\S+", "", text or "")).strip()[:MAX_TEXT]
 
 
+_SENT = re.compile(r"(?<=[.!?…。！？])\s+|\n+")
+
+
+def query_units(raw: str) -> list[str]:
+    """Retrieval units for one post (same rule as propaganda/gemma/closeness.query_chunks): unit 0 = the whole post
+    (cleaned), then sliding windows of 2 and 3 sentences (stride 1). Single sentences only when the post has <= 2
+    sentences: alone they lose context and one lexical sentence used to fill every candidate slot."""
+    whole = clean(raw)
+    if not whole:
+        return []
+    sents = [x.strip() for x in _SENT.split(re.sub(r"[ \t]+", " ", raw or "").strip()) if len(x.strip()) >= 15]
+    units = [" ".join(sents[i:i + w]) for w in (2, 3) for i in range(len(sents) - w + 1)]
+    if len(sents) <= 2:
+        units += sents
+    out = [whole]
+    for u in units:
+        u = clean(u)
+        if u and u not in out:
+            out.append(u)
+    return out[:12]
+
+
 def _load_matrix(path: Path) -> np.ndarray:
     m = np.load(path).astype(np.float32)
     n = np.linalg.norm(m, axis=1, keepdims=True)
@@ -177,6 +199,31 @@ class Engine:
                 break
         return out
 
+    def _union(self, emb: np.ndarray | None, rows: list[dict], U: np.ndarray, k: int, reserve: int = 2,
+               per_unit: int = 3):
+        """Candidates over all units of a post. U: [units, dim], row 0 = whole post. The first `reserve` slots go to
+        the whole post's top distinct narratives, the rest to the windows' merged list (each window's top
+        `per_unit`, max sim per narrative). Test v2 recall@5: 0.924 vs 0.793 whole post only / 0.859 best chunk."""
+        if emb is None or not len(rows):
+            return []
+        whole = self._top(emb, rows, U[0], k + reserve + 3, distinct="narrative_id")
+        merged: dict = {}
+        for u in range(1, len(U)):
+            for s, r in self._top(emb, rows, U[u], per_unit, distinct="narrative_id"):
+                key = r.get("narrative_id")
+                if key not in merged or s > merged[key][0]:
+                    merged[key] = (s, r)
+        out, seen = [], set()
+        for s, r in whole[:reserve] + sorted(merged.values(), key=lambda x: -x[0]) + whole[reserve:]:
+            key = r.get("narrative_id")
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append((s, r))
+            if len(out) == k:
+                break
+        return sorted(out, key=lambda x: -x[0])
+
     def batch(self, items: list[dict]) -> list[dict]:
         now = self.clock()
         todo, out = [], {}
@@ -194,33 +241,40 @@ class Engine:
                 out[pid] = self._store(pid, {"id": pid, "status": "done", "content": _none_content(), "source_match": None,
                                               "coordination": None})
                 continue
-            todo.append((pid, str(it.get("author") or ""), text))
+            todo.append((pid, str(it.get("author") or ""), text, query_units(it.get("text", "")) or [text]))
         if todo:
-            try:
-                vecs = np.asarray(self.embed([t for _, _, t in todo]), np.float32)
-                vecs /= np.maximum(np.linalg.norm(vecs, axis=1, keepdims=True), 1e-9)
+            try:   # one embedding call for every unit of every post; unit 0 of each post = the whole post
+                flat = [u for *_, us in todo for u in us]
+                allv = np.asarray(self.embed(flat), np.float32)
+                allv /= np.maximum(np.linalg.norm(allv, axis=1, keepdims=True), 1e-9)
+                vecs, i = [], 0
+                for *_, us in todo:
+                    vecs.append(allv[i:i + len(us)])
+                    i += len(us)
             except Exception as exc:  # the local AI is down: answer every item, don't fail the batch
                 log.warning("embedding failed: %s", exc)
-                for pid, _, _ in todo:
+                for pid, *_ in todo:
                     out[pid] = {"id": pid, "status": "error", "error": "The local AI isn't answering."}
                 vecs = None
             if vecs is not None:
-                for (pid, author, text), v in zip(todo, vecs):
-                    out[pid] = self._fast(pid, author, text, v, now)
+                for (pid, author, text, _), U in zip(todo, vecs):
+                    out[pid] = self._fast(pid, author, text, U, now)
         with self.lock:   # copies: the judge thread may update a stored result while it is being sent
             return [copy.deepcopy(out.get(str(it.get("id", "")))) for it in items]
 
-    def _fast(self, pid: str, author: str, text: str, v: np.ndarray, now: float) -> dict:
+    def _fast(self, pid: str, author: str, text: str, U: np.ndarray, now: float) -> dict:
         t = self.t
+        U = U if U.ndim == 2 else U[None]
+        v = U[0]                       # whole post: source match + coordination (copy_strong is calibrated on it)
         src = self._top(self.bank.tg_emb, self.bank.tg, v, 3)
         strong = bool(src) and src[0][0] >= t["copy_strong"]
         source_match = {"strong": strong, "telegram": [
             {"channel": r.get("channel"), "url": r.get("url"), "date": r.get("date"), "sim": round(s, 4),
              "text": (r.get("text") or "")[:280]} for s, r in src]} if src else None
-        cands = self._top(self.bank.claim_emb, self.bank.claims, v, 5, distinct="narrative_id")
+        cands = self._union(self.bank.claim_emb, self.bank.claims, U, 5)
         echo = [{"text": r["text"], "source": r.get("source"), "n_aired": r.get("n_mentions"),
                  "first": r.get("date_first"), "last": r.get("date_last"), "sim": round(s, 4)}
-                for s, r in self._top(self.bank.echo_emb, self.bank.echo, v, 3, distinct="narrative_id")
+                for s, r in self._union(self.bank.echo_emb, self.bank.echo, U, 3)
                 if s >= t["echo_min"]]
         reasons, others = [], set()
         if author:
