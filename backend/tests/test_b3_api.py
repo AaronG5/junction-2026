@@ -32,7 +32,7 @@ TODAY = SEED["today"]
 LINK_KEYS = json.loads((SHARED / "cases" / "links.json").read_text(encoding="utf-8"))["keys"]
 
 # Fixtures answered by later phases. Listed here so none is forgotten (see test below).
-LATER = {"/api/analyze": "B6", "/api/system": "B7"}
+LATER = {"/api/system": "B7"}
 
 
 @pytest.fixture(scope="module")
@@ -80,9 +80,8 @@ def test_same_answer_as_the_frontend_demo(api, entry):
 
 def test_only_later_phases_are_skipped():
     skipped = {e["path"] for e in MANIFEST["fixtures"] if e["replay"] == "exact" and e["path"] in LATER}
-    shape = {e["path"] for e in MANIFEST["fixtures"] if e["replay"] == "shape"}
-    assert skipped | shape <= set(LATER)
-    assert len(EXACT) >= 16
+    assert skipped <= set(LATER)
+    assert len(EXACT) >= 17
 
 
 # --------------------------------------------------------------------------- every filter combination

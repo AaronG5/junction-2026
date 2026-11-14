@@ -83,8 +83,11 @@ export async function buildFixtures(): Promise<Fixtures> {
   await add("sources-facebook.json", "SourcesResponse", "GET", "/api/sources", { platform: "Facebook" }, () => demoApi.sources("Facebook"));
   await add("source-kanalas_b.json", "ChannelReport", "GET", "/api/sources/kanalas_b", {}, () => demoApi.channel("kanalas_b"));
 
+  // The backend answers POST /api/analyze with a job; a post analyzed before comes back finished, like this.
   const url = "https://t.me/kanalas_b/4521";
-  await add("analyze-kanalas_b-4521.json", "PostReport", "POST", "/api/analyze", {}, () => demoApi.analyze(url), { body: { url }, replay: "shape" });
+  await add("analyze-kanalas_b-4521.json", "AnalysisJob", "POST", "/api/analyze", {}, async () => ({
+    id: "demo-analysis", status: "done", step: 5, report: await demoApi.analyze(url), error: null, errorStatus: null,
+  }), { body: { url }, replay: "shape" });
 
   const tr7 = f({ range: "7" });
   await add("trending-7d.json", "TrendingResponse", "GET", "/api/trending", filtersToParams(tr7, FIXTURE_TODAY), () => demoApi.trending(tr7));

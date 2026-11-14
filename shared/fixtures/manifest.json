@@ -98,7 +98,7 @@
     },
     {
       "file": "analyze-kanalas_b-4521.json",
-      "model": "PostReport",
+      "model": "AnalysisJob",
       "method": "POST",
       "path": "/api/analyze",
       "query": {},

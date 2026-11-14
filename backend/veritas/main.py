@@ -23,9 +23,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import __version__
+from .ai import LocalAI
+from .analysis import JobRunner, Services
+from .collectors import collector_for
 from .config import Settings
 from .db import DatabaseUnavailable
 from .routes import ROUTERS
+from .vectors import Qdrant
 
 log = logging.getLogger("veritas")
 
@@ -71,6 +75,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # The machine-readable API description stays at /api/openapi.json.
     app = FastAPI(title="Veritas Lens", version=__version__, docs_url=None, redoc_url=None, openapi_url="/api/openapi.json")
     app.state.settings = settings
+    # "Analyze a link" jobs run in a background thread (veritas/analysis.py). Tests swap the services.
+    app.state.analysis = JobRunner(Services(
+        settings=settings,
+        ai=lambda: LocalAI.from_settings(settings),
+        qdrant=lambda: Qdrant.from_settings(settings),
+        collector=collector_for(settings),
+    ))
 
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.allowed_hosts))
     _add_error_handlers(app, settings.frontend_dist)

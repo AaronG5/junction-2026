@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Annotated, ClassVar, Literal
 
-from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field, model_serializer
+from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field, StrictBool, model_serializer
 from pydantic.alias_generators import to_camel
 
 Platform = Literal["Telegram", "Facebook", "Website"]
@@ -349,7 +349,18 @@ class PostReport(Contract):
     similar: list[SimilarPost]
     categories: list[CategoryScore]
     reading: Reading
-    cluster: ClusterCard
+    cluster: ClusterCard | None  # null: the post fits no known narrative yet
+
+
+class AnalysisJob(Contract):
+    """POST /api/analyze and GET /api/analyze/{id}: an analysis the screen polls.
+    step: index into ANALYZE_STEPS while running; 5 when done."""
+    id: str
+    status: Literal["queued", "running", "done", "failed"]
+    step: int = Field(ge=0, le=5)
+    report: PostReport | None
+    error: str | None
+    error_status: int | None
 
 
 # ------------------------------------------------------------------ landing stories
@@ -459,13 +470,21 @@ class SystemStatus(Contract):
 
 
 # Response models by the name used in shared/fixtures/manifest.json.
+
+class AppSettings(Contract):
+    """GET/PUT /api/settings: shared settings stored in the database (B7)."""
+    data_mode: Literal["central", "hybrid", "local"]
+    share_analyses: StrictBool  # "no" or 0 is refused, not read as false
+
+
 RESPONSE_MODELS: dict[str, type[Contract]] = {
     "Error": ErrorBody,
     "NarrativesResponse": NarrativesResponse,
     "ClaimsResponse": ClaimsResponse,
     "SourcesResponse": SourcesResponse,
     "ChannelReport": ChannelReport,
-    "PostReport": PostReport,
+    "AnalysisJob": AnalysisJob,  # carries the PostReport
+    "AppSettings": AppSettings,
     "Story": Story,
     "TrendingResponse": TrendingResponse,
     "SystemStatus": SystemStatus,

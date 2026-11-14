@@ -5,7 +5,7 @@
  */
 import { filtersToParams } from "../lib/filters";
 import type {
-  ChannelReport, ClaimsResponse, Filters, NarrativesResponse, PostReport,
+  AnalysisJob, ChannelReport, ClaimsResponse, Filters, NarrativesResponse, PostReport,
   SourcesResponse, SourceFilter, Story, SystemStatus, TrendingResponse,
 } from "./types";
 
@@ -68,19 +68,41 @@ async function request<T>(path: string, params: Record<string, string> = {}, ini
   return body as T;
 }
 
+/** How often a running analysis is checked, and for how long at most. Tests shorten these. */
+export const analysisPolling = { intervalMs: 1000, maxWaitMs: 20 * 60 * 1000 };
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Start an analysis, then poll it until it's done; report each step as it changes. */
+async function analyzeOverHttp(url: string, onStep?: (stepIndex: number) => void): Promise<PostReport> {
+  let job = await request<AnalysisJob>("/analyze", {}, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  const started = Date.now();
+  let lastStep = -1;
+  for (;;) {
+    if (job.status === "done" && job.report) return job.report;
+    if (job.status === "failed") throw new ApiError(job.errorStatus ?? 500, job.error ?? "The analysis failed.");
+    if (job.step !== lastStep && job.step < 5) {
+      lastStep = job.step;
+      onStep?.(job.step);
+    }
+    if (Date.now() - started > analysisPolling.maxWaitMs) {
+      throw new ApiError(504, "The analysis is taking too long. Try again later.");
+    }
+    await sleep(analysisPolling.intervalMs);
+    job = await request<AnalysisJob>(`/analyze/${encodeURIComponent(job.id)}`);
+  }
+}
+
 export const httpApi: Api = {
   narratives: (f) => request("/narratives", filtersToParams(f)),
   claims: (f) => request("/claims", { ...filtersToParams(f), ...(f.query ? { q: f.query } : {}) }),
   sources: (platform) => request("/sources", platform === "all" ? {} : { platform }),
   channel: (id) => request(`/sources/${encodeURIComponent(id)}`),
-  analyze: async (url, onStep) => {
-    onStep?.(0);
-    return request("/analyze", {}, {
-      method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
-  },
+  analyze: analyzeOverHttp,
   trending: (f) => request("/trending", filtersToParams(f)),
   story: (id) => request(`/stories/${encodeURIComponent(id)}`),
   traceLink: (url) => request("/trace", { url }),

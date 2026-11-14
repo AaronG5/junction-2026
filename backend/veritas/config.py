@@ -45,6 +45,10 @@ class Settings:
     mysql_password: str = field(default="", repr=False)
     qdrant_port: int = 6333
     llama_swap_port: int = 8080
+    # Scraper keys (B6). Empty = that scraper isn't used. Never shown (repr=False).
+    oxylabs_username: str = field(default="", repr=False)
+    oxylabs_password: str = field(default="", repr=False)
+    context_dev_api_key: str = field(default="", repr=False)
     frontend_dist: Path = ROOT / "frontend" / "dist"
     # Host names requests may be addressed to (blocks DNS rebinding). Ports are ignored.
     allowed_hosts: tuple[str, ...] = ("127.0.0.1", "localhost")
@@ -83,5 +87,8 @@ class Settings:
             mysql_password=get("MYSQL_PASSWORD", ""),
             qdrant_port=get_port("QDRANT_PORT", 6333),
             llama_swap_port=get_port("LLAMA_SWAP_PORT", 8080),
+            oxylabs_username=get("OXYLABS_USERNAME", ""),
+            oxylabs_password=get("OXYLABS_PASSWORD", ""),
+            context_dev_api_key=get("CONTEXT_DEV_API_KEY", ""),
             frontend_dist=dist_path,
         )

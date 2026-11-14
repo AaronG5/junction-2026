@@ -184,6 +184,15 @@ Results are stored, so the same link is answered instantly the next time.
 
 API keys go in `.env` (`OXYLABS_USERNAME`, `OXYLABS_PASSWORD`, `CONTEXT_DEV_API_KEY`). Without keys, the backend can still analyze posts already in the database, and says so in plain words otherwise. The team's parser that writes scraped data to MySQL plugs in here too.
 
+**How it works (built):**
+- `veritas/analysis.py` runs the steps and builds the report; `routes/analyze.py` has `POST /api/analyze` and `GET /api/analyze/{id}` (an `AnalysisJob`: status, step, report or a plain error). The frontend's client polls every second; its demo mode is unchanged. Migration `0005` turns `analysis_requests` into the job record.
+- Answered at once, before any job: not a link (400), a channel/page link or a share link that doesn't name a post (400), post not collected and no scraper keys (404), AI not running (503), database down (503). Failures during a job end it with a plain message and a status (AI stopped 503, unusable AI answer 502, scraper errors their own, no text 422).
+- Stored: the post's vector (Qdrant), similar posts as `post_relations`, claims (matched to known claims by vector, so each is checked once) with `post_claims`, `post_analyses` (claims, reading, translation; prompt version + model), `post_categories`, and the report itself. The same post, however its link is written, is answered from the stored report without asking the AI again. A failed analysis isn't reused.
+- New claims start as "not checked yet": checking them against sources (web search) isn't part of this plan yet.
+- Post ids come from the link (`veritas/links.py parse_link`): Telegram `channel/123` (private channels `-100<id>/123`), Facebook `page_123`, `owner_story`, `group_123`. The Telegram widget also carries the channel's internal id (`telegram_channel_id()`), for when ids are unified.
+- Collecting: `veritas/collectors.py`. The Telegram parser was built on real saved widget pages (`backend/tests/samples/`). The Facebook and article samples are constructed (no keys yet), and context.dev's endpoint shape comes from public listings; both should be checked against real responses once keys are in `.env`.
+- Frontend changes: the client polls the job; `PostReport.cluster` can be null ("Not part of a known narrative yet"); the Analyze page asks for a post link.
+
 **Tests**
 - **Scraper adapters, against saved real responses** (no live calls, no API costs): a saved Oxylabs Facebook response becomes the right post, account, time and media. A context.dev article becomes the right text and author. Empty, private, rate-limited and malformed responses each give their own error.
 - **Live scraper tests** (`scrape` marker, run by hand, cost credits): one real Facebook post and one real news article.

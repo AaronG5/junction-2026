@@ -3,8 +3,10 @@
     python -m local_ai [options]
 
 First run: detects hardware, picks and downloads a Gemma model, installs
-llama.cpp + llama-swap, starts MySQL/Qdrant and the AI server. Later runs
-skip everything already done (and work offline once installed).
+llama.cpp + llama-swap, starts MySQL/Qdrant and the AI server, then prepares
+the database and vector search, builds the dashboard and starts it at
+http://127.0.0.1:8000. Later runs skip everything already done (and work
+offline once installed).
 
 To add a step: write a function taking the Context and append it to STEPS.
 """
@@ -15,7 +17,7 @@ from dataclasses import dataclass, field
 if sys.version_info < (3, 10):
     sys.exit("Python 3.10 or newer is required. Download it from https://www.python.org/downloads/")
 
-from . import download, hardware, paths, runtime, selector, services, swap_config, ui
+from . import backend, download, hardware, paths, runtime, selector, services, swap_config, ui
 from .state import ensure_env, load_state, read_env, save_state
 
 GEMMA_TERMS = "https://ai.google.dev/gemma/terms"
@@ -58,6 +60,9 @@ def step_hardware(ctx):
     ctx.hw = hardware.detect(force_cpu=ctx.args.cpu, disk_path=str(paths.MODELS_DIR))
     for line in hardware.describe(ctx.hw):
         ui.info(line)
+    # The dashboard's System page shows this (backend/veritas/system.py reads the state file).
+    ctx.state["hardware"] = backend.hardware_summary(ctx.hw)
+    save_state(ctx.state)
 
 
 def _label(c, recommended=False):
@@ -100,7 +105,8 @@ def step_select_model(ctx):
     ctx.chat_model = cand.model
     # A forced, non-fitting model still needs a usable placement label.
     ctx.placement = cand.placement if cand.fits else ("cpu" if hw.backend == "cpu" else "gpu+cpu")
-    state.update(chat_model=cand.model["id"], backend=hw.backend)
+    state.update(chat_model=cand.model["id"], backend=hw.backend,
+                 upgrade=backend.upgrade_for(ranked, cand.model["id"], selector.download_gb))
     save_state(state)
     ui.ok(f"Model: {cand.model['id']} ({ctx.placement})")
 
@@ -161,6 +167,44 @@ def step_ai_server(ctx):
                 f"and the llama-swap page at {services.swap_url()}/ui")
 
 
+def step_database(ctx):
+    for line in backend.migrate().splitlines():
+        ui.info(line.strip())
+
+
+def step_vectors(ctx):
+    for line in backend.setup_vectors().splitlines()[-1:]:
+        ui.info(line.strip())
+
+
+def step_frontend(ctx):
+    result = backend.build_frontend()
+    if result == "current":
+        ui.ok("The dashboard is up to date")
+    elif result == "built":
+        ui.ok("Dashboard built")
+    elif result == "prebuilt":
+        ui.warn("Node.js isn't installed, so the dashboard wasn't rebuilt; using the existing build.")
+    else:
+        ui.warn("Node.js isn't installed and the dashboard has never been built. "
+                "Install Node.js (https://nodejs.org) and run the launcher again.")
+
+
+def step_demo(ctx):
+    if not ctx.args.demo_data:
+        ui.info("Skipped (add --demo-data to load example data)")
+        return
+    ui.ok(backend.load_demo_data())
+
+
+def step_backend(ctx):
+    if ctx.args.no_backend:
+        ui.info("Skipped (--no-backend)")
+        return
+    backend.start_backend()
+    ctx.results["dashboard"] = backend.backend_url()
+
+
 STEPS = [
     ("Checking this computer", step_hardware),
     ("Choosing the AI model", step_select_model),
@@ -170,6 +214,11 @@ STEPS = [
     ("Configuring the AI engine", step_swap_config),
     ("Starting the databases (MySQL + Qdrant)", step_docker),
     ("Starting the AI server", step_ai_server),
+    ("Preparing the database", step_database),
+    ("Setting up vector search", step_vectors),
+    ("Building the dashboard", step_frontend),
+    ("Loading the demo data", step_demo),
+    ("Starting the dashboard", step_backend),
 ]
 
 
@@ -194,9 +243,12 @@ def cmd_status(_args):
         port = env.get(port_key)
         up = port and not services.port_free(port)
         print(f"{name + ':':<11} {'listening on 127.0.0.1:' + port if up else 'stopped'}")
+    print(f"Dashboard:  {'running at ' + backend.backend_url(env) if backend.backend_running(env) else 'stopped'}")
 
 
 def cmd_stop(args):
+    if backend.stop_backend():
+        print("Dashboard stopped.")
     services.stop_llama_swap()
     print("AI server stopped.")
     if not args.skip_docker:
@@ -216,8 +268,11 @@ def main():
                    help="ignore llama.cpp/llama-swap already on this computer; use the pinned versions")
     p.add_argument("--skip-docker", action="store_true", help="do not start MySQL/Qdrant")
     p.add_argument("--no-ai-server", action="store_true", help="set up everything but do not start llama-swap")
+    p.add_argument("--no-backend", action="store_true", help="do not start the dashboard server")
+    p.add_argument("--demo-data", action="store_true",
+                   help="load the example data (only into an empty database; remove it with backend/demo_data.py --remove)")
     p.add_argument("--status", action="store_true", help="show what is running")
-    p.add_argument("--stop", action="store_true", help="stop the AI server and the databases")
+    p.add_argument("--stop", action="store_true", help="stop the dashboard, the AI server and the databases")
     p.add_argument("-y", "--yes", action="store_true", help="accept the defaults, never ask")
     args = p.parse_args()
     ui.ASSUME_YES = args.yes
@@ -242,9 +297,10 @@ def main():
         return 130
 
     print()
-    if ctx.results.get("ai"):
-        print(f"All set. The AI is available at {services.swap_url()}/v1 "
-              f"(models: \"chat\", \"embedding\").")
+    if ctx.results.get("ai") and ctx.results.get("dashboard"):
+        print(f"All set. Open the dashboard: {ctx.results['dashboard']}")
+    elif ctx.results.get("dashboard"):
+        print(f"The dashboard is at {ctx.results['dashboard']}, but the AI isn't ready yet (see above).")
     else:
         print("Setup finished with warnings (see above).")
     print("Run the launcher again any time; use --stop to shut everything down.")

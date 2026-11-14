@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { setDemoDelay } from "../demo";
+import { demoApi, setDemoDelay } from "../demo";
 import { resetSettingsForTests } from "../lib/settings";
 import { renderApp } from "../test/renderApp";
 
@@ -62,6 +62,16 @@ describe("Analyze a link (demo data)", () => {
     await reportLoaded();
     expect(analyzeButton()).toBeEnabled();
     expect(screen.queryByText("Try an example:")).not.toBeInTheDocument();
+  });
+
+  it("a post that fits no narrative says so instead of showing a cluster", async () => {
+    const real = demoApi.analyze.bind(demoApi);
+    vi.spyOn(demoApi, "analyze").mockImplementation(async (url, onStep) => ({ ...(await real(url, onStep)), cluster: null }));
+    renderApp("/dashboard/analyze?url=" + encodeURIComponent("https://t.me/kanalas_b/4521"));
+    await reportLoaded();
+    expect(screen.getByRole("heading", { name: "Not part of a known narrative yet" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Open in Narratives" })).not.toBeInTheDocument();
+    vi.restoreAllMocks();
   });
 
   it("the report has the summary, claims, similar posts, Gemma's reading and the cluster", async () => {

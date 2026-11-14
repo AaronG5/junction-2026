@@ -42,7 +42,7 @@ describe("shared contract fixtures", () => {
   it("covers every API response type", () => {
     const models = new Set(built.manifest.fixtures.map((e) => e.model));
     expect([...models].sort()).toEqual([
-      "ChannelReport", "ClaimsResponse", "Error", "NarrativesResponse", "PostReport", "SourcesResponse", "Story", "SystemStatus", "TrendingResponse",
+      "AnalysisJob", "ChannelReport", "ClaimsResponse", "Error", "NarrativesResponse", "SourcesResponse", "Story", "SystemStatus", "TrendingResponse",
     ]);
   });
 

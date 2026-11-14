@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import linkCases from "../../../shared/cases/links.json";
 import { defaultFilters } from "../lib/filters";
-import { ApiError, BackendUnavailable, api, httpApi, isDemoMode, isSupportedLink, linkKey } from "./client";
+import { ApiError, BackendUnavailable, analysisPolling, api, httpApi, isDemoMode, isSupportedLink, linkKey } from "./client";
 
 // Records whether the demo module was ever loaded.
 const demoState = vi.hoisted(() => ({ loaded: false }));
@@ -72,14 +72,57 @@ describe("normal mode (no demo flag)", () => {
     expect(String(fetchMock.mock.calls[0][0])).toBe("/api/sources/a%2Fb%20c");
   });
 
-  it("analyze POSTs the link as JSON and reports the first step", async () => {
-    const fetchMock = mockFetch(() => json({ url: "u" }));
+});
+
+describe("analyze: start a job, then poll it", () => {
+  const job = (status: string, step: number, extra: Record<string, unknown> = {}) =>
+    ({ id: "j/1", status, step, report: null, error: null, errorStatus: null, ...extra });
+  const report = { url: "https://t.me/x/1", fromBackend: true };
+  const saved = { ...analysisPolling };
+  beforeEach(() => { analysisPolling.intervalMs = 0; });
+  afterEach(() => { Object.assign(analysisPolling, saved); });
+
+  function sequence(...bodies: unknown[]) {
+    const queue = [...bodies];
+    return mockFetch(() => json(queue.length > 1 ? queue.shift() : queue[0]));
+  }
+
+  it("POSTs the link, polls the job, reports each new step once, returns the report", async () => {
+    const fetchMock = sequence(job("queued", 0), job("running", 0), job("running", 2), job("running", 2), job("running", 4),
+      job("done", 5, { report }));
     const steps: number[] = [];
-    await httpApi.analyze("https://t.me/x/1", (i) => steps.push(i));
+    await expect(httpApi.analyze("https://t.me/x/1", (i) => steps.push(i))).resolves.toEqual(report);
     const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(String(fetchMock.mock.calls[0][0])).toBe("/api/analyze");
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual({ url: "https://t.me/x/1" });
-    expect(steps).toEqual([0]);
+    expect(String(fetchMock.mock.calls[1][0])).toBe("/api/analyze/j%2F1");
+    expect(steps).toEqual([0, 2, 4]);
+  });
+
+  it("a post analyzed before comes back at once, without polling", async () => {
+    const fetchMock = sequence(job("done", 5, { report }));
+    await expect(httpApi.analyze("https://t.me/x/1")).resolves.toEqual(report);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("a failed job becomes an ApiError with its message and status", async () => {
+    sequence(job("running", 1), job("failed", 1, { error: "The local AI isn't running. Start it with the launcher.", errorStatus: 503 }));
+    const err = await httpApi.analyze("https://t.me/x/1").catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(503);
+    expect(err.message).toBe("The local AI isn't running. Start it with the launcher.");
+  });
+
+  it("an error answer to the POST is shown as is (e.g. 404 not collected)", async () => {
+    mockFetch(() => json({ detail: "We haven't collected that post yet." }, 404));
+    await expect(httpApi.analyze("https://t.me/x/1")).rejects.toMatchObject({ status: 404, message: "We haven't collected that post yet." });
+  });
+
+  it("gives up after the longest wait", async () => {
+    analysisPolling.maxWaitMs = -1;
+    sequence(job("running", 1));
+    await expect(httpApi.analyze("https://t.me/x/1")).rejects.toMatchObject({ status: 504 });
   });
 });
 

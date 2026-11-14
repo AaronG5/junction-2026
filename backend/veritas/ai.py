@@ -138,6 +138,16 @@ class LocalAI:
     def __exit__(self, *exc) -> None:
         self.close()
 
+    def check(self, timeout: float = 5.0) -> None:
+        """Quick check that llama-swap is running (before starting a long job)."""
+        try:
+            res = self._http.get("/models", timeout=timeout)
+        except httpx.HTTPError:
+            raise AiUnavailable("The local AI isn't running. Start it with the launcher.") from None
+        if res.status_code >= 400:
+            raise AiUnavailable(f"The local AI isn't ready (it answered with error {res.status_code}). "
+                                "It may still be loading; try again in a minute.")
+
     def model_name(self, alias: str) -> str:
         """The real model behind a llama-swap alias ("chat" -> "gemma-4-E2B-it"), for the record.
         Falls back to the alias when llama-swap doesn't say."""
