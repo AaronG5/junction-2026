@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard Palette Options</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: chosen palette first (specimen pair), then the token table, then the rules that keep it working, then copyable CSS. */
+:root {
+  --bg: #F6F6F4;
+  --panel: #FFFFFF;
+  --ink: #1A1814;
+  --muted: #625D55;
+  --line: #E4E1DA;
+  --accent: #663B6A;
+  --on-accent: #FFFFFF;
+  --code-bg: #EEEDE9;
+  --font-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #121110; --panel: #1B1A18; --ink: #EFECE6; --muted: #A39D92; --line: #312E29; --accent: #D2ADD3; --on-accent: #121110; --code-bg: #232120; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #121110; --panel: #1B1A18; --ink: #EFECE6; --muted: #A39D92; --line: #312E29; --accent: #D2ADD3; --on-accent: #121110; --code-bg: #232120; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 64px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 52px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: clamp(28px, 4vw, 38px); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 22px; font-weight: 600; }
+h3 { font-size: 15px; font-weight: 600; }
+p { margin: 0; max-width: 70ch; }
+.eyebrow { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.lede { display: grid; gap: 14px; }
+.lede p { color: var(--muted); }
+.lede strong { color: var(--ink); font-weight: 600; }
+section { display: grid; gap: 18px; }
+section > p { color: var(--muted); }
+.rule { padding-top: 28px; border-top: 1px solid var(--line); }
+
+/* swatch strip: before/after */
+.compare { display: grid; gap: 10px; }
+.swrow { display: grid; grid-template-columns: 120px repeat(5, minmax(0, 1fr)); gap: 6px; align-items: stretch; }
+.swrow .lbl { font-size: 13px; color: var(--muted); align-self: center; }
+.swrow .lbl b { color: var(--ink); font-weight: 600; display: block; }
+.sw { border-radius: 6px; border: 1px solid var(--line); overflow: hidden; display: grid; grid-template-rows: 36px auto; background: var(--panel); min-width: 0; }
+.sw i { display: block; }
+.sw span { padding: 4px 6px; font-family: var(--font-data); font-size: 10.5px; line-height: 1.3; color: var(--muted); overflow-wrap: anywhere; }
+.sw span b { display: block; font-family: var(--font-ui); font-weight: 600; font-size: 11px; color: var(--ink); }
+.sw.new { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+
+/* specimen: literal palette values per mode on purpose */
+.spec {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --s-bg:#F6F6F4; --s-surf:#FFFFFF; --s-ink:#1A1814; --s-muted:#625D55; --s-line:#E4E1DA;
+  --s-accent:#663B6A; --s-on:#FFFFFF; --s-soft:#F1E7F0; --s-softink:#522E55; --s-noise:#C3BEB4;
+  background: var(--s-bg); color: var(--s-ink); border-radius: 10px; border: 1px solid var(--s-line);
+  padding: 14px; display: grid; gap: 12px; min-width: 0; font-size: 13px;
+}
+.spec[data-m="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --s-bg:#121110; --s-surf:#1B1A18; --s-ink:#EFECE6; --s-muted:#A39D92; --s-line:#312E29;
+  --s-accent:#D2ADD3; --s-on:#121110; --s-soft:#2A1F2B; --s-softink:#E2C8E2; --s-noise:#5A554D;
+}
+.spec .mode { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--s-muted); font-weight: 600; }
+.spec .nav { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--s-muted); border-bottom: 1px solid var(--s-line); padding-bottom: 8px; }
+.spec .nav b { color: var(--s-ink); font-weight: 700; margin-right: 6px; }
+.spec .nav .on { color: var(--s-accent); font-weight: 600; box-shadow: inset 0 -2px 0 var(--s-accent); padding-bottom: 2px; }
+.spec .bar { display: flex; gap: 8px; }
+.spec .url { flex: 1; min-width: 0; background: var(--s-surf); border: 1px solid var(--s-accent); box-shadow: 0 0 0 3px var(--s-soft); border-radius: 6px; padding: 7px 10px; font-family: var(--font-data); font-size: 12px; color: var(--s-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spec .btn { background: var(--s-accent); color: var(--s-on); border-radius: 6px; padding: 7px 14px; font-weight: 600; font-size: 13px; white-space: nowrap; }
+.spec .btn.ghost { background: transparent; color: var(--s-accent); border: 1px solid var(--s-accent); }
+.spec .card { background: var(--s-surf); border: 1px solid var(--s-line); border-radius: 8px; padding: 12px; display: grid; gap: 10px; }
+.spec .who { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; align-items: center; }
+.spec .who b { font-weight: 600; }
+.spec .who small { color: var(--s-muted); font-size: 12px; }
+.spec .quote { margin: 0; font-size: 13.5px; }
+.spec .link { color: var(--s-accent); text-decoration: underline; text-underline-offset: 2px; }
+.spec .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--s-line); border-radius: 999px; padding: 2px 9px 2px 7px; font-size: 12px; font-weight: 600; color: var(--s-ink); background: var(--s-surf); }
+.pill .ic { width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; }
+.chip { border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 600; background: var(--s-soft); color: var(--s-softink); }
+.spec .meter { display: grid; gap: 4px; }
+.spec .meter .row { display: flex; justify-content: space-between; font-size: 12px; color: var(--s-muted); }
+.spec .meter .track { height: 6px; border-radius: 3px; background: var(--s-line); overflow: hidden; }
+.spec .meter .fill { height: 100%; width: 70%; background: #ec835a; border-radius: 3px; }
+.spec .chain { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 12px; }
+.spec .chain .node { border: 1px solid var(--s-line); border-radius: 6px; padding: 2px 7px; background: var(--s-surf); }
+.spec .chain .node small { color: var(--s-muted); }
+.spec .chain .arr { color: var(--s-muted); font-weight: 700; }
+.spec .plot { display: grid; gap: 6px; }
+.spec svg { width: 100%; height: auto; display: block; background: var(--s-surf); border: 1px solid var(--s-line); border-radius: 8px; }
+.spec .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--s-muted); }
+.spec .legend span { display: inline-flex; align-items: center; gap: 5px; }
+.spec .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.spec .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* token table */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td code { font-family: var(--font-data); font-size: 12.5px; }
+td .chipc { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-data); font-size: 12.5px; }
+td .chipc i { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--line); display: inline-block; }
+td.use { color: var(--muted); }
+td.num { font-variant-numeric: tabular-nums; color: var(--muted); font-family: var(--font-data); font-size: 12.5px; white-space: nowrap; }
+
+/* rules */
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 12px; min-width: 0; align-content: start; }
+.box p { color: var(--muted); font-size: 14px; }
+.blues { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.blues div { display: grid; gap: 4px; font-size: 12px; min-width: 0; }
+.blues i { height: 34px; border-radius: 6px; display: block; }
+.blues b { font-weight: 600; }
+.blues code { font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.scale { display: grid; gap: 8px; }
+.scale .item { display: grid; grid-template-columns: 22px 110px minmax(0, 1fr); gap: 10px; align-items: center; font-size: 14px; }
+.scale .ic { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 700; }
+.scale .item b { font-weight: 600; }
+.scale .item span { color: var(--muted); font-size: 13px; }
+.series { display: flex; flex-wrap: wrap; gap: 8px; }
+.series div { display: grid; gap: 4px; justify-items: start; }
+.series i { width: 44px; height: 24px; border-radius: 5px; display: block; }
+.series code { font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+
+/* css block */
+.codehead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+button.copy { font: inherit; font-size: 13px; font-weight: 600; background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 7px 14px; cursor: pointer; }
+button.copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+pre { margin: 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-x: auto; font-family: var(--font-data); font-size: 12.5px; line-height: 1.6; color: var(--ink); }
+
+@media (max-width: 860px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) {
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  .swrow { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .swrow .lbl { grid-column: 1 / -1; }
+  .blues { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .scale .item { grid-template-columns: 22px minmax(0, 1fr); }
+  .scale .item span { grid-column: 2; }
+}
+@media (prefers-reduced-motion: no-preference) { button.copy { transition: opacity .15s; } button.copy:hover { opacity: .9; } }
+</style>
+
+<div class="wrap">
+  <header class="lede">
+    <div class="eyebrow">Frontend · chosen palette</div>
+    <h1>Baltic: warm greys, kelp purple</h1>
+    <p>Option C's <strong>warm greys stay exactly as they were</strong>: same page, surface, text and border colors. The accent is now a muted <strong>kelp purple</strong>, the deep plum of the red and purple seaweeds along the Baltic shore. It's earthy rather than the bright violet of AI products, and it stays clear of the warning and misleading colors.</p>
+  </header>
+
+  <section>
+    <h2>What changed</h2>
+    <div class="compare" id="compare"></div>
+  </section>
+
+  <section>
+    <h2>On the dashboard</h2>
+    <div class="pair" id="pair"></div>
+  </section>
+
+  <section class="rule">
+    <h2>Color tokens</h2>
+    <p>Every color the interface uses, with its light and dark value. Contrast is measured against the surface the color sits on; 4.5:1 is the minimum for body text.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>Used for</th><th>Contrast L / D</th></tr></thead>
+        <tbody id="tokens"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="rule">
+    <h2>Rules that keep it working</h2>
+    <div class="grid2">
+      <div class="box">
+        <h3>Purple, kept apart from its neighbours</h3>
+        <p>The accent is darker and greyer than the chart violet and pink, and far from the "False" red, so a button never looks like a data point or a verdict. Keep the accent out of charts; charts use their own colors below.</p>
+        <div class="blues">
+          <div><i style="background:#663B6A"></i><b>Our accent</b><code>#663B6A</code></div>
+          <div><i style="background:#6250D6"></i><b>Chart violet</b><code>#6250D6</code></div>
+          <div><i style="background:#E87BA4"></i><b>Chart pink</b><code>#E87BA4</code></div>
+          <div><i style="background:#D03B3B"></i><b>"False" red</b><code>#D03B3B</code></div>
+        </div>
+        <p>Platforms (Telegram, Facebook) are shown with their logo icon, not their brand color.</p>
+      </div>
+      <div class="box">
+        <h3>Verdicts: icon + label + color</h3>
+        <p>Never color alone; about 1 in 12 men can't tell red from green.</p>
+        <div class="scale">
+          <div class="item"><i class="ic" style="background:#0ca30c">✓</i><b>Credible</b><span>Matches reliable sources</span></div>
+          <div class="item"><i class="ic" style="background:#8a8f98">?</i><b>Unverified</b><span>Not enough evidence yet</span></div>
+          <div class="item"><i class="ic" style="background:#ec835a">!</i><b>Misleading</b><span>True parts, false framing</span></div>
+          <div class="item"><i class="ic" style="background:#d03b3b">✕</i><b>False</b><span>Contradicted by evidence</span></div>
+        </div>
+      </div>
+      <div class="box">
+        <h3>Chart colors (clusters, categories)</h3>
+        <p>A tested colorblind-safe set, used in this fixed order. A cluster map shows at most three colors at once, plus grey for posts that fit no cluster; bar and line charts can use all eight.</p>
+        <div class="series">
+          <div><i style="background:#2a78d6"></i><code>#2A78D6</code></div>
+          <div><i style="background:#eb6834"></i><code>#EB6834</code></div>
+          <div><i style="background:#1baf7a"></i><code>#1BAF7A</code></div>
+          <div><i style="background:#eda100"></i><code>#EDA100</code></div>
+          <div><i style="background:#e87ba4"></i><code>#E87BA4</code></div>
+          <div><i style="background:#008300"></i><code>#008300</code></div>
+          <div><i style="background:#6250d6"></i><code>#6250D6</code></div>
+          <div><i style="background:#e34948"></i><code>#E34948</code></div>
+        </div>
+      </div>
+      <div class="box">
+        <h3>Where amber can still live</h3>
+        <p>Amber was what made C memorable. It can stay in the logo and name, outside the working interface, where it never sits next to a verdict.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="rule">
+    <div class="codehead">
+      <h2>CSS tokens</h2>
+      <button class="copy" id="copy" type="button">Copy CSS</button>
+    </div>
+    <p>Ready for the frontend: light by default, dark from the system setting or an explicit <code>data-theme</code>.</p>
+    <pre id="css"></pre>
+  </section>
+</div>
+
+<script>
+(function () {
+  const tokens = [
+    ["--bg",              "#F6F6F4", "#121110", "Page background", null],
+    ["--surface",         "#FFFFFF", "#1B1A18", "Cards, panels, inputs", null],
+    ["--border",          "#E4E1DA", "#312E29", "Borders and dividers", null],
+    ["--text",            "#1A1814", "#EFECE6", "Main text", ["--text", "--surface"]],
+    ["--text-muted",      "#625D55", "#A39D92", "Secondary text, labels", ["--text-muted", "--surface"]],
+    ["--accent",          "#663B6A", "#D2ADD3", "Buttons, links, active tab, focus", ["--accent", "--surface"]],
+    ["--accent-hover",    "#522E55", "#E2C8E2", "Hovered or pressed buttons", null],
+    ["--on-accent",       "#FFFFFF", "#121110", "Text on accent buttons", ["--on-accent", "--accent"]],
+    ["--accent-soft",     "#F1E7F0", "#2A1F2B", "Chips, selected rows, focus halo", null],
+    ["--accent-soft-text","#522E55", "#E2C8E2", "Text on soft accent", ["--accent-soft-text", "--accent-soft"]]
+  ];
+  const byName = Object.fromEntries(tokens.map(t => [t[0], { L: t[1], D: t[2] }]));
+
+  function lum(h) {
+    const c = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(x => x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  function cr(a, b) { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); }
+
+  document.getElementById("tokens").innerHTML = tokens.map(([name, L, D, use, pair]) => {
+    const num = pair ? `${cr(byName[pair[0]].L, byName[pair[1]].L).toFixed(1)} / ${cr(byName[pair[0]].D, byName[pair[1]].D).toFixed(1)}` : "–";
+    return `<tr><td><code>${name}</code></td>
+      <td><span class="chipc"><i style="background:${L}"></i>${L}</span></td>
+      <td><span class="chipc"><i style="background:${D}"></i>${D}</span></td>
+      <td class="use">${use}</td><td class="num">${num}</td></tr>`;
+  }).join("");
+
+  // before / after strip (light mode values)
+  const before = [["Page", "#F6F6F4"], ["Surface", "#FFFFFF"], ["Text", "#1A1814"], ["Muted", "#625D55"], ["Accent", "#9A5B0C"]];
+  const blue   = [["Page", "#F6F6F4"], ["Surface", "#FFFFFF"], ["Text", "#1A1814"], ["Muted", "#625D55"], ["Accent", "#1F4E86"]];
+  const after  = [["Page", "#F6F6F4"], ["Surface", "#FFFFFF"], ["Text", "#1A1814"], ["Muted", "#625D55"], ["Accent", "#663B6A"]];
+  const row = (label, sub, set, mark) => `<div class="swrow"><span class="lbl"><b>${label}</b>${sub}</span>` +
+    set.map(([n, h], i) => `<div class="sw${mark && i === 4 ? " new" : ""}"><i style="background:${h}"></i><span><b>${n}</b>${h}</span></div>`).join("") + `</div>`;
+  document.getElementById("compare").innerHTML = row("First", "C · amber", before, false) + row("Then", "C · blue", blue, false) + row("Now", "C · kelp purple", after, true);
+
+  // example cluster map (deterministic)
+  function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+  function gauss(r) { return Math.sqrt(-2 * Math.log(r() || 1e-9)) * Math.cos(2 * Math.PI * r()); }
+  const r = rng(42);
+  const clusters = [
+    { c: "--c1", x: 78, y: 62, sx: 22, sy: 14, n: 26, name: "Anti-NATO" },
+    { c: "--c2", x: 205, y: 48, sx: 16, sy: 12, n: 18, name: "Energy prices" },
+    { c: "--c3", x: 168, y: 112, sx: 20, sy: 11, n: 16, name: "Elections" }
+  ];
+  const pts = [];
+  clusters.forEach(k => { for (let i = 0; i < k.n; i++) pts.push({ x: k.x + gauss(r) * k.sx, y: k.y + gauss(r) * k.sy, c: `var(${k.c})`, name: k.name }); });
+  for (let i = 0; i < 14; i++) pts.push({ x: 20 + r() * 260, y: 14 + r() * 122, c: "var(--s-noise)", name: "No cluster" });
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const svg = pts.map(p => `<circle cx="${clamp(p.x, 8, 292).toFixed(1)}" cy="${clamp(p.y, 8, 142).toFixed(1)}" r="4" fill="${p.c}" stroke="var(--s-surf)" stroke-width="2"><title>${p.name}</title></circle>`).join("");
+
+  function specimen(m) {
+    return `<div class="spec" data-m="${m}">
+      <div class="mode">${m === "light" ? "Light" : "Dark"}</div>
+      <div class="nav"><b>Dashboard</b><span class="on">Analyze</span><span>Narratives</span><span>Sources</span></div>
+      <div class="bar"><div class="url">t.me/kanalas_b/4521</div><div class="btn">Analyze</div></div>
+      <div class="card">
+        <div class="who"><b>@kanalas_b</b><small>Telegram channel · 18.4k subscribers</small></div>
+        <p class="quote">„NATO tankai vėl provokuoja prie Baltarusijos sienos. Kodėl apie tai tyli mūsų žiniasklaida?“</p>
+        <div class="pills"><span class="pill"><i class="ic" style="background:#ec835a">!</i>Misleading</span><span class="chip">Anti-NATO</span><span class="chip">Cluster 12</span></div>
+        <div class="meter"><div class="row"><span>Manipulation signals</span><span>7 / 10</span></div><div class="track"><div class="fill"></div></div></div>
+        <div class="chain" aria-label="Propagation chain">
+          <span class="node">rt.com <small>EN · 08:00</small></span><span class="arr">→</span>
+          <span class="node">@kanal_a <small>RU · 09:30</small></span><span class="arr">→</span>
+          <span class="node">@kanalas_b <small>LT · 11:00</small></span>
+        </div>
+        <span class="link">See 14 similar posts in 3 languages</span>
+      </div>
+      <div class="plot">
+        <svg viewBox="0 0 300 150" role="img" aria-label="Example cluster map: three clusters and unclustered posts">${svg}</svg>
+        <div class="legend">
+          <span><i style="background:var(--c1)"></i>Anti-NATO</span>
+          <span><i style="background:var(--c2)"></i>Energy prices</span>
+          <span><i style="background:var(--c3)"></i>Elections</span>
+          <span><i style="background:var(--s-noise)"></i>No cluster</span>
+        </div>
+      </div>
+      <div class="actions"><div class="btn">Open full report</div><div class="btn ghost">Flag post</div></div>
+    </div>`;
+  }
+  document.getElementById("pair").innerHTML = specimen("light") + specimen("dark");
+
+  // copyable CSS
+  const lightLines = tokens.map(([n, L]) => `  ${n}: ${L};`).join("\n");
+  const darkLines = tokens.map(([n, , D]) => `    ${n}: ${D};`).join("\n");
+  const darkLines2 = tokens.map(([n, , D]) => `  ${n}: ${D};`).join("\n");
+  const css = `/* Baltic palette: warm greys, kelp purple accent */
+:root {
+${lightLines}
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+${darkLines}
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+${darkLines2}
+  color-scheme: dark;
+}`;
+  const pre = document.getElementById("css");
+  pre.textContent = css;
+  const btn = document.getElementById("copy");
+  btn.addEventListener("click", () => {
+    const done = () => { btn.textContent = "Copied"; setTimeout(() => (btn.textContent = "Copy CSS"), 1600); };
+    const fallback = () => { const s = window.getSelection(), rg = document.createRange(); rg.selectNodeContents(pre); s.removeAllRanges(); s.addRange(rg); btn.textContent = "Selected, press Ctrl+C"; };
+    try { navigator.clipboard.writeText(css).then(done, fallback); } catch (e) { fallback(); }
+  });
+})();
+</script>
+
+</html>

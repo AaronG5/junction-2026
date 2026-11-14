@@ -1,35 +1,37 @@
 @echo off
 rem Windows launcher: double-click this file, or run it from a terminal.
-rem All the work happens in Python (local_ai/); this only finds Python 3.10+.
+rem All the work happens in Python (local_ai/), run through uv. uv also
+rem downloads a suitable Python by itself, so nothing else needs installing.
 setlocal
 cd /d "%~dp0"
 
-set "PY="
-where py >nul 2>&1 && py -3 -c "import sys; sys.exit(sys.version_info < (3, 10))" >nul 2>&1 && set "PY=py -3"
-if not defined PY (
-    where python >nul 2>&1 && python -c "import sys; sys.exit(sys.version_info < (3, 10))" >nul 2>&1 && set "PY=python"
-)
+set "UV="
+where uv >nul 2>&1 && set "UV=uv"
+rem The uv installer puts uv here; a fresh install isn't on PATH until a new window.
+if not defined UV if exist "%USERPROFILE%\.local\bin\uv.exe" set "UV=%USERPROFILE%\.local\bin\uv.exe"
 
-if not defined PY (
-    echo Python 3.10 or newer is needed and was not found.
-    where winget >nul 2>&1 && (
-        choice /M "Install Python 3.12 now with winget"
-        if not errorlevel 2 (
-            winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements
-            echo.
-            echo Python was installed. Close this window and run launch.bat again.
-            pause
-            exit /b 0
-        )
-    )
-    echo Download it from https://www.python.org/downloads/ ^(tick "Add python.exe to PATH"^).
-    pause
-    exit /b 1
+if not defined UV (
+    echo uv is needed to run Veritas Lens and was not found.
+    echo It is a small tool that manages Python for this project: https://docs.astral.sh/uv/
+    choice /M "Install uv now"
+    if errorlevel 2 goto :nouv
+    powershell -NoProfile -ExecutionPolicy ByPass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+    if exist "%USERPROFILE%\.local\bin\uv.exe" set "UV=%USERPROFILE%\.local\bin\uv.exe"
 )
+if not defined UV goto :nouv
 
-%PY% -m local_ai %*
+"%UV%" run --quiet python -m local_ai %*
 set "CODE=%ERRORLEVEL%"
+goto :end
 
+:nouv
+echo.
+echo Install uv from https://docs.astral.sh/uv/getting-started/installation/ and run launch.bat again.
+set "CODE=1"
+
+:end
 rem Keep the window open when started by double-click, so messages can be read.
-echo %CMDCMDLINE% | find /i "%~0" >nul && pause
+rem Explorer starts batch files as: cmd.exe /c ""C:\path\launch.bat" "  (note the
+rem trailing quote-space-quote), which a terminal or another program never does.
+echo(%CMDCMDLINE%| findstr /r /c:"\" \"$" >nul && pause
 exit /b %CODE%
