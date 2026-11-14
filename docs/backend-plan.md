@@ -227,6 +227,10 @@ New launcher steps:
 - `--demo-data` loads the demo data
 - `--stop` also stops the backend
 
+**How it works (built):** `local_ai/backend.py` runs the backend's own tools as separate processes with the same Python (`backend/migrate.py`, `setup_vectors.py`, `demo_data.py`, `run.py`), so the launcher never imports the backend. Migrations and vector setup wait up to 90/60 s for MySQL/Qdrant to come up. The dashboard is rebuilt only when a file in `frontend/src`, `package.json` etc. is newer than `dist/index.html`. The backend runs hidden in the background (log: `logs/backend.log`, pid: `.local_ai/backend.pid`) and is restarted only when `.env` or the backend's code changed. The launcher also writes the hardware summary and an upgrade suggestion into its state file for the System page. New flags: `--demo-data`, `--no-backend`; `--stop` and `--status` include the dashboard.
+
+End-to-end run on the dev machine (`python -m local_ai --demo-data -y`): all 13 steps, every screen's API answered from the real server, the System page showed the real GPU and an upgrade suggestion. It found one bug the fakes missed (the health check compared bytes with text), now covered by a test.
+
 **Tests**
 - **Unit:** the new steps with fakes: migrations called once, a build skipped when up to date, backend restarted only when its config changed, demo data loaded only with the flag.
 - **End to end on this machine:** `launch.bat --demo-data`, then every screen at `http://127.0.0.1:8000` shows data (screenshots like the frontend phases), then `launch.bat --stop` leaves no backend process behind.

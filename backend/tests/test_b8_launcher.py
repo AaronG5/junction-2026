@@ -306,3 +306,14 @@ def test_upgrade_is_a_better_model_that_fits():
     assert backend.upgrade_for(ranked, "chosen", size)["model"] == "better"
     assert backend.upgrade_for(ranked, "better", size) is None   # nothing better fits
     assert backend.upgrade_for(ranked, "unknown", size) is None
+
+
+@pytest.mark.parametrize("answer, running", [
+    ((200, b'{"status":"ok","version":"0.1.0"}'), True),
+    ((200, b"<html>something else on this port</html>"), False),
+    ((503, b""), False),
+    ((None, b""), False),
+])
+def test_backend_running_reads_the_health_answer(monkeypatch, answer, running):
+    monkeypatch.setattr(backend, "http_get", lambda url, timeout=3: answer)  # the real http_get returns bytes
+    assert backend.backend_running({"BACKEND_PORT": "8000"}) is running

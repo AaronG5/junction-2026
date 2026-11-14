@@ -153,8 +153,8 @@ def _pid_alive(pid):
 
 
 def backend_running(env=None):
-    status, body = http_get(backend_url(env) + "/api/health")
-    return status == 200 and '"ok"' in (body or "")
+    status, body = http_get(backend_url(env) + "/api/health")  # body is bytes
+    return status == 200 and b'"ok"' in (body or b"")
 
 
 def stop_backend():
