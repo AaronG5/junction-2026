@@ -1,0 +1,11 @@
+# Local AI layer: downloaded/generated, never committed
+models/
+bin/
+logs/
+.local_ai/
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
