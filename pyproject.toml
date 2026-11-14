@@ -6,6 +6,7 @@ requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.162.5",
     "httpx>=0.28.1",
+    "numpy>=2.0",
     "pydantic>=2.14.3",
     "pymysql[rsa]>=1.2.4",
     "uvicorn>=0.54.0",
