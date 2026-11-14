@@ -101,6 +101,12 @@ def _date_time(msg: Tag) -> str | None:
         dt = datetime.fromisoformat(el["datetime"].strip().replace("Z", "+00:00"))
     except ValueError:
         return None
+    return to_utc_iso(dt)
+
+
+def to_utc_iso(dt: datetime) -> str:
+    """The dateTime format: UTC, ISO 8601, Z suffix. Naive datetimes count as UTC.
+    The fixed width means these strings sort and compare in time order."""
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

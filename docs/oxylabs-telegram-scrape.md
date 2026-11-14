@@ -53,9 +53,9 @@ tests/
   fixtures/telegram/<username>.html
 data/
   positives/telegram_channels.json      # input (committed)
-  raw/telegram/<username>/page-001.html # scraped HTML (gitignored)
-  raw/telegram/<username>/meta.json     # region, request ids, whether the channel's end was reached
-  parsed/telegram/<username>.json       # parsed posts
+  raw/telegram/<username>/page-001.html # scraped HTML, numbered in the order saved (gitignored)
+  raw/telegram/<username>/meta.json     # region, each page's url, request id and message-id range
+  parsed/telegram/posts.json            # parsed posts: {"<username>": [posts]}
   parsed/telegram/_report.json          # per-channel run summary
 pyproject.toml                          # uv project: dependencies, Python version
 uv.lock                                 # committed
@@ -74,11 +74,20 @@ uv.lock                                 # committed
 - The username is the last path segment of `link`: `https://t.me/cop_lt` → `cop_lt`.
 - Scrape the web preview at `https://t.me/s/<username>`. `https://t.me/<username>` is a landing page with no posts.
 
-### Posts per channel
+### How far back to go
 
-- Set the count with `--posts N` on the CLI. The default comes from `TELEGRAM_POSTS_PER_CHANNEL` in the environment or `.env`, else 20.
-- One preview page holds about 20 posts. For more, request `https://t.me/s/<username>?before=<lowest message id seen so far>`, going from newest to oldest. Stop when N posts are collected or when a page adds no new posts.
-- Return the N newest posts. If the channel has fewer than N, return what exists and mark the channel `partial`.
+- By count: `--posts N` returns the N newest posts. Without `--days` or `--since`, the default comes from `TELEGRAM_POSTS_PER_CHANNEL` in the environment or `.env`, else 20.
+- By date: `--days D` (the last D days) or `--since 2026-10-01` (UTC unless an offset is given) returns every post published at or after that moment.
+- Both: `--days 30 --posts 500` stops at whichever comes first.
+- One preview page holds about 20 posts. For more, request `https://t.me/s/<username>?before=<id>`, going from newest to oldest. A page fetched with `?before=B` holds every message from its lowest id up to B-1, so saved pages cover known ranges of message ids. Always page back from the bottom of the newest unbroken range of saved pages. A gap left by an earlier run is then filled first, and no page is fetched twice. Stop when:
+  - the count is reached
+  - a page holds a post older than the date (everything newer is then collected)
+  - the channel's first message is reached (message id 1, or an empty `?before=` page)
+  - the run has made `--max-pages` requests for that channel (default 500, about 10,000 posts). The next run continues from there.
+- Status:
+  - `ok`: the count or the date was reached, or a date run reached the channel's first post. A readable channel with nothing in the date range is `ok` with 0 posts.
+  - `partial`: an error or the page limit stopped it early, a count run found fewer than N posts, or `--update` couldn't fetch page 1 (the saved posts are kept).
+- Cost: a 30-day crawl of all 51 channels is roughly 2,000 requests (estimated 2026-11-14 from posting rates). The busiest channels need 200 or more pages each.
 
 ### Region fallback
 
@@ -97,25 +106,40 @@ Notes:
 
 ### Raw HTML
 
-- Save each page exactly as received, as `data/raw/telegram/<username>/page-001.html`, where page 1 is the newest.
-- If raw pages for a channel already exist, re-parse them instead of scraping again (this saves credits). `--refresh` forces a new scrape.
+- Save each page exactly as received under `data/raw/telegram/<username>/`, as `page-001.html`, `page-002.html` and so on, numbered in the order they were saved (not by age).
+- `meta.json` records the region and, for each page, its URL, request id, `before` value and message-id range. Once the channel's first post is reached it also records `emptyBefore`. Caches saved before id ranges existed are converted on load, with no requests.
+- Saved pages are re-parsed instead of scraped again (this saves credits). A run that needs more (bigger N, earlier date) only fetches the missing older pages.
+- Without `--update`, the newest end of every result is whenever page 1 was saved.
+- `--update` fetches page 1 again, plus more pages until they join the saved ones, so posts published since the last run are picked up.
+  - With nothing new it costs one request per channel, and the page isn't saved again.
+  - Re-fetched posts replace their saved versions, so edits are picked up.
+  - If page 1 fails (an API error, or no posts in either region), the channel keeps its saved posts and is marked `partial` with the reason.
+- `--refresh` throws the saved pages away and starts over. It can't be combined with `--update`.
 - Add `data/raw/` to `.gitignore`. Don't commit scraped output unless the user asks.
 
 ## Parsing
 
-Each channel's output is `data/parsed/telegram/<username>.json`: a JSON array, newest first, written as UTF-8 with `ensure_ascii=False`.
+All posts go into one file, `data/parsed/telegram/posts.json`. It's a JSON object with one key per channel username, in the order of `telegram_channels.json`. Each value is that channel's posts, newest first, written as UTF-8 with `ensure_ascii=False`.
 
 ```json
-[
-   {
-      "author": "INFA.LT",
-      "content": "First line of the post.\nSecond line.",
-      "dateTime": "2026-11-14T09:30:00Z",
-      "channelName": "INFA.LT",
-      "postUrl": "https://t.me/infalt/1234"
-   }
-]
+{
+   "infalt": [
+      {
+         "author": "INFA.LT",
+         "content": "First line of the post.\nSecond line.",
+         "dateTime": "2026-11-14T09:30:00Z",
+         "channelName": "INFA.LT",
+         "postUrl": "https://t.me/infalt/1234"
+      }
+   ],
+   "cop_lt": []
+}
 ```
+
+- An unreadable channel gets an empty array.
+- A run over some channels (`--channels`) replaces only those channels' arrays and keeps the rest.
+- The file is written once, at the end of a run, and atomically. If a run is interrupted or stopped by a 401, the finished channels are still saved. Saved raw pages mean a re-run costs nothing for channels already fetched.
+- Size: about 1.7 MB for 20 posts per channel, so a 30-day crawl (about 41,000 posts) will be roughly 35 MB. GitHub warns at 50 MB and rejects files over 100 MB, so don't commit it once it grows.
 
 | Field         | Source                                                                                                                                          |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -141,7 +165,8 @@ Rules:
 Also write `data/parsed/telegram/_report.json`, with one entry per channel:
 
 - `username`
-- `requested` and `got` (post counts)
+- `requested` and `got` (post counts; `requested` is null for a date-only run)
+- `since`: the start date asked for, or null
 - `region`: `default` or `RU`
 - `status`: `ok`, `partial` or `unreadable`
 - `reason`
@@ -153,6 +178,9 @@ Also write `data/parsed/telegram/_report.json`, with one entry per channel:
 uv sync                                                             # create .venv, install from uv.lock
 uv run python -m scrapers.telegram                                  # all channels, default N
 uv run python -m scrapers.telegram --posts 50                       # 50 posts per channel
+uv run python -m scrapers.telegram --days 30                        # every post from the last 30 days
+uv run python -m scrapers.telegram --since 2026-10-01 --posts 500   # since a date, at most 500 per channel
+uv run python -m scrapers.telegram --days 30 --update               # last 30 days, including posts since the last run
 uv run python -m scrapers.telegram --posts 10 --channels cop_lt,infalt
 uv run python -m scrapers.telegram --refresh                        # ignore saved raw HTML
 uv run python -m scrapers.telegram --workers 1                      # one channel at a time (default 4)
