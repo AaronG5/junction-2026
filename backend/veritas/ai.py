@@ -33,6 +33,8 @@ EMBEDDING_DIMENSIONS = 768
 DOCUMENT_PROMPT = "title: {title} | text: {text}"
 QUERY_PROMPT = "task: search result | query: {text}"
 
+MAX_TOKENS_CEILING = 8192
+
 _PROMPT_FILE = re.compile(r"^([a-z_]+)\.v([0-9]+)\.md$")
 _PLACEHOLDER = re.compile(r"\{([a-z_]+)\}")
 
@@ -98,6 +100,13 @@ def load_prompt(name: str, version: str | None = None, folder: Path = PROMPTS_DI
 
 
 # --------------------------------------------------------------------------- client
+
+def _finish_reason(data: dict) -> str | None:
+    try:
+        return data["choices"][0].get("finish_reason")
+    except (KeyError, IndexError, TypeError, AttributeError):
+        return None
+
 
 def grammar_schema(schema: dict) -> dict:
     """The JSON schema as sent to the model: without maxLength. llama.cpp turns the
@@ -241,6 +250,10 @@ class LocalAI:
                 content = choice["message"].get("content") or ""
                 value = schema.model_validate(json.loads(content))
             except (KeyError, IndexError, TypeError, ValueError, ValidationError):
+                # Cut off (often while Gemma still "thought", which it sometimes does even
+                # when asked not to): the retry gets a much bigger budget.
+                if _finish_reason(data) == "length":
+                    body["max_tokens"] = min(body["max_tokens"] * 4, MAX_TOKENS_CEILING)
                 continue
             return Answer(value=value, model=self.model_name(self.chat_model), prompt=prompt.label)
         raise AiError(f"The local AI's answer to {prompt.label} couldn't be read, twice in a row.")

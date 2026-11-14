@@ -326,3 +326,18 @@ def test_live_analyzers_answer_with_valid_json(live):
         assert t.wording in POST
     tr = translate(live, POST)
     assert "NATO" in tr.value.translation
+
+
+def test_an_answer_cut_off_while_thinking_is_retried_with_a_bigger_budget():
+    cut = httpx.Response(200, json={"choices": [{"finish_reason": "length", "message": {"content": "", "reasoning_content": "Thinking..."}}]})
+    fake = FakeAI(cut, {"claims": []})
+    assert extract_claims(fake.client(), POST).value.claims == []
+    assert [r["max_tokens"] for r in fake.requests] == [1024, 4096]
+
+
+def test_the_bigger_budget_has_a_ceiling():
+    cut = httpx.Response(200, json={"choices": [{"finish_reason": "length", "message": {"content": ""}}]})
+    fake = FakeAI(cut, cut)
+    with pytest.raises(AiError):
+        translate(fake.client(), POST)  # starts at 4096
+    assert [r["max_tokens"] for r in fake.requests] == [4096, 8192]

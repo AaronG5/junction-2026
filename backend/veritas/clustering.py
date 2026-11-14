@@ -178,7 +178,7 @@ def _ref(row: dict, note: str | None = None) -> dict:
 
 def _name(ai: LocalAI, texts: list[str]) -> tuple[str, str]:
     joined = "\n\n".join(f"{i}. {t[:500]}" for i, t in enumerate(texts, 1))
-    answer = ai.ask(load_prompt("cluster_name"), ClusterNameAnswer, text=joined, max_tokens=300)
+    answer = ai.ask(load_prompt("cluster_name"), ClusterNameAnswer, text=joined)
     return answer.value.name.strip() or "Unnamed narrative", answer.value.summary.strip()
 
 

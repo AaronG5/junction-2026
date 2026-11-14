@@ -151,6 +151,7 @@ The analyzers:
 **How it works (built):** `veritas/ai.py` (client, prompt files) and `veritas/analyzers.py` (the four analyzers); prompts in `backend/prompts/*.vN.md` with `## system` and `## user` sections. Two findings from the live model:
 - Gemma 4 "thinks" before answering by default, which used up the token budget and left the JSON empty. Requests switch it off (`chat_template_kwargs: {enable_thinking: false}`); answers then take under a second.
 - llama.cpp builds a grammar from the JSON schema, and a long `maxLength` makes one too big to build. The schema sent to the model leaves lengths out; they're checked when the answer is read. Answer schemas are strict ("yes" isn't true, "7" isn't 7).
+- Even with thinking off, Gemma sometimes reasons first for some prompts (found with the cluster-naming prompt) and runs out of tokens before the JSON. An answer cut off like that is retried once with four times the token budget (at most 8,192).
 - Results record the real model behind the alias (e.g. `gemma-4-E2B-it`, not `chat`) and the prompt version (`claims.v1`).
 
 **Tests**
