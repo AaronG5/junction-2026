@@ -154,9 +154,9 @@ Rules:
 
 - These selectors were checked against real pages on 2026-11-14. None of the 51 channels signs its posts, so the signature selector is still unverified. If the markup changes, update this file.
 - Take `content` from the post's own text block, not from a reply quote inside it (`.tgme_widget_message_reply`). The quote uses the same `.tgme_widget_message_text` class, so filter by ancestry, not by class.
-- Posts the web preview can't show ("Please open Telegram to view this post") have no text block, so they come out as media-only.
+- Posts the web preview can't show ("Please open Telegram to view this post") have no text block, so they count as media-only.
 - Turn `<br>` into `\n`. Keep link text but drop the URLs. Keep emoji, unescape HTML entities and trim surrounding whitespace. Don't translate the text or clean it in any other way.
-- Keep media-only posts, with `"content": ""`.
+- Leave media-only posts (empty `content`) out of `posts.json`, and don't count them towards `--posts N`. The parser still returns them, with `"content": ""`; `fetch.py` drops them. `_report.json` counts them per channel as `blankExcluded`. On 2026-11-15 that was 2,011 of 49,339 posts.
 - Skip service messages such as "channel created" or "message pinned" (`.service_message`).
 - For forwarded posts, `author` and `postUrl` both refer to the channel that posted, not the original source.
 - Deduplicate by `postUrl` across pages.
@@ -167,6 +167,7 @@ Also write `data/parsed/telegram/_report.json`, with one entry per channel:
 
 - `username`
 - `requested` and `got` (post counts; `requested` is null for a date-only run)
+- `blankExcluded`: posts in range left out because they have no text
 - `since`: the start date asked for, or null
 - `region`: `default` or `RU`
 - `status`: `ok`, `partial` or `unreadable`

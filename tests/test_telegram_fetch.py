@@ -162,6 +162,26 @@ class PaginationTests(FetchTestCase):
         self.assertIn("stopped early", result.reason)
 
 
+class BlankPostTests(FetchTestCase):
+    def test_posts_without_text_are_left_out_and_dont_count_towards_n(self):
+        client = FakeTelegram({"chan": 50})
+        client.texts = {50: "", 49: "   ", 47: ""}          # media-only posts
+        result = fetch_channel(client, chan(), 20, self.raw)
+        self.assertEqual(len(result.posts), 20)
+        self.assertTrue(all(p["content"].strip() for p in result.posts))
+        self.assertNotIn(50, ids_of(result))
+        self.assertEqual(ids_of(result)[:3], [48, 46, 45])
+        self.assertEqual(result.report()["blankExcluded"], 3)
+        self.assertEqual(len(client.calls), 2)        # 3 blanks on page 1, so page 2 was needed
+
+    def test_date_run_leaves_them_out_too(self):
+        client = FakeTelegram({"chan": 30})
+        client.texts = {30: ""}
+        result = fetch_channel(client, chan(), None, self.raw, since=posted(25))
+        self.assertEqual(ids_of(result), [29, 28, 27, 26, 25])
+        self.assertEqual(result.blank, 1)
+
+
 class DateRangeTests(FetchTestCase):
     def test_collects_every_post_since_the_date_and_stops_one_page_past_it(self):
         client = FakeTelegram({"chan": 100})
@@ -400,8 +420,8 @@ class RunTests(FetchTestCase):
                          [("bad", "unreadable"), ("good", "ok")])
         report = json.loads((self.parsed / "_report.json").read_text(encoding="utf-8"))
         self.assertEqual([e["username"] for e in report], ["bad", "good"])
-        self.assertEqual(set(report[1]), {"username", "requested", "since", "got", "region",
-                                          "status", "reason", "requestIds"})
+        self.assertEqual(set(report[1]), {"username", "requested", "since", "got", "blankExcluded",
+                                          "region", "status", "reason", "requestIds"})
         posts = self.read_posts()
         self.assertEqual(list(posts), ["bad", "good"])
         self.assertEqual(posts["bad"], [])

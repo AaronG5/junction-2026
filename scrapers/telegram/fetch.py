@@ -253,6 +253,7 @@ class ChannelResult:
     region: str = "default"
     status: str = "ok"            # ok | partial | unreadable
     reason: str = ""
+    blank: int = 0                # posts in range left out because they have no text
     request_ids: list[str] = field(default_factory=list)
 
     def report(self) -> dict:
@@ -261,6 +262,7 @@ class ChannelResult:
             "requested": self.requested,
             "since": self.since,
             "got": len(self.posts),
+            "blankExcluded": self.blank,
             "region": self.region,
             "status": self.status,
             "reason": self.reason,
@@ -334,6 +336,10 @@ def fetch_channel(client: Scraper, channel: Channel, n: int | None, raw_root: Pa
     def in_range(post: dict) -> bool:
         return since_iso is None or (post["dateTime"] is not None and post["dateTime"] >= since_iso)
 
+    def has_text(post: dict) -> bool:
+        """Media-only posts (and ones the preview can't show) are left out of the output."""
+        return bool(post["content"].strip())
+
     def top_posts() -> list[dict]:
         top = coverage.top
         if top is None:
@@ -342,7 +348,7 @@ def fetch_channel(client: Scraper, channel: Channel, n: int | None, raw_root: Pa
 
     def enough() -> bool:
         newest = top_posts()
-        if n is not None and sum(map(in_range, newest)) >= n:
+        if n is not None and sum(in_range(p) and has_text(p) for p in newest) >= n:
             return True
         return since_iso is not None and any(
             p["dateTime"] is not None and p["dateTime"] < since_iso for p in newest)
@@ -411,6 +417,8 @@ def fetch_channel(client: Scraper, channel: Channel, n: int | None, raw_root: Pa
     result.request_ids = request_ids
     ordered = sorted((p for p in posts.values() if in_range(p)),
                      key=lambda p: message_id(p["postUrl"]) or 0, reverse=True)
+    result.blank = sum(not has_text(p) for p in ordered)
+    ordered = [p for p in ordered if has_text(p)]
     result.posts = ordered if n is None else ordered[:n]
 
     if coverage.top is None:
