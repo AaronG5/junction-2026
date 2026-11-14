@@ -16,8 +16,10 @@ var PPG_SEL = Object.freeze({
   socialContext: '[data-testid="socialContext"]',
   // Quoted post card inside a quote post. X renders it as a div[role=link].
   quoteCard: 'div[role="link"]',
-  // Ads. X marks them with a placement tracker and an "Ad" label.
-  promotedMarkers: '[data-testid="placementTracking"], [data-testid="promotedIndicator"]',
+  // Ads. NOT placementTracking: X also wraps every video player in it, so it
+  // marked all video posts (and quotes of them) as ads. Ads are found by the
+  // "Ad" label in the header (parse.js) or this explicit indicator.
+  promotedMarkers: '[data-testid="promotedIndicator"]',
   // Action row (reply / repost / like / ...). Fallback badge anchor.
   actionRow: '[role="group"]',
 });

@@ -68,6 +68,18 @@ await test('parser: promoted post skipped', () => {
   same(w.PPG_parseTweet(w.document.querySelectorAll('article')[2]), { skip: 'promoted' });
 });
 
+await test('parser: video post (placementTracking wrapper, no Ad label) is NOT promoted', () => {
+  const w = dom(`<article data-testid="tweet">
+   <div data-testid="User-Name"><div><a href="/someone"><span>Some One</span></a></div><div><a href="/someone"><span>@someone</span></a></div>
+   <a href="/someone/status/1890000000000000001"><time datetime="2026-11-14T20:00:00.000Z">2h</time></a></div>
+   <div dir="auto" lang="en" data-testid="tweetText"><span>Footage shows what the Kyiv regime is really doing to its own people, watch before it is deleted.</span></div>
+   <div data-testid="placementTracking"><div data-testid="videoPlayer"><video></video></div></div>
+   <div role="group"></div></article>`);
+  const p = w.PPG_parseTweet(w.document.querySelector('article'));
+  assert.ok(p && !p.skip, 'video post must be parsed, got ' + JSON.stringify(p && p.skip));
+  assert.equal(p.item.id, '1890000000000000001');
+});
+
 await test('parser: repost detected from socialContext', () => {
   const w = dom(fixture.replace(/<div class="css-175oi2r r-9aw3ui">[\s\S]*?<div role="group" aria-label="14 replies">/, '<div role="group" aria-label="14 replies">'));
   const p = w.PPG_parseTweet(w.document.querySelectorAll('article')[1]);
