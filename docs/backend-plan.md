@@ -148,6 +148,11 @@ The analyzers:
 - confirm or reject a category match
 - translate for display
 
+**How it works (built):** `veritas/ai.py` (client, prompt files) and `veritas/analyzers.py` (the four analyzers); prompts in `backend/prompts/*.vN.md` with `## system` and `## user` sections. Two findings from the live model:
+- Gemma 4 "thinks" before answering by default, which used up the token budget and left the JSON empty. Requests switch it off (`chat_template_kwargs: {enable_thinking: false}`); answers then take under a second.
+- llama.cpp builds a grammar from the JSON schema, and a long `maxLength` makes one too big to build. The schema sent to the model leaves lengths out; they're checked when the answer is read. Answer schemas are strict ("yes" isn't true, "7" isn't 7).
+- Results record the real model behind the alias (e.g. `gemma-4-E2B-it`, not `chat`) and the prompt version (`claims.v1`).
+
 **Tests**
 - **Unit tests against a fake AI server:**
   - prompts fill in correctly
