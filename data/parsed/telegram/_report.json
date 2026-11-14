@@ -1,0 +1,597 @@
+[
+  {
+    "username": "cop_lt",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386743578824705",
+      "7527386750944078849"
+    ]
+  },
+  {
+    "username": "lita533",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386743901810689",
+      "7527386750734349313"
+    ]
+  },
+  {
+    "username": "vardantoslietuvos",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386743897591809"
+    ]
+  },
+  {
+    "username": "atsibudimas",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386743604005889"
+    ]
+  },
+  {
+    "username": "rubaltic",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386750314914817"
+    ]
+  },
+  {
+    "username": "InfodefenseLIT",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386753527758850"
+    ]
+  },
+  {
+    "username": "infalt",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527385714288281601",
+      "7527385721619934209"
+    ]
+  },
+  {
+    "username": "FAK_TAI",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386758091121665"
+    ]
+  },
+  {
+    "username": "russkaya_litva",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386758296634369",
+      "7527386767385708545"
+    ]
+  },
+  {
+    "username": "warhistoryalconafter",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386758628006914",
+      "7527386767410914305"
+    ]
+  },
+  {
+    "username": "golosmordora1",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386760687434753"
+    ]
+  },
+  {
+    "username": "baltnews",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386766769140738"
+    ]
+  },
+  {
+    "username": "antifalivland",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386767738016769",
+      "7527386782229339137"
+    ]
+  },
+  {
+    "username": "alekseystefanov",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386774570572801",
+      "7527386787430295553"
+    ]
+  },
+  {
+    "username": "russdiary",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386774557981697"
+    ]
+  },
+  {
+    "username": "pankratovruslan",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386782233546753"
+    ]
+  },
+  {
+    "username": "tenipribaltiki",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386782858487810",
+      "7527386790135626753"
+    ]
+  },
+  {
+    "username": "kochka_lv",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386791997878274",
+      "7527386799929325569"
+    ]
+  },
+  {
+    "username": "wagner_baltika",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386799933546497",
+      "7527386808485723137"
+    ]
+  },
+  {
+    "username": "InfodefESTONIA",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386800386491394",
+      "7527386808842243073"
+    ]
+  },
+  {
+    "username": "InfodefenseLVA",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386800940126209",
+      "7527386817662835713"
+    ]
+  },
+  {
+    "username": "balt4post",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386813116231681",
+      "7527386819923546113"
+    ]
+  },
+  {
+    "username": "Belarus_VPO",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386816903667713",
+      "7527386824768024577"
+    ]
+  },
+  {
+    "username": "belvestnik",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386818254226433"
+    ]
+  },
+  {
+    "username": "yurasumy",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386822553401345",
+      "7527386829784357889"
+    ]
+  },
+  {
+    "username": "warfakes",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386826798035969",
+      "7527386834737857537",
+      "7527386849204026369"
+    ]
+  },
+  {
+    "username": "ukr_leaks",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386832594568193"
+    ]
+  },
+  {
+    "username": "surf_noise1",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386834716863489",
+      "7527386851112409089"
+    ]
+  },
+  {
+    "username": "infodefGERMANY",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386837321556993",
+      "7527386852530116609"
+    ]
+  },
+  {
+    "username": "node_of_time_DE",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386837665488897",
+      "7527386844183399425"
+    ]
+  },
+  {
+    "username": "thehandofthekremlin",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386849346620417",
+      "7527386856460144641"
+    ]
+  },
+  {
+    "username": "InfoDefALL",
+    "requested": 20,
+    "got": 8,
+    "region": "default",
+    "status": "partial",
+    "reason": "the channel preview only has 8 posts",
+    "requestIds": [
+      "7527385714288237569"
+    ]
+  },
+  {
+    "username": "node_of_time_en",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386860566394882",
+      "7527386866899761153"
+    ]
+  },
+  {
+    "username": "RVvoenkor",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386860587331585",
+      "7527386874772509697"
+    ]
+  },
+  {
+    "username": "SolovievLive",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527385715152306177",
+      "7527385725377978369"
+    ]
+  },
+  {
+    "username": "skurlatovlive",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386860574772225"
+    ]
+  },
+  {
+    "username": "wargonzo",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386868472644609",
+      "7527386881068130306",
+      "7527386888143932417"
+    ]
+  },
+  {
+    "username": "mod_russia",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386869714172929",
+      "7527386874764090369"
+    ]
+  },
+  {
+    "username": "margaritasimonyan",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386873950423041"
+    ]
+  },
+  {
+    "username": "zarubinreporter",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386882162848769"
+    ]
+  },
+  {
+    "username": "swodki",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386882225737729",
+      "7527386897035837441"
+    ]
+  },
+  {
+    "username": "ASGasparyan",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386882552904705",
+      "7527386892778663937"
+    ]
+  },
+  {
+    "username": "barantchik",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386889632928770",
+      "7527386902664597506"
+    ]
+  },
+  {
+    "username": "verysexydasha",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386896553497601"
+    ]
+  },
+  {
+    "username": "ninavatt90",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386901016272897"
+    ]
+  },
+  {
+    "username": "sputniklive",
+    "requested": 20,
+    "got": 20,
+    "region": "RU",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527385761029611521",
+      "7527385774442999809"
+    ]
+  },
+  {
+    "username": "sputnikby",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386905588068353"
+    ]
+  },
+  {
+    "username": "Vbachir",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386907517402113",
+      "7527386915763393537"
+    ]
+  },
+  {
+    "username": "Politnavigator",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386907962019841"
+    ]
+  },
+  {
+    "username": "tass_agency",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527386910906390530",
+      "7527386917499885569"
+    ]
+  },
+  {
+    "username": "rybar",
+    "requested": 20,
+    "got": 20,
+    "region": "default",
+    "status": "ok",
+    "reason": "",
+    "requestIds": [
+      "7527385728469224449",
+      "7527385735230398465"
+    ]
+  }
+]
