@@ -51,8 +51,26 @@
     try { p.postMessage({ type: 'scan', items: items, page: location.href }); } catch (e) { port = null; }
   }
 
+  // Debug: every post gets data-ppg="<state>" (inspect it in DevTools), and with
+  // localStorage.ppgDebug = '1' on x.com each decision is logged to the console.
+  var DEBUG = false; try { DEBUG = localStorage.getItem('ppgDebug') === '1'; } catch (e) { /* blocked */ }
+  function mark(a, state, extra) {
+    if (a && a.dataset) a.dataset.ppg = state;
+    if (DEBUG) console.debug('[ppg]', state, extra || '', a);
+  }
+  function markId(id, state) {
+    var v = views.get(id);
+    if (v && v.article) mark(v.article, state, id);
+  }
+  window.__ppgStats = function () {
+    var c = {};
+    document.querySelectorAll(PPG_SEL.tweet).forEach(function (a) { var k = a.dataset.ppg || 'never-scanned'; c[k] = (c[k] || 0) + 1; });
+    return c;
+  };
+
   function enqueue(item) {
     if (sent.has(item.id)) return;
+    markId(item.id, 'sent');
     sent.add(item.id);
     queue.push(item);
     if (!queueTimer) queueTimer = setTimeout(flushQueue, 50);
@@ -70,6 +88,7 @@
     msg.results.forEach(function (r) {
       if (!r || !r.id) return;
       results.set(r.id, r);
+      markId(r.id, 'result:' + r.status + (r.content && r.content.label && r.content.label !== 'none' ? ':' + r.content.label : ''));
       touched.add(r.id);
     });
     views.forEach(function (v, id) {
@@ -144,11 +163,11 @@
       }
       sigs.set(a, sig);
       var parsed;
-      try { parsed = PPG_parseTweet(a); } catch (e) { continue; }
-      if (!parsed || parsed.skip) { if (tracked.has(a)) untrack(a); continue; }
+      try { parsed = PPG_parseTweet(a); } catch (e) { mark(a, 'skip:parse-error', e && e.message); continue; }
+      if (!parsed || parsed.skip) { mark(a, 'skip:' + (parsed ? parsed.skip : 'unparsed')); if (tracked.has(a)) untrack(a); continue; }
       var item = parsed.item;
       var long = PPG_isLongEnough(item) || (parsed.quoted && PPG_isLongEnough(parsed.quoted));
-      if (!long) { if (tracked.has(a)) untrack(a); continue; }
+      if (!long) { mark(a, 'skip:short(' + (item.text || '').length + ' chars)'); if (tracked.has(a)) untrack(a); continue; }
 
       var prevId = tracked.get(a);
       if (prevId === item.id) {
@@ -165,7 +184,7 @@
       tracked.set(a, item.id);
       mountBadge(v, parsed.anchor);
       renderView(v);
-      if (!sent.has(item.id)) io.observe(a);
+      if (!sent.has(item.id)) { io.observe(a); if (!a.dataset.ppg || a.dataset.ppg.indexOf('skip') === 0) mark(a, 'waiting-for-viewport', item.id); }
     }
     // Forget views whose article left the DOM, to keep memory flat on long sessions.
     if (views.size > 400) {
