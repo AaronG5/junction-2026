@@ -37,7 +37,7 @@ from scrapers.oxylabs import (AuthenticationError, MissingApiKeyError, RateLimit
 from scrapers.telegram.parse import ParsedPage, message_id, parse_page, to_utc_iso
 
 ROOT = Path(__file__).resolve().parents[2]
-INPUT = ROOT / "data" / "positives" / "telegram_channels.json"
+INPUT = ROOT / "data" / "positives" / "telegram_sources.json"
 RAW_DIR = ROOT / "data" / "raw" / "telegram"
 PARSED_DIR = ROOT / "data" / "parsed" / "telegram"
 POSTS_NAME = "posts.json"          # {"<username>": [post, ...], ...}

@@ -5,7 +5,7 @@ Instructions for coding agents working on data sourcing in this repo. That cover
 ## Overview
 
 - The project's own code calls the Oxylabs Web API at runtime. Write a client in this repo. Don't install the Oxylabs MCP server or agent skills in its place.
-- Main job: scrape the public web preview of each channel in `data/positives/telegram_channels.json`, save the raw HTML, and parse the posts into JSON.
+- Main job: scrape the public web preview of each channel in `data/positives/telegram_sources.json`, save the raw HTML, and parse the posts into JSON.
 - The client also exposes web search and page scraping for later features: claim checking and propagation chains (see `docs/data-architecture.md`).
 
 ## Source of truth for the API
@@ -18,11 +18,11 @@ Instructions for coding agents working on data sourcing in this repo. That cover
 
 - Python 3.10+, same as `local_ai/`.
 - Environment and dependencies: [uv](https://docs.astral.sh/uv/).
-  - If there's no `pyproject.toml` yet, create one with `uv init --bare` and set `requires-python = ">=3.10"`.
-  - Add dependencies with `uv add`. Commit `pyproject.toml` and `uv.lock`.
-  - Run everything through `uv run`. Don't use `pip`, `python -m venv` or a `requirements.txt`.
-  - uv keeps its environment in `.venv/`, which is already gitignored.
-  - If `uv` isn't installed, stop and ask the user to install it.
+   - If there's no `pyproject.toml` yet, create one with `uv init --bare` and set `requires-python = ">=3.10"`.
+   - Add dependencies with `uv add`. Commit `pyproject.toml` and `uv.lock`.
+   - Run everything through `uv run`. Don't use `pip`, `python -m venv` or a `requirements.txt`.
+   - uv keeps its environment in `.venv/`, which is already gitignored.
+   - If `uv` isn't installed, stop and ask the user to install it.
 - HTTP: stdlib `urllib.request`, matching `local_ai/services.py` and `local_ai/download.py`. Don't add `requests` or `httpx`.
 - HTML parsing: `beautifulsoup4` (`uv add beautifulsoup4`). It is the only third-party dependency.
 - Tests: stdlib `unittest`. No real network calls in tests.
@@ -52,7 +52,7 @@ tests/
   test_telegram_parse.py
   fixtures/telegram/<username>.html
 data/
-  positives/telegram_channels.json      # input (committed)
+  positives/telegram_sources.json       # input (committed)
   raw/telegram/<username>/page-001.html # scraped HTML, numbered in the order saved (gitignored)
   raw/telegram/<username>/meta.json     # region, each page's url, request id and message-id range
   parsed/telegram/posts.json            # parsed posts: {"<username>": [posts]}
@@ -70,7 +70,7 @@ uv.lock                                 # committed
 
 ### Input
 
-- `data/positives/telegram_channels.json` has the shape `{"TG": [{"name", "link", "userSize"}]}`.
+- `data/positives/telegram_sources.json` has the shape `{"TG": [{"name", "link", "userSize"}]}`.
 - The username is the last path segment of `link`: `https://t.me/cop_lt` → `cop_lt`.
 - Scrape the web preview at `https://t.me/s/<username>`. `https://t.me/<username>` is a landing page with no posts.
 
@@ -80,13 +80,13 @@ uv.lock                                 # committed
 - By date: `--days D` (the last D days) or `--since 2026-10-01` (UTC unless an offset is given) returns every post published at or after that moment.
 - Both: `--days 30 --posts 500` stops at whichever comes first.
 - One preview page holds about 20 posts. For more, request `https://t.me/s/<username>?before=<id>`, going from newest to oldest. A page fetched with `?before=B` holds every message from its lowest id up to B-1, so saved pages cover known ranges of message ids. Always page back from the bottom of the newest unbroken range of saved pages. A gap left by an earlier run is then filled first, and no page is fetched twice. Stop when:
-  - the count is reached
-  - a page holds a post older than the date (everything newer is then collected)
-  - the channel's first message is reached (message id 1, or an empty `?before=` page)
-  - the run has made `--max-pages` requests for that channel (default 500, about 10,000 posts). The next run continues from there.
+   - the count is reached
+   - a page holds a post older than the date (everything newer is then collected)
+   - the channel's first message is reached (message id 1, or an empty `?before=` page)
+   - the run has made `--max-pages` requests for that channel (default 500, about 10,000 posts). The next run continues from there.
 - Status:
-  - `ok`: the count or the date was reached, or a date run reached the channel's first post. A readable channel with nothing in the date range is `ok` with 0 posts.
-  - `partial`: an error or the page limit stopped it early, a count run found fewer than N posts, or `--update` couldn't fetch page 1 (the saved posts are kept).
+   - `ok`: the count or the date was reached, or a date run reached the channel's first post. A readable channel with nothing in the date range is `ok` with 0 posts.
+   - `partial`: an error or the page limit stopped it early, a count run found fewer than N posts, or `--update` couldn't fetch page 1 (the saved posts are kept).
 - Cost: a 30-day crawl of all 51 channels is roughly 2,000 requests (estimated 2026-11-14 from posting rates). The busiest channels need 200 or more pages each.
 
 ### Region fallback
@@ -111,16 +111,16 @@ Notes:
 - Saved pages are re-parsed instead of scraped again (this saves credits). A run that needs more (bigger N, earlier date) only fetches the missing older pages.
 - Without `--update`, the newest end of every result is whenever page 1 was saved.
 - `--update` fetches page 1 again, plus more pages until they join the saved ones, so posts published since the last run are picked up.
-  - With nothing new it costs one request per channel, and the page isn't saved again.
-  - Re-fetched posts replace their saved versions, so edits are picked up.
-  - If page 1 fails (an API error, or no posts in either region), the channel keeps its saved posts and is marked `partial` with the reason.
+   - With nothing new it costs one request per channel, and the page isn't saved again.
+   - Re-fetched posts replace their saved versions, so edits are picked up.
+   - If page 1 fails (an API error, or no posts in either region), the channel keeps its saved posts and is marked `partial` with the reason.
 - `--refresh` throws the saved pages away and starts over. It can't be combined with `--update`.
 - Each saved page records a sha256 of its HTML. A page whose file doesn't match `meta.json` (by hash, or by id range for pages saved before hashes) is dropped on load and fetched again.
 - Add `data/raw/` to `.gitignore`. Don't commit scraped output unless the user asks.
 
 ## Parsing
 
-All posts go into one file, `data/parsed/telegram/posts.json`. It's a JSON object with one key per channel username, in the order of `telegram_channels.json`. Each value is that channel's posts, newest first, written as UTF-8 with `ensure_ascii=False`.
+All posts go into one file, `data/parsed/telegram/posts.json`. It's a JSON object with one key per channel username, in the order of `telegram_sources.json`. Each value is that channel's posts, newest first, written as UTF-8 with `ensure_ascii=False`.
 
 ```json
 {
@@ -147,7 +147,7 @@ All posts go into one file, `data/parsed/telegram/posts.json`. It's a JSON objec
 | `author`      | The post signature (`.tgme_widget_message_from_author`) if there is one, otherwise the channel display name (`.tgme_widget_message_owner_name`) |
 | `content`     | The post's own text block (`.tgme_widget_message_text`)                                                                                         |
 | `dateTime`    | The `datetime` attribute of `.tgme_widget_message_date time`, converted to UTC, ISO 8601 with a `Z` suffix                                      |
-| `channelName` | The `name` field from `telegram_channels.json`                                                                                                  |
+| `channelName` | The `name` field from `telegram_sources.json`                                                                                                   |
 | `postUrl`     | The post's `data-post` attribute (`<username>/<message id>`) prefixed with `https://t.me/`, e.g. `https://t.me/infalt/1234`                     |
 
 Rules:

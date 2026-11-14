@@ -4,7 +4,7 @@ Each post becomes a dict with exactly these fields (docs/oxylabs-telegram-scrape
     author       post signature if there is one, else the channel display name
     content      the post's own text, <br> as "\n"; "" for media-only posts
     dateTime     UTC, ISO 8601 with a Z suffix
-    channelName  the `name` from data/positives/telegram_channels.json
+    channelName  the `name` from data/positives/telegram_sources.json
     postUrl      https://t.me/<data-post>, e.g. https://t.me/infalt/1234
 
 Selectors were checked against a real page (t.me/s/infalt, 2026-11-14).
