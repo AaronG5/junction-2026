@@ -20,3 +20,5 @@ frontend/dist/
 #publicly available data
 articles.json
 **/datasets
+data/narrative_bank/
+data/narrative_feedback.jsonl

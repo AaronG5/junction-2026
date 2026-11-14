@@ -97,7 +97,8 @@ class Bank:
     def load(cls, root: Path) -> "Bank":
         b = cls()
         if not root.is_dir():
-            log.warning("narrative bank %s not found; source match and claims are off", root)
+            log.warning("narrative bank %s not found; source match and claims are off. "
+                        "Download it with: uv run python backend/fetch_narrative_bank.py", root)
             return b
         man = json.loads((root / "manifest.json").read_text()) if (root / "manifest.json").is_file() else {}
         b.thresholds.update(man.get("thresholds", {}))
