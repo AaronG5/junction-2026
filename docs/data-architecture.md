@@ -24,7 +24,7 @@ The dashboard takes a link to a **post, profile, channel or group** and shows in
 | Answers | "Who posted this, where, when, where did it come from, what did Gemma say?" | "What else says something similar, in any language?" |
 | Source of truth | Yes | No. Everything in it can be rebuilt from MySQL by re-embedding |
 
-The two are linked by a **deterministic UUID**: `posts.uuid` is the post's Qdrant point id. It's computed from the platform and the post's own id (`uuid5("telegram:post:-1001234567890/4521")`), so the central server and every self-hosted install produce the **same id for the same post**. Merging data between them never creates duplicates.
+The two are linked by a **deterministic UUID**: `posts.uuid` is the post's Qdrant point id. It's computed from the platform and the post's own id (`uuid5("telegram:post:infalt/4521")`), so the central server and every self-hosted install produce the **same id for the same post**. Merging data between them never creates duplicates.
 
 ```mermaid
 flowchart LR
@@ -44,7 +44,7 @@ The `external_id` feeds the UUID, so the format must be identical on every insta
 
 | Platform | Account `external_id` | Post `external_id` | Notes |
 |---|---|---|---|
-| Telegram | chat id, e.g. `-1001234567890` | `<chat_id>/<message_id>` | Forwards carry the original chat and message id, so we get a `forward` edge (`detected_by = platform`) for free. Channel comments live in the linked discussion group. |
+| Telegram | public username, lowercased, e.g. `infalt` | `<username>/<message_id>`, e.g. `infalt/4521`: the path of `https://t.me/infalt/4521`, lowercased | Lowercased because Telegram ignores case in usernames (`InfodefenseLIT` and `infodefenselit` are the same channel). If a channel changes its username, its new posts land on a new account; link the two through `actors`. A forward from a public channel links to the original post, so we get a `forward` edge (`detected_by = platform`) for free. A forward from a source with no public username shows only a name, so no edge is created. Channel comments live in the linked discussion group. |
 | Facebook | page, group or profile id | `<owner_id>_<post_id>` | Shares point to the original post, giving a `repost` edge. Public pages are easy to scrape; groups and profiles often need a login, which is a scraping risk worth testing early. |
 | Web | domain, e.g. `rt.com` | sha256(canonical URL) | Article author goes into `byline`. |
 
