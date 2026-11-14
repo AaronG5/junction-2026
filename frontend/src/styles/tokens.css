@@ -1,0 +1,52 @@
+/* Baltic palette: warm greys, kelp purple accent.
+   Visual reference: docs/design/palette.html
+   Light by default; dark from the system setting or <html data-theme="dark">. */
+:root {
+  --bg: #F6F6F4;               /* page background */
+  --surface: #FFFFFF;          /* cards, panels, inputs */
+  --border: #E4E1DA;           /* borders and dividers */
+  --text: #1A1814;             /* main text */
+  --text-muted: #625D55;       /* secondary text, labels */
+  --accent: #663B6A;           /* buttons, links, active tab, focus */
+  --accent-hover: #522E55;     /* hovered or pressed buttons */
+  --on-accent: #FFFFFF;        /* text on accent buttons */
+  --accent-soft: #F1E7F0;      /* chips, selected rows, focus halo */
+  --accent-soft-text: #522E55; /* text on soft accent */
+
+  /* Verdicts: always shown with an icon and a label, never color alone. */
+  --verdict-credible: #0CA30C;
+  --verdict-unverified: #8A8F98;
+  --verdict-misleading: #EC835A;
+  --verdict-false: #D03B3B;
+
+  /* Chart colors (clusters, categories), in this fixed order.
+     Cluster maps use at most 3 at once + grey for "no cluster". */
+  --chart-1: #2A78D6;
+  --chart-2: #EB6834;
+  --chart-3: #1BAF7A;
+  --chart-4: #EDA100;
+  --chart-5: #E87BA4;
+  --chart-6: #008300;
+  --chart-7: #6250D6;
+  --chart-8: #E34948;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121110; --surface: #1B1A18; --border: #312E29;
+    --text: #EFECE6; --text-muted: #A39D92;
+    --accent: #D2ADD3; --accent-hover: #E2C8E2; --on-accent: #121110;
+    --accent-soft: #2A1F2B; --accent-soft-text: #E2C8E2;
+    --chart-1: #3987E5; --chart-2: #D95926; --chart-3: #199E70; --chart-4: #C98500;
+    --chart-5: #D55181; --chart-6: #008300; --chart-7: #9085E9; --chart-8: #E66767;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121110; --surface: #1B1A18; --border: #312E29;
+  --text: #EFECE6; --text-muted: #A39D92;
+  --accent: #D2ADD3; --accent-hover: #E2C8E2; --on-accent: #121110;
+  --accent-soft: #2A1F2B; --accent-soft-text: #E2C8E2;
+  --chart-1: #3987E5; --chart-2: #D95926; --chart-3: #199E70; --chart-4: #C98500;
+  --chart-5: #D55181; --chart-6: #008300; --chart-7: #9085E9; --chart-8: #E66767;
+  color-scheme: dark;
+}
