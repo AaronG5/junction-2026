@@ -90,9 +90,31 @@ a:hover { color: var(--accent-hover); }
 .seg button + button { border-left: 1px solid var(--border); }
 .seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-soft-text); }
 
+/* Sidebar contents. */
+.sidebar-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.side-menu { display: flex; flex-direction: column; gap: 22px; flex: 1; }
+.side-bottom { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
+.menu-btn { display: none; min-height: 40px; }
+.main:focus { outline: none; }
+
+/* Skip link: hidden until focused with the keyboard. */
+.skip-link { position: absolute; left: 12px; top: -60px; z-index: 100; padding: 10px 14px; border-radius: 8px; background: var(--accent); color: var(--on-accent); font-weight: 600; text-decoration: none; }
+.skip-link:focus { top: 12px; color: var(--on-accent); }
+
 /* Desktop: the sidebar stays in view while the page scrolls. */
 @media (min-width: 820px) {
   .sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; align-self: flex-start; }
+}
+/* Phone and small tablet: compact top bar, menu behind a button. */
+@media (max-width: 819px) {
+  .layout { flex-direction: column; flex-wrap: nowrap; }
+  .sidebar { flex: none; padding: 12px 16px; gap: 0; border-right: 0; border-bottom: 1px solid var(--border); }
+  .sidebar .brand { padding: 0; }
+  .menu-btn { display: inline-flex; }
+  .side-menu { display: none; padding-top: 16px; }
+  .sidebar[data-open="true"] .side-menu { display: flex; }
+  .side-bottom { margin-top: 0; }
+  .main { flex: 1 1 auto; }
 }
 @media (max-width: 640px) {
   .main { padding: 24px 16px 40px; }

@@ -8,6 +8,7 @@ import { VerdictPill } from "../components/Verdict";
 import { defaultFilters, shortDate } from "../lib/filters";
 import { useApi } from "../lib/useApi";
 import { useDebounced } from "../lib/useDebounced";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 const STANCE_LABEL: Record<Stance, string> = {
   supports: "Supports",
@@ -18,6 +19,7 @@ const STANCE_LABEL: Record<Stance, string> = {
 
 /** Claims: each statement checked once, however many posts repeat it. */
 export function Claims() {
+  useDocumentTitle("Claims");
   const defaults = useMemo(() => defaultFilters("30"), []);
   const [filters, setFilters] = useState<Filters>(defaults);
   const [query, setQuery] = useState("");

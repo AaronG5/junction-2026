@@ -6,6 +6,7 @@ import { LandingShell } from "../components/LandingShell";
 import { ErrorState, Loading } from "../components/States";
 import { VerdictPill } from "../components/Verdict";
 import { useApi } from "../lib/useApi";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 export const STEP_NAMES = ["What it says", "Is it true?", "Where it started", "How far it went", "The bigger picture"];
 const LAST = STEP_NAMES.length;
@@ -20,6 +21,7 @@ export function StoryTour() {
   const raw = Number(params.get("step") ?? "1");
   const step = Number.isInteger(raw) ? Math.min(Math.max(raw, 1), LAST) : 1;
   const viaLink = params.get("via") === "link";
+  useDocumentTitle(story ? `${STEP_NAMES[step - 1]} · ${story.topic}` : "Story");
 
   const goTo = (n: number) => {
     const next = new URLSearchParams(params);

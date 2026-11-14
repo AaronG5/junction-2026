@@ -5,6 +5,7 @@ import { ANALYZE_STEPS, type PostReport, type TextSegment } from "../api/types";
 import { LanguageBar } from "../components/LanguageBar";
 import { ErrorState } from "../components/States";
 import { VerdictPill } from "../components/Verdict";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 const EXAMPLES = [
   { label: "Telegram post", url: "https://t.me/kanalas_b/4521" },
@@ -19,6 +20,7 @@ type Run =
 
 /** Analyze a link: paste a Telegram/Facebook link, watch the steps, read the report. */
 export function Analyze() {
+  useDocumentTitle("Analyze a link");
   const [params, setParams] = useSearchParams();
   const [url, setUrl] = useState(params.get("url") ?? "");
   const [invalid, setInvalid] = useState(false);

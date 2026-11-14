@@ -3,11 +3,13 @@ import { api } from "../api/client";
 import { ErrorState, Loading } from "../components/States";
 import { DATA_MODES, DataMode, updateSettings, useSettings } from "../lib/settings";
 import { useApi } from "../lib/useApi";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 const MODE_ORDER: DataMode[] = ["central", "hybrid", "local"];
 
 /** Where answers come from, and the AI running on this computer. */
 export function System() {
+  useDocumentTitle("System");
   const settings = useSettings();
   const status = useApi(() => api.system(), []);
   const [showHow, setShowHow] = useState(false);

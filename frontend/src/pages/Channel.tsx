@@ -6,11 +6,13 @@ import { ErrorState, Loading } from "../components/States";
 import { VerdictPill } from "../components/Verdict";
 import { shortDate } from "../lib/filters";
 import { useApi } from "../lib/useApi";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 /** Report for one source: what it posts, how often, and where its content comes from. */
 export function Channel() {
   const { id = "" } = useParams();
   const { data, error, reload } = useApi(() => api.channel(id), [id]);
+  useDocumentTitle(data ? `${data.name} · Channel report` : "Channel report");
 
   return (
     <div className="page">

@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import type { Source, SourceFilter } from "../api/types";
 import { EmptyState, ErrorState, Loading } from "../components/States";
 import { useApi } from "../lib/useApi";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 const PLATFORMS: { value: SourceFilter; label: string }[] = [
   { value: "all", label: "All" },
@@ -22,6 +23,7 @@ const COLUMNS: { key: SortKey; label: string }[] = [
 
 /** Channels, groups, pages and sites we collect from. */
 export function Sources() {
+  useDocumentTitle("Sources");
   const [platform, setPlatform] = useState<SourceFilter>("all");
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "nearCopyPct", dir: -1 });
   const { data, error, reload } = useApi(() => api.sources(platform), [platform]);

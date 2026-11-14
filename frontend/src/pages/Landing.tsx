@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, Loading } from "../components/States";
 import { StatusDot } from "../components/Verdict";
 import { VERDICT_LABEL, defaultFilters } from "../lib/filters";
 import { useApi } from "../lib/useApi";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 const LANDING_RANGES = [
   { value: "7" as const, label: "This week" },
@@ -17,6 +18,7 @@ const LANDING_RANGES = [
 
 /** Start page: paste a link, or pick a story that's spreading now. */
 export function Landing() {
+  useDocumentTitle();
   return (
     <LandingShell>
       <Hero />

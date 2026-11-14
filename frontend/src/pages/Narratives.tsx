@@ -8,9 +8,11 @@ import { EmptyState, ErrorState, Loading } from "../components/States";
 import { StatusDot } from "../components/Verdict";
 import { VERDICT_LABEL, defaultFilters, shortDate } from "../lib/filters";
 import { useApi } from "../lib/useApi";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 /** Dashboard home: posts grouped by what they say, in any language. */
 export function Narratives() {
+  useDocumentTitle("Narratives");
   const defaults = useMemo(() => defaultFilters("7"), []);
   const [filters, setFilters] = useState<Filters>(defaults);
   const [selectedId, setSelectedId] = useState<number | null>(null);

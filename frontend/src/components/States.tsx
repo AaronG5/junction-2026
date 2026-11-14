@@ -24,13 +24,23 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
   const retry = onRetry && <button type="button" className="btn btn-plain" onClick={onRetry}>Try again</button>;
 
   if (error instanceof BackendUnavailable) {
-    return (
+    // Developers (npm run dev) get the demo-mode hint; everyone else gets launcher guidance.
+    return import.meta.env.DEV ? (
       <div className="state state-error" role="alert">
         <strong>The Veritas Lens backend isn't connected yet.</strong>
         <span className="muted">
           This screen needs the backend to show real data. To explore with example data, start the dashboard in demo mode:
         </span>
         <code className="mono codeline">npm run dev:demo</code>
+        {retry}
+      </div>
+    ) : (
+      <div className="state state-error" role="alert">
+        <strong>Veritas Lens can't reach its server right now.</strong>
+        <span className="muted">
+          If you run Veritas Lens on your own computer, start it with the launcher (launch.bat on Windows, ./launch.sh on
+          Linux and macOS), then try again.
+        </span>
         {retry}
       </div>
     );
