@@ -44,6 +44,22 @@ Item fields:
 
 Posts shorter than 40 characters are not sent, and neither are promoted posts. A quote can still be sent if the quoted post is long enough. Each id is sent at most once per page.
 
+### Facebook items
+
+Facebook posts use the same endpoints and item shape, with these differences:
+
+| field | on Facebook |
+|---|---|
+| `id` | `fb<post_id>`, e.g. `fb3674462936037307`. The `fb` prefix keeps them apart from X ids. |
+| `url` | Facebook's own permalink: `https://www.facebook.com/groups/<group>/posts/<id>/`, `/<page>/posts/pfbid…`, `/reel/<id>/`, `/<page>/videos/<id>/` or `permalink.php?story_fbid=…&id=…`. |
+| `author` | The profile's handle (`vilma.mamaityte`), or its numeric id for `profile.php?id=` profiles. |
+| `text` | The full text, also the part behind "See more". Emoji are the characters themselves. |
+| `lang` | Always `null`: Facebook doesn't say. |
+| `time` | When the post was published, exact to the second (Facebook's `creation_time`). |
+| `kind` | Always `post` for now. Shares are sent as the sharing post. |
+| `platform` | `"facebook"` (only on Facebook items; X items have no `platform`). |
+| `group` | The group's name for posts in a group, else `null` (only on Facebook items). |
+
 ### Response
 
 ```json

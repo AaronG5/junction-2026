@@ -74,6 +74,10 @@ try {
   const extId = new URL(sw.url()).host;
   const pop = await ctx.newPage();
   await pop.goto(`chrome-extension://${extId}/popup/popup.html`);
+  // Wait for the worker's onInstalled to finish filling in defaults; otherwise it can
+  // overwrite the stub URL set below (read-then-write race), and the test talks to the
+  // real default backend instead of the stub.
+  await pop.waitForFunction(async () => !!(await chrome.storage.sync.get('baseUrl')).baseUrl, null, { timeout: 5000 });
   await pop.evaluate((b) => chrome.storage.sync.set({ baseUrl: b, mock: false }), base);
   await pop.close();
 

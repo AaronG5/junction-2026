@@ -266,13 +266,13 @@ async function bumpCounter(name, n) {
 }
 
 // ---------------------------------------------------------------- routing
-const X_HOSTS = /^https:\/\/(([a-z]+\.)?x\.com|([a-z]+\.)?twitter\.com)\//;
-// Pages that are not X (the offline demo feed) use the mock backend, unless
+const LIVE_HOSTS = /^https:\/\/(([a-z]+\.)?x\.com|([a-z]+\.)?twitter\.com|(www|web)\.facebook\.com)\//;
+// Pages that are not X or Facebook (the offline demo feed) use the mock backend, unless
 // opened with ?live (demo/feed.html?live), which uses the configured backend.
 function backendKey(senderUrl) {
   const u = senderUrl || '';
   if (settings.mock) return 'mock';
-  if (!X_HOSTS.test(u) && !/[?&]live\b/.test(u)) return 'mock';
+  if (!LIVE_HOSTS.test(u) && !/[?&]live\b/.test(u)) return 'mock';
   return trimBase(settings.baseUrl) || DEFAULTS.baseUrl;
 }
 

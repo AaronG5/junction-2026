@@ -1,6 +1,6 @@
 # Decode the Noise: browser extension
 
-This Chrome extension (Manifest V3) badges X/Twitter posts that our backend flags as **potentially propaganda**, or as showing **coordinated posting**. The two signals are always separate chips. It never says "propaganda", "fake" or "bot", and it never claims who is behind an account.
+This Chrome extension (Manifest V3) badges X/Twitter and Facebook posts that our backend flags as **potentially propaganda**, or as showing **coordinated posting**. The two signals are always separate chips. It never says "propaganda", "fake" or "bot", and it never claims who is behind an account.
 
 Contract with the backend: [API.md](API.md).
 
@@ -9,7 +9,7 @@ Contract with the backend: [API.md](API.md).
 1. Open `chrome://extensions`, then turn on **Developer mode** (top right).
 2. Click **Load unpacked** and pick this `extension/` folder.
    - There is no build step: the folder is the extension.
-3. Pin "Decode the Noise" to the toolbar and open x.com.
+3. Pin "Decode the Noise" to the toolbar and open x.com or facebook.com.
 
 It works in Chrome, Edge, Brave and other Chromium browsers, version 116 or later.
 
@@ -100,6 +100,31 @@ content script (x.com)                     service worker                       
 
 The badge has a fixed 20 px height and does not wrap. It sits in the timestamp's row, so it never changes the height of a post.
 
+### Facebook
+
+Facebook goes through the same pipeline: same worker, same backend API, same badge and popover.
+Only finding the posts is different, in `src/fb/`:
+
+- **Posts come from Facebook's data, not its markup.** Facebook's markup hides the post's link
+  and time (they appear only on hover), so the extension reads the data Facebook downloads to
+  build the feed instead:
+  - `src/fb/page-hook.js` runs in Facebook's own page context (`"world": "MAIN"`, at
+    `document_start`) and passes a copy of each GraphQL answer that contains posts to the
+    content script. It never changes, blocks or sends any request.
+  - `src/fb/content.js` also reads the JSON built into the page (the first posts).
+  - `src/fb/posts.js` turns each post (`__typename: "Story"`) into an API item: link from
+    `permalink_url`, exact time from `creation_time`, author from `actors[0]`, text from
+    `comet_sections.content.story.message.text`, group from the `Group` it was posted `to`.
+    Ads (`sponsored_data`) and posts without text are left out. Ids are `fb<post_id>`.
+- **Matching data to the post on screen.** Facebook doesn't mark which post on screen has which
+  id, so a post's text block (`data-ad-rendering-role="story_message"`) is matched to its data by
+  the letters and digits of its text (emoji and "See more" cuts differ, the letters don't).
+- **The badge goes in its own row right under the post text.**
+- **No badges until React has hydrated the page** (`load` + 1.5 s). Adding anything to
+  server-rendered posts earlier makes React throw error #418.
+- Works on the home feed, groups and pages. Facebook loads a few posts ahead of the screen; like
+  on X, a post is sent when it comes within 300 px of the viewport.
+
 ## Tests
 
 ```
@@ -114,9 +139,9 @@ The e2e tests use Playwright's Chromium from `~/.cache/ms-playwright`. To use an
 
 ## Privacy
 
-What is sent: the text of posts you scroll near on X, with the post's id, link, author handle, display name, displayed time and language. It goes to the backend URL in the popup.
+What is sent: the text of posts you scroll near on X and Facebook, with the post's id, link, author handle, display name, time and language (on Facebook also the group's name). It goes to the backend URL in the popup.
 
-What is not sent: no cookies, no X account data, no browsing history, and nothing from other sites. In mock mode, nothing leaves the browser. Results are cached for the browser session only.
+What is not sent: no cookies, no X or Facebook account data, no browsing history, and nothing from other sites. In mock mode, nothing leaves the browser. Results are cached for the browser session only.
 
 ## Known limits
 
@@ -125,4 +150,7 @@ What is not sent: no cookies, no X account data, no browsing history, and nothin
 - **No server-side timing data on X.** On Bluesky, the clock-offset signal (`indexedAt − createdAt`) was our strongest coordination evidence. On X, the only timestamp we have is the one X displays, so coordination on X depends on what the backend already knows about the text and accounts.
 - **Promoted posts** are detected by `placementTracking` or an "Ad" label. Localized labels other than en, fi and de may slip through, but ads usually have no permalink, so they are skipped anyway.
 - **Mock content is illustrative.** The Telegram links in mock answers point to the real channel but not to real post numbers. The quoted Telegram texts are paraphrases, written for the demo.
-- Desktop web only. The X mobile apps cannot run extensions.
+- **Facebook's data format may change.** Every field the extension reads is in `src/fb/posts.js`.
+- **Facebook shares** are checked as the sharing post; the shared original isn't sent as its own item yet (X quotes are).
+- **Facebook posts with very short text** (under 12 letters and digits) can't be matched to the screen reliably and get no badge.
+- Desktop web only. The X and Facebook mobile apps cannot run extensions.
