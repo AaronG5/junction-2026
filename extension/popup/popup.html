@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Decode the Noise</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo" aria-hidden="true"></span><h1>Decode the Noise</h1></div>
+  <label class="switch" title="Turn scanning on or off">
+    <input type="checkbox" id="enabled" role="switch"><span aria-hidden="true"></span>
+    <span class="sr">Scanning on</span>
+  </label>
+</header>
+
+<section class="stats" aria-label="This session">
+  <div><b id="scanned">0</b><span>scanned</span></div>
+  <div><b id="flagged">0</b><span>flagged</span></div>
+</section>
+
+<section class="opts">
+  <label class="row"><span>Show all badges<small>a grey dot on posts with nothing found</small></span>
+    <input type="checkbox" id="showAll" role="switch"></label>
+
+  <fieldset class="row">
+    <legend>Sensitivity<small>strict shows fewer, surer flags</small></legend>
+    <div class="seg">
+      <label><input type="radio" name="sensitivity" value="normal"><span>Normal</span></label>
+      <label><input type="radio" name="sensitivity" value="strict"><span>Strict</span></label>
+    </div>
+  </fieldset>
+
+  <label class="row"><span>Mock mode<small>fake answers, no server; for demos</small></span>
+    <input type="checkbox" id="mock" role="switch"></label>
+
+  <div class="field">
+    <label for="baseUrl">Backend URL</label>
+    <div class="url">
+      <input id="baseUrl" type="url" spellcheck="false" autocomplete="off">
+      <button id="save" type="button">Save</button>
+    </div>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+</section>
+
+<p class="privacy"><b>Privacy.</b> The text of posts you scroll past on X (with the post's id, link, author handle, display name, time and language) is sent to our server for analysis. Nothing else is sent: no account data, no cookies, no browsing history. Labels are automated assessments and may be wrong; they make no claim about who is behind an account.</p>
+
+<script src="popup.js"></script>
+</body>
+</html>

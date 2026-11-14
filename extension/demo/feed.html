@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo feed (offline X look-alike)</title>
+<link rel="icon" href="data:,">
+<!--
+  Offline demo for the Decode the Noise extension. It copies the DOM shape and
+  data-testid attributes X uses (article[data-testid=tweet], User-Name,
+  tweetText, time[datetime], socialContext, role=group action row), so the
+  content script treats it like x.com. Non-X pages use the mock backend;
+  add ?live to the URL to use the backend URL from the popup instead.
+  Open via file:// (enable "Allow access to file URLs" for the extension) or
+  serve the folder: python3 -m http.server -d extension/demo 8765
+-->
+<style>
+  :root { --bg:#fff; --text:#0f1419; --muted:#536471; --line:#eff3f4; --link:#1d9bf0; }
+  body.dark { --bg:#000; --text:#e7e9ea; --muted:#71767b; --line:#2f3336; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .layout { display: flex; justify-content: center; }
+  nav.side { width: 88px; border-right: 1px solid var(--line); min-height: 100vh; padding: 12px; }
+  nav.side .logo { font-weight: 900; font-size: 28px; padding: 6px 12px; }
+  main { width: 600px; max-width: 100%; border-right: 1px solid var(--line); }
+  .top { position: sticky; top: 0; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line); display: flex; z-index: 2; }
+  .top a { flex: 1; text-align: center; padding: 16px 0; color: var(--text); text-decoration: none; font-weight: 700; }
+  .top a[aria-selected=true] { box-shadow: inset 0 -4px 0 var(--link); }
+  .banner { padding: 10px 16px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+  .banner button { font: inherit; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--text); cursor: pointer; }
+  article { display: flex; flex-direction: column; padding: 12px 16px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  article:hover { background: color-mix(in srgb, var(--text) 3%, transparent); }
+  .ctx { color: var(--muted); font-size: 13px; font-weight: 700; margin: 0 0 4px 44px; }
+  .row { display: flex; gap: 12px; }
+  .av { width: 40px; height: 40px; border-radius: 50%; flex: none; }
+  .body { flex: 1; min-width: 0; }
+  [data-testid="User-Name"] { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; min-width: 0; height: 20px; }
+  [data-testid="User-Name"] a { color: inherit; text-decoration: none; }
+  .nm { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta { display: flex; align-items: center; gap: 4px; color: var(--muted); min-width: 0; white-space: nowrap; }
+  .meta a { color: var(--muted); }
+  [data-testid="tweetText"] { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 2px; }
+  [data-testid="tweetText"] img { height: 1.2em; width: 1.2em; vertical-align: -0.2em; }
+  [data-testid="tweetText"] a { color: var(--link); text-decoration: none; }
+  .quote { border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; margin-top: 10px; }
+  .quote .av { width: 20px; height: 20px; }
+  .media { margin-top: 10px; border-radius: 16px; border: 1px solid var(--line); height: 180px;
+    background: linear-gradient(135deg, #cfd9de, #8899a6); }
+  [role="group"] { display: flex; justify-content: space-between; max-width: 425px; margin-top: 10px; color: var(--muted); font-size: 13px; }
+  [role="group"] button { all: unset; cursor: pointer; }
+  .ad { color: var(--muted); font-size: 13px; margin-left: auto; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="side" aria-label="Primary"><div class="logo">𝕏</div></nav>
+  <main role="main">
+    <div class="top" role="tablist">
+      <a href="#" role="tab" aria-selected="true" data-route="/home">For you</a>
+      <a href="#" role="tab" aria-selected="false" data-route="/following">Following</a>
+    </div>
+    <div class="banner">
+      <span>Offline demo feed. The extension uses mock answers here.</span>
+      <button type="button" id="more">Load 200 more</button>
+      <button type="button" id="route">Simulate route change</button>
+      <button type="button" id="theme">Dark / light</button>
+    </div>
+    <section aria-label="Timeline" id="timeline"><div id="cells"></div></section>
+  </main>
+</div>
+
+<template id="tweet-tpl">
+  <div data-testid="cellInnerDiv">
+    <article data-testid="tweet" role="article" tabindex="0">
+      <div class="ctx-slot"></div>
+      <div class="row">
+        <div class="av"></div>
+        <div class="body">
+          <div data-testid="User-Name">
+            <div><a class="nlink" role="link"><span class="nm"></span></a></div>
+            <div class="meta">
+              <a class="hlink" role="link" tabindex="-1"><span class="hd"></span></a>
+              <span aria-hidden="true">·</span>
+              <a class="tlink" role="link"><time></time></a>
+            </div>
+          </div>
+          <div data-testid="tweetText" dir="auto"></div>
+          <div class="extra"></div>
+          <div role="group" aria-label="Actions">
+            <button type="button" data-testid="reply" aria-label="Reply">💬 <span class="n1"></span></button>
+            <button type="button" data-testid="retweet" aria-label="Repost">🔁 <span class="n2"></span></button>
+            <button type="button" data-testid="like" aria-label="Like">♡ <span class="n3"></span></button>
+            <button type="button" aria-label="Views">📊 <span class="n4"></span></button>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</template>
+
+<script>
+(function () {
+  'use strict';
+  var NOW = Date.parse('2026-11-14T18:00:00Z');
+  var EMOJI = { '🇷🇺': '1f1f7-1f1fa', '🔴': '1f534', '⚡': '26a1', '🇺🇦': '1f1fa-1f1e6', '🇫🇮': '1f1eb-1f1ee', '🧵': '1f9f5', '☕': '2615' };
+  var COLORS = ['#7856ff', '#f91880', '#00ba7c', '#ffd400', '#1d9bf0', '#ff7a00'];
+
+  // Posts. Names and handles are invented. Texts 1-3 are close paraphrases of
+  // posts seen in the persona-farm hunt; the Finnish one is the farm's own
+  // machine translation of a Two Majors post.
+  var POSTS = [
+    { id: '1890412233445566771', h: 'eu_insider_news', n: 'EU Insider News', min: 12, lang: 'en',
+      t: '⚡ The Nvidia scandal is a CIA operation. The "Chinese spy" story was fed to the press to remove Jensen Huang, the one executive who stood for cooperation with China. Washington is purging anyone who gets in the way.',
+      media: true, c: [212, 1400, 3100, '88K'] },
+    { id: '1890412233445566772', h: 'marta_kowalska', n: 'Marta Kowalska', min: 25, lang: 'en',
+      t: 'Finished the 10k this morning in -4°C. Legs are gone, coffee is on. Tomorrow is a rest day and I have earned it ☕', c: [3, 1, 48, '1.2K'] },
+    { id: '1890412233445566773', h: 'truthwave_eu', n: 'TruthWave', min: 41, lang: 'en',
+      t: 'Let us be honest: the Kyiv regime is an American puppet. Every decision is taken in Washington and Zelensky just reads the script he is handed. 🇺🇦🇺🇸',
+      c: [98, 410, 1200, '31K'] },
+    { id: '1890412233445566774', h: 'mikko_hml', n: 'Mikko Virtanen', min: 55, lang: 'fi',
+      t: '🇫🇮 Estetty Patriot-paperityö. Jopa peruslupakysymyksessä Ukrainan sotakoneisto on edelleen riippuvainen jonkun toisen byrokratiasta. Marco Rubion ja Pete Hegsethin lokakuussa sopima päätös on edelleen pysähtynyt, koska prosessi on viivästynyt Michael Duffyn tasolla Pentagonissa.',
+      c: [0, 2, 4, '310'] },
+    { id: '1890412233445566775', h: 'promo_brand', n: 'CloudHost Pro', min: 60, lang: 'en', ad: true,
+      t: 'Launch your website in minutes with our new AI builder. 50% off the first year for all new customers this week only.', c: [0, 0, 12, '2M'] },
+    { id: '1890412233445566776', h: 'policywonk', n: 'Policy Wonk 🧵', min: 70, lang: 'en',
+      t: 'Hard to take seriously. Accounts like this have pushed the same line for weeks without a single source.',
+      quote: { id: '1890412233445566771', h: 'eu_insider_news', n: 'EU Insider News', min: 12 },
+      c: [14, 9, 120, '9K'] },
+    { id: '1890412233445566777', h: 'nordic_wire', n: 'Nordic Wire', min: 80, lang: 'en', rp: 'Daily Digest',
+      t: 'Same text, six accounts: "Europe is freezing because Brussels chose ideology over cheap energy. Ordinary families pay the price." Posted within minutes of each other.',
+      c: [5, 30, 77, '4.4K'] },
+    { id: '1890412233445566778', h: 'short_one', n: 'Brief', min: 85, lang: 'en', t: 'lol same', c: [0, 0, 1, '40'] },
+    { id: '1890412233445000099', h: 'slowserver_test', n: 'Weather Helsinki', min: 95, lang: 'en',
+      t: 'Snow expected across southern Finland tonight, 10 to 15 cm in Helsinki by morning. Allow extra time for the commute.',
+      c: [2, 8, 33, '2K'] },
+    { id: '1890412233445566780', h: 'helsinki_dev', n: 'Aino Laine', min: 110, lang: 'en',
+      t: 'Spent the weekend at Junction. 48 hours, too much coffee, and a team that never gave up. Proud of what we shipped 🇫🇮',
+      c: [4, 6, 91, '3K'] },
+  ];
+
+  function ago(min) { return min < 60 ? min + 'm' : Math.floor(min / 60) + 'h'; }
+  function fillText(el, text) {
+    // X renders text runs as spans and emoji as <img alt="…">.
+    var parts = text.split(/(🇷🇺|🔴|⚡|🇺🇦|🇺🇸|🇫🇮|🧵|☕)/u);
+    parts.forEach(function (p) {
+      if (!p) return;
+      if (EMOJI[p] || p === '🇺🇸') {
+        var img = document.createElement('img');
+        img.alt = p; img.draggable = false;
+        img.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><text x="10" y="16" font-size="16" text-anchor="middle">' + p + '</text></svg>');
+        el.appendChild(img);
+      } else {
+        var s = document.createElement('span'); s.textContent = p; el.appendChild(s);
+      }
+    });
+  }
+  function header(root, p) {
+    var un = root.querySelector('[data-testid="User-Name"]');
+    un.querySelector('.nlink').href = '/' + p.h;
+    un.querySelector('.nm').textContent = p.n;
+    un.querySelector('.hlink').href = '/' + p.h;
+    un.querySelector('.hd').textContent = '@' + p.h;
+    var t = un.querySelector('time');
+    var when = new Date(NOW - p.min * 60000).toISOString();
+    t.setAttribute('datetime', when);
+    t.textContent = ago(p.min);
+    return un;
+  }
+  var byId = {};
+  POSTS.forEach(function (p) { byId[p.id] = p; });
+
+  function render(p) {
+    var frag = document.getElementById('tweet-tpl').content.cloneNode(true);
+    var art = frag.querySelector('article');
+    art.querySelector('.av').style.background = COLORS[parseInt(p.id.slice(-2), 10) % COLORS.length];
+    var un = header(art, p);
+    un.querySelector('.tlink').href = '/' + p.h + '/status/' + p.id;
+    var tt = art.querySelector('[data-testid="tweetText"]');
+    tt.setAttribute('lang', p.lang);
+    fillText(tt, p.t);
+    if (p.rp) {
+      var ctx = document.createElement('div');
+      ctx.className = 'ctx';
+      ctx.setAttribute('data-testid', 'socialContext');
+      ctx.textContent = '🔁 ' + p.rp + ' reposted';
+      art.querySelector('.ctx-slot').appendChild(ctx);
+    }
+    if (p.ad) {
+      var ad = document.createElement('span');
+      ad.className = 'ad'; ad.textContent = 'Ad';
+      un.appendChild(ad);
+      un.querySelector('.tlink').remove(); // X ads have no permalink timestamp
+      var pt = document.createElement('div'); pt.setAttribute('data-testid', 'placementTracking');
+      art.appendChild(pt);
+    }
+    var extra = art.querySelector('.extra');
+    if (p.media) { var m = document.createElement('div'); m.className = 'media'; extra.appendChild(m); }
+    if (p.quote) {
+      var q = byId[p.quote.id] || p.quote;
+      var card = document.createElement('div');
+      card.className = 'quote';
+      card.setAttribute('role', 'link');
+      card.setAttribute('tabindex', '0');
+      card.innerHTML = '<div data-testid="User-Name"><div class="av"></div><div><a class="nlink"><span class="nm"></span></a></div>' +
+        '<div class="meta"><a class="hlink"><span class="hd"></span></a><span aria-hidden="true">·</span><a class="tlink"><time></time></a></div></div>' +
+        '<div data-testid="tweetText" dir="auto"></div>';
+      header(card, { h: q.h, n: q.n, min: q.min });
+      card.querySelector('.tlink').href = '/' + q.h + '/status/' + q.id;
+      var qt = card.querySelector('[data-testid="tweetText"]');
+      qt.setAttribute('lang', q.lang || 'en');
+      fillText(qt, q.t || '');
+      extra.appendChild(card);
+    }
+    var c = p.c || [0, 0, 0, '0'];
+    ['n1', 'n2', 'n3', 'n4'].forEach(function (k, i) { art.querySelector('.' + k).textContent = c[i] || ''; });
+    return frag;
+  }
+
+  var cells = document.getElementById('cells');
+  function renderAll(list) {
+    var f = document.createDocumentFragment();
+    list.forEach(function (p) { f.appendChild(render(p)); });
+    cells.appendChild(f);
+  }
+  renderAll(POSTS);
+
+  // Infinite scroll stress: 200 generated, mostly ordinary posts (about 5% get
+  // a mock flag by id hash).
+  var FILLER = [
+    'Anyone else think the new tram line schedule makes no sense on weekends? Waited 25 minutes at Hakaniemi today.',
+    'Reading list for the winter: three novels, one history of the Hanseatic League and far too many papers on retrieval.',
+    'Our team just released v2 of the open data portal. Faster search, better maps, and an API that finally has docs.',
+    'The price of electricity spiked again tonight. Time to run the dishwasher at 3 am like a true Finn.',
+    'Great panel on media literacy at the library. The kids asked better questions than most adults would.',
+  ];
+  var seq = 0;
+  document.getElementById('more').addEventListener('click', function () {
+    var list = [];
+    for (var i = 0; i < 200; i++) {
+      seq++;
+      list.push({ id: String(1890500000000000000n + BigInt(seq * 7919)), h: 'user' + seq, n: 'User ' + seq, min: 120 + seq,
+        lang: 'en', t: FILLER[seq % FILLER.length] + ' #' + seq, c: [seq % 7, seq % 5, seq % 50, (seq * 13) + ''] });
+    }
+    renderAll(list);
+  });
+
+  // SPA navigation: X swaps the timeline without a page load.
+  document.getElementById('route').addEventListener('click', function () {
+    var onFollowing = location.hash === '#following';
+    history.pushState({}, '', onFollowing ? '#home' : '#following');
+    cells.textContent = '';
+    setTimeout(function () { renderAll(onFollowing ? POSTS : POSTS.slice().reverse()); }, 200);
+  });
+  document.getElementById('theme').addEventListener('click', function () { document.body.classList.toggle('dark'); });
+  if (/[?&]dark\b/.test(location.search)) document.body.classList.add('dark');
+  if (/[?&]live\b/.test(location.search)) document.querySelector('.banner span').textContent = 'Live mode: posts go to the backend URL set in the extension popup.';
+
+  // X opens the post when you click a tweet; mimic so we can see that badge
+  // clicks do not leak through.
+  cells.addEventListener('click', function (e) {
+    var a = e.target.closest('article');
+    if (a) { a.style.outline = '2px solid #f4212e'; setTimeout(function () { a.style.outline = ''; }, 300); window.__tweetClicks = (window.__tweetClicks || 0) + 1; }
+  });
+  document.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); }); });
+  cells.addEventListener('click', function (e) { if (e.target.closest('a')) e.preventDefault(); }, true);
+})();
+</script>
+</body>
+</html>

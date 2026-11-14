@@ -1,0 +1,17 @@
+{
+  "name": "ppg-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Decode the Noise: browser extension that badges potentially propaganda posts on X",
+  "scripts": {
+    "test": "node test/unit.mjs && node test/e2e.mjs && node test/e2e-live.mjs",
+    "test:unit": "node test/unit.mjs",
+    "test:e2e": "node test/e2e.mjs",
+    "test:live": "node test/e2e-live.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1",
+    "playwright-core": "1.48.2"
+  }
+}
