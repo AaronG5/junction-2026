@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     account_id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     uuid                BINARY(16) NOT NULL UNIQUE,
     platform_id         SMALLINT UNSIGNED NOT NULL,
-    external_id         VARCHAR(255) NOT NULL,          -- platform's own id (stable, unlike handles)
+    external_id         VARCHAR(255) NOT NULL,          -- platform's own id; telegram: lowercased username (see posts)
     handle              VARCHAR(255),                   -- @name, can change
     display_name        VARCHAR(255),
     account_type        ENUM('user', 'channel', 'group', 'page', 'website', 'unknown') NOT NULL DEFAULT 'unknown',
@@ -125,7 +125,9 @@ CREATE TABLE IF NOT EXISTS account_assessments (
 -- -----------------------------------------------------------------------------
 
 -- external_id conventions (must be identical on every install, they feed uuid):
---   telegram: '<chat_id>/<message_id>'        e.g. '-1001234567890/4521'
+--   telegram: '<username>/<message_id>'       e.g. 'infalt/4521'
+--             username lowercased (Telegram ignores case); the account's
+--             external_id is the username alone. A rename means a new account.
 --   facebook: '<owner_id>_<post_id>'          (Graph-style id of the post)
 --   web:      sha256(canonical url), hex
 CREATE TABLE IF NOT EXISTS posts (
