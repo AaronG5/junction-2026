@@ -108,8 +108,23 @@ describe("demo sources, channel, analyze, stories, system", () => {
     expect(fb.stories.map((s) => s.id)).toEqual(["refugee-benefits"]);
     expect((await demoApi.story("electricity")).topic).toBe("Energy prices");
     await expect(demoApi.story("nope")).rejects.toBeInstanceOf(ApiError);
-    expect((await demoApi.traceLink("https://t.me/x/1")).id).toBe("nato-border");
+    expect((await demoApi.traceLink("https://t.me/x/1")).id).toBe("nato-border"); // demo only: unknown link -> example
     await expect(demoApi.traceLink("hello")).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it("traceLink finds the story whose post is the link, however it's written", async () => {
+    expect((await demoApi.traceLink("HTTPS://T.me/Novosti_Baltii/20871/?single")).id).toBe("electricity");
+    expect((await demoApi.traceLink("m.facebook.com/tiesabecenzuros/posts/1188")).id).toBe("refugee-benefits");
+  });
+
+  it("lists come sorted like the backend sorts them", async () => {
+    const nar = await demoApi.narratives(f({ range: "90" }));
+    expect(nar.clusters.map((c) => c.size)).toEqual([...nar.clusters.map((c) => c.size)].sort((a, b) => b - a));
+    const cl = await demoApi.claims({ ...f({ range: "90" }) });
+    const seen = cl.claims.map((c) => c.lastSeen);
+    expect(seen).toEqual([...seen].sort().reverse());
+    const src = (await demoApi.sources("all")).sources.map((s) => s.nearCopyPct);
+    expect(src).toEqual([...src].sort((a, b) => b - a));
   });
 
   it("system status lists the three services", async () => {

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { api } from "../api/client";
 import { ErrorState, Loading } from "../components/States";
-import { DATA_MODES, DataMode, updateSettings, useSettings } from "../lib/settings";
+import { isDemoMode } from "../api/client";
+import { DATA_MODES, DataMode, updateSettings, useSettings, useSettingsSync } from "../lib/settings";
 import { useApi } from "../lib/useApi";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 
@@ -11,6 +12,7 @@ const MODE_ORDER: DataMode[] = ["central", "hybrid", "local"];
 export function System() {
   useDocumentTitle("System");
   const settings = useSettings();
+  const sync = useSettingsSync();
   const status = useApi(() => api.system(), []);
   const [showHow, setShowHow] = useState(false);
   const isLocal = settings.dataMode === "local";
@@ -49,7 +51,16 @@ export function System() {
             {isLocal ? "Not available when nothing may leave this computer." : "Off by default. Shared analyses help everyone, but reveal which links you checked."}
           </small>
         </div>
-        <small className="muted">Saved in this browser for now. It will move to the Veritas Lens settings once the backend is connected.</small>
+        {sync.state === "failed" ? (
+          <p className="ferror" role="alert">{sync.message}</p>
+        ) : (
+          <small className="muted" data-testid="settings-sync">
+            {isDemoMode() ? "Demo mode: saved in this browser only."
+              : sync.state === "saving" ? "Saving…"
+              : sync.state === "saved" ? "Saved for everyone using Veritas Lens on this computer."
+              : sync.message ?? "Saved in this browser."}
+          </small>
+        )}
       </section>
 
       {status.error ? (

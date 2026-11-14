@@ -1,0 +1,543 @@
+{
+  "_comment": "Filter rules both sides implement. Read by frontend/src/lib/filters.test.ts and backend/tests/test_b1_shared_cases.py. Add a case here and both test suites check it.",
+  "today": "2026-11-13",
+  "resolveRange": [
+    {
+      "name": "7-day preset ends today",
+      "filters": {
+        "range": "7",
+        "from": "",
+        "to": ""
+      },
+      "expected": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      }
+    },
+    {
+      "name": "30-day preset",
+      "filters": {
+        "range": "30",
+        "from": "",
+        "to": ""
+      },
+      "expected": {
+        "from": "2026-10-14",
+        "to": "2026-11-13",
+        "invalid": false
+      }
+    },
+    {
+      "name": "90-day preset",
+      "filters": {
+        "range": "90",
+        "from": "",
+        "to": ""
+      },
+      "expected": {
+        "from": "2026-08-15",
+        "to": "2026-11-13",
+        "invalid": false
+      }
+    },
+    {
+      "name": "presets ignore stale custom dates",
+      "filters": {
+        "range": "7",
+        "from": "2000-01-01",
+        "to": "2000-01-02"
+      },
+      "expected": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      }
+    },
+    {
+      "name": "custom range uses the given dates",
+      "filters": {
+        "range": "custom",
+        "from": "2026-09-01",
+        "to": "2026-09-20"
+      },
+      "expected": {
+        "from": "2026-09-01",
+        "to": "2026-09-20",
+        "invalid": false
+      }
+    },
+    {
+      "name": "reversed custom range is invalid",
+      "filters": {
+        "range": "custom",
+        "from": "2026-12-01",
+        "to": "2026-11-01"
+      },
+      "expected": {
+        "from": "2026-12-01",
+        "to": "2026-11-01",
+        "invalid": true
+      }
+    },
+    {
+      "name": "half-filled custom range (only from)",
+      "filters": {
+        "range": "custom",
+        "from": "2026-09-01",
+        "to": ""
+      },
+      "expected": {
+        "from": "2026-09-01",
+        "to": "",
+        "invalid": false
+      }
+    },
+    {
+      "name": "same start and end day is valid",
+      "filters": {
+        "range": "custom",
+        "from": "2026-11-01",
+        "to": "2026-11-01"
+      },
+      "expected": {
+        "from": "2026-11-01",
+        "to": "2026-11-01",
+        "invalid": false
+      }
+    },
+    {
+      "name": "half-filled custom range (only to)",
+      "filters": {
+        "range": "custom",
+        "from": "",
+        "to": "2026-09-20"
+      },
+      "expected": {
+        "from": "",
+        "to": "2026-09-20",
+        "invalid": false
+      }
+    },
+    {
+      "name": "custom range with no dates means any time",
+      "filters": {
+        "range": "custom",
+        "from": "",
+        "to": ""
+      },
+      "expected": {
+        "from": "",
+        "to": "",
+        "invalid": false
+      }
+    }
+  ],
+  "overlaps": [
+    {
+      "name": "inside",
+      "firstSeen": "2026-11-07",
+      "lastSeen": "2026-11-08",
+      "range": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      },
+      "expected": true
+    },
+    {
+      "name": "started before, still active",
+      "firstSeen": "2026-10-01",
+      "lastSeen": "2026-11-07",
+      "range": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      },
+      "expected": true
+    },
+    {
+      "name": "started inside, continues after",
+      "firstSeen": "2026-11-12",
+      "lastSeen": "2026-11-20",
+      "range": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      },
+      "expected": true
+    },
+    {
+      "name": "covers the whole range",
+      "firstSeen": "2026-10-01",
+      "lastSeen": "2026-12-01",
+      "range": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      },
+      "expected": true
+    },
+    {
+      "name": "ended the day the range starts",
+      "firstSeen": "2026-10-01",
+      "lastSeen": "2026-11-06",
+      "range": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      },
+      "expected": true
+    },
+    {
+      "name": "started the day the range ends",
+      "firstSeen": "2026-11-13",
+      "lastSeen": "2026-11-20",
+      "range": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      },
+      "expected": true
+    },
+    {
+      "name": "ended before",
+      "firstSeen": "2026-10-01",
+      "lastSeen": "2026-11-05",
+      "range": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      },
+      "expected": false
+    },
+    {
+      "name": "starts after",
+      "firstSeen": "2026-11-14",
+      "lastSeen": "2026-11-20",
+      "range": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      },
+      "expected": false
+    },
+    {
+      "name": "an invalid range filters nothing out",
+      "firstSeen": "2000-01-01",
+      "lastSeen": "2000-01-02",
+      "range": {
+        "from": "2026-12-01",
+        "to": "2026-11-01",
+        "invalid": true
+      },
+      "expected": true
+    },
+    {
+      "name": "no start date: open on that side",
+      "firstSeen": "2020-01-01",
+      "lastSeen": "2020-01-02",
+      "range": {
+        "from": "",
+        "to": "2026-01-01",
+        "invalid": false
+      },
+      "expected": true
+    },
+    {
+      "name": "no end date: open on that side",
+      "firstSeen": "2020-01-01",
+      "lastSeen": "2020-01-02",
+      "range": {
+        "from": "2025-01-01",
+        "to": "",
+        "invalid": false
+      },
+      "expected": false
+    },
+    {
+      "name": "no dates at all: everything",
+      "firstSeen": "2001-01-01",
+      "lastSeen": "2001-01-02",
+      "range": {
+        "from": "",
+        "to": "",
+        "invalid": false
+      },
+      "expected": true
+    },
+    {
+      "name": "single-day item on the first day",
+      "firstSeen": "2026-11-06",
+      "lastSeen": "2026-11-06",
+      "range": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      },
+      "expected": true
+    },
+    {
+      "name": "single-day item on the last day",
+      "firstSeen": "2026-11-13",
+      "lastSeen": "2026-11-13",
+      "range": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      },
+      "expected": true
+    },
+    {
+      "name": "single-day item the day before",
+      "firstSeen": "2026-11-05",
+      "lastSeen": "2026-11-05",
+      "range": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      },
+      "expected": false
+    },
+    {
+      "name": "single-day item the day after",
+      "firstSeen": "2026-11-14",
+      "lastSeen": "2026-11-14",
+      "range": {
+        "from": "2026-11-06",
+        "to": "2026-11-13",
+        "invalid": false
+      },
+      "expected": false
+    }
+  ],
+  "matchesPlatform": [
+    {
+      "platforms": [
+        "Telegram"
+      ],
+      "filter": "all",
+      "expected": true
+    },
+    {
+      "platforms": [
+        "Telegram",
+        "Facebook"
+      ],
+      "filter": "Facebook",
+      "expected": true
+    },
+    {
+      "platforms": [
+        "Telegram"
+      ],
+      "filter": "Facebook",
+      "expected": false
+    },
+    {
+      "platforms": [
+        "Website"
+      ],
+      "filter": "Telegram",
+      "expected": false
+    },
+    {
+      "platforms": [],
+      "filter": "all",
+      "expected": true
+    },
+    {
+      "platforms": [],
+      "filter": "Telegram",
+      "expected": false
+    }
+  ],
+  "matchesStatus": [
+    {
+      "verdict": "false",
+      "filter": "all",
+      "expected": true
+    },
+    {
+      "verdict": "false",
+      "filter": "false",
+      "expected": true
+    },
+    {
+      "verdict": "misleading",
+      "filter": "false",
+      "expected": false
+    },
+    {
+      "verdict": "true",
+      "filter": "true",
+      "expected": true
+    },
+    {
+      "verdict": "unverified",
+      "filter": "true",
+      "expected": false
+    }
+  ],
+  "filtersToParams": [
+    {
+      "name": "defaults send only the date range",
+      "filters": {
+        "platform": "all",
+        "range": "30",
+        "from": "",
+        "to": "",
+        "status": "all"
+      },
+      "expected": {
+        "from": "2026-10-14",
+        "to": "2026-11-13"
+      }
+    },
+    {
+      "name": "platform and status when set",
+      "filters": {
+        "platform": "Telegram",
+        "range": "7",
+        "from": "",
+        "to": "",
+        "status": "misleading"
+      },
+      "expected": {
+        "platform": "Telegram",
+        "status": "misleading",
+        "from": "2026-11-06",
+        "to": "2026-11-13"
+      }
+    },
+    {
+      "name": "reversed custom range sends no dates",
+      "filters": {
+        "platform": "all",
+        "range": "custom",
+        "from": "2026-12-01",
+        "to": "2026-11-01",
+        "status": "all"
+      },
+      "expected": {}
+    },
+    {
+      "name": "half-filled custom range sends one side",
+      "filters": {
+        "platform": "all",
+        "range": "custom",
+        "from": "2026-09-01",
+        "to": "",
+        "status": "all"
+      },
+      "expected": {
+        "from": "2026-09-01"
+      }
+    },
+    {
+      "name": "custom range with no dates sends no dates",
+      "filters": {
+        "platform": "all",
+        "range": "custom",
+        "from": "",
+        "to": "",
+        "status": "all"
+      },
+      "expected": {}
+    },
+    {
+      "name": "custom range with only an end date",
+      "filters": {
+        "platform": "Facebook",
+        "range": "custom",
+        "from": "",
+        "to": "2026-09-20",
+        "status": "all"
+      },
+      "expected": {
+        "platform": "Facebook",
+        "to": "2026-09-20"
+      }
+    }
+  ],
+  "matchesQuery": [
+    {
+      "name": "empty search matches everything",
+      "text": "NATO tanks at the border",
+      "query": "",
+      "expected": true
+    },
+    {
+      "name": "only spaces matches everything",
+      "text": "NATO tanks",
+      "query": "   ",
+      "expected": true
+    },
+    {
+      "name": "case-insensitive",
+      "text": "NATO tanks at the border",
+      "query": "nato",
+      "expected": true
+    },
+    {
+      "name": "substring inside a word",
+      "text": "Electricity prices will double",
+      "query": "tric",
+      "expected": true
+    },
+    {
+      "name": "surrounding spaces are ignored",
+      "text": "Electricity prices",
+      "query": "  prices\t",
+      "expected": true
+    },
+    {
+      "name": "not found",
+      "text": "NATO tanks",
+      "query": "elections",
+      "expected": false
+    },
+    {
+      "name": "Cyrillic, case-insensitive",
+      "text": "Танки НАТО снова провоцируют",
+      "query": "нато",
+      "expected": true
+    },
+    {
+      "name": "Lithuanian letters match themselves",
+      "text": "Pabėgėliai gauna didesnes išmokas",
+      "query": "IŠMOKAS",
+      "expected": true
+    },
+    {
+      "name": "accents are significant: a does not match ą",
+      "text": "Ką daryti",
+      "query": "ka",
+      "expected": false
+    },
+    {
+      "name": "accents are significant: e does not match ė",
+      "text": "Pabėgėliai",
+      "query": "pabegeliai",
+      "expected": false
+    },
+    {
+      "name": "spaces inside the search are kept",
+      "text": "NATO tanks",
+      "query": "nato tanks",
+      "expected": true
+    },
+    {
+      "name": "spaces inside the search must match",
+      "text": "NATO  tanks",
+      "query": "nato tanks",
+      "expected": false
+    },
+    {
+      "name": "invisible byte-order mark is trimmed",
+      "text": "NATO tanks",
+      "query": "\ufeffnato",
+      "expected": true
+    }
+  ]
+}

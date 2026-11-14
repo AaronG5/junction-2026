@@ -22,8 +22,8 @@ def save_state(state):
 # ---- .env -----------------------------------------------------------------
 
 ENV_DEFAULTS = {
-    "MYSQL_DATABASE": "junction",
-    "MYSQL_USER": "junction",
+    "MYSQL_DATABASE": "veritas_lens",
+    "MYSQL_USER": "veritas_lens",
     "MYSQL_PASSWORD": None,        # None -> random secret generated on first run
     "MYSQL_ROOT_PASSWORD": None,
     "MYSQL_PORT": "3306",

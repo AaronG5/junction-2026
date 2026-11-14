@@ -1,0 +1,107 @@
+{
+  "_comment": "Which links Veritas Lens accepts (Telegram and Facebook). Read by frontend/src/api/client.test.ts and backend/tests/test_b1_shared_cases.py. Escapes like \\ufeff are JSON escapes for invisible characters.",
+  "accept": [
+    "https://t.me/kanalas_b/4521",
+    "t.me/kanalas_b",
+    "http://telegram.me/x",
+    "https://www.facebook.com/page/posts/1",
+    "https://m.facebook.com/groups/2",
+    "fb.com/x",
+    "  https://t.me/x  ",
+    "HTTPS://T.ME/Upper/1",
+    "\ufeffhttps://t.me/x",
+    "\u00a0https://t.me/x\u00a0",
+    "\thttps://t.me/x\n",
+    "https://www.facebook.com/permalink.php?story_fbid=123&id=456",
+    "https://t.me/kanalas_b/4521?single#comment"
+  ],
+  "reject": [
+    "",
+    "   ",
+    "hello",
+    "https://example.com/t.me/x",
+    "https://t.me/",
+    "ftp://t.me/x",
+    "https://facebook.com.evil.io/x",
+    "https://notfacebook.com/x",
+    "https://t.me.evil.io/x",
+    "javascript:alert(1)//t.me/x",
+    "https://t.me/\ufeff",
+    "https://t.me/\u0085x",
+    "\u0085https://t.me/x",
+    "\u001chttps://t.me/x",
+    "https://t.me/\u001cx",
+    "https://faceboo\u212a.com/x",
+    "http\u017f://t.me/x",
+    "https://t.me/x some trailing text",
+    "https://t.me/kanalas_b/\u0105",
+    "https://t.me/x\u2028"
+  ],
+  "_keys_comment": "keys: [link, the one spelling it is looked up by] (linkKey / link_key).",
+  "keys": [
+    [
+      "https://t.me/kanalas_b/4521",
+      "t.me/kanalas_b/4521"
+    ],
+    [
+      "t.me/kanalas_b/4521",
+      "t.me/kanalas_b/4521"
+    ],
+    [
+      "HTTPS://T.ME/Kanalas_B/4521/",
+      "t.me/kanalas_b/4521"
+    ],
+    [
+      "  t.me/kanalas_b/4521?single#comments \u00a0\ufeff",
+      "t.me/kanalas_b/4521"
+    ],
+    [
+      "http://telegram.me/kanalas_b/4521",
+      "t.me/kanalas_b/4521"
+    ],
+    [
+      "https://t.me/s/kanalas_b/4521",
+      "t.me/s/kanalas_b/4521"
+    ],
+    [
+      "https://www.facebook.com/tiesabecenzuros/posts/1188",
+      "facebook.com/tiesabecenzuros/posts/1188"
+    ],
+    [
+      "https://m.facebook.com/TiesaBeCenzuros/posts/1188?__cft__[0]=AZX&__tn__=R",
+      "facebook.com/tiesabecenzuros/posts/1188"
+    ],
+    [
+      "fb.com/tiesabecenzuros/posts/1188//",
+      "facebook.com/tiesabecenzuros/posts/1188"
+    ],
+    [
+      "https://www.facebook.com/story.php?story_fbid=123&id=456",
+      "facebook.com/story.php?story_fbid=123&id=456"
+    ],
+    [
+      "https://facebook.com/permalink.php?story_fbid=9&ID=7#x",
+      "facebook.com/permalink.php?story_fbid=9&id=7"
+    ],
+    [
+      "https://facebook.com/story.php?",
+      "facebook.com/story.php"
+    ],
+    [
+      "https://t.me/kanalas_b",
+      "t.me/kanalas_b"
+    ],
+    [
+      "t.me",
+      "t.me"
+    ],
+    [
+      "https://www.t.me.example.com/x",
+      "t.me.example.com/x"
+    ],
+    [
+      "https://t.me/\u0104\u017euolas/1",
+      "t.me/\u0104\u017euolas/1"
+    ]
+  ]
+}

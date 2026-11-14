@@ -1,0 +1,46 @@
+{
+  "claims": [
+    {
+      "id": 1,
+      "verdict": "false",
+      "platforms": [
+        "Telegram",
+        "Facebook"
+      ],
+      "firstSeen": "2026-11-03",
+      "lastSeen": "2026-11-13",
+      "posts": 23,
+      "languages": [
+        "ru",
+        "lt",
+        "en"
+      ],
+      "clusterId": 12,
+      "text": "NATO tanks are carrying out provocations at the Belarusian border.",
+      "explanation": "The tanks are part of an exercise announced a week earlier, held about 40 km from the border. Border reports for that day list no incidents.",
+      "evidence": [
+        {
+          "source": "Border guard daily report",
+          "stance": "contradicts",
+          "note": "No incidents recorded on the Belarus section."
+        },
+        {
+          "source": "Armed forces exercise announcement",
+          "stance": "contradicts",
+          "note": "Lists the exercise area and dates; the area is inland."
+        }
+      ],
+      "checkedBy": "web search + Gemma",
+      "confidence": 0.86,
+      "checkedAt": "2026-11-04"
+    }
+  ],
+  "total": 7,
+  "counts": {
+    "all": 1,
+    "true": 0,
+    "false": 1,
+    "misleading": 0,
+    "unverified": 0
+  }
+}

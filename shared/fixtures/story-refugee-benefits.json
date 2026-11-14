@@ -1,0 +1,69 @@
+{
+  "id": "refugee-benefits",
+  "platform": "Facebook",
+  "status": "misleading",
+  "firstSeen": "2026-10-25",
+  "lastSeen": "2026-11-14",
+  "topic": "Refugees",
+  "trend": {
+    "posts": 533,
+    "changePct": 21
+  },
+  "headline": "“Refugees get bigger benefits than pensioners”",
+  "sub": "Facebook · Lithuanian",
+  "post": {
+    "url": "https://www.facebook.com/tiesabecenzuros/posts/1188",
+    "author": "Tiesa be cenzūros",
+    "where": "Facebook page",
+    "text": "„Pabėgėliai gauna didesnes išmokas nei mūsų pensininkai. Kas čia vyksta?“",
+    "translation": "“Refugees get bigger benefits than our pensioners. What is going on?”"
+  },
+  "claim": {
+    "headline": "It's not false, but it's misleading.",
+    "text": "Refugees receive higher benefits than pensioners",
+    "verdict": "misleading",
+    "explanation": "It compares a one-time settling-in grant with a monthly pension. Monthly support for refugees is lower than the average pension.",
+    "evidence": "Municipal support rules and pension statistics: the monthly amounts don't support the comparison."
+  },
+  "origin": {
+    "headline": "It started in Russian, four and a half hours earlier.",
+    "chain": [
+      {
+        "meta": "10:00 · Russian",
+        "name": "@novosti_baltii",
+        "kind": "Telegram channel"
+      },
+      {
+        "meta": "14:30 · Lithuanian · translated",
+        "name": "Tiesa be cenzūros",
+        "kind": "The post you picked"
+      },
+      {
+        "meta": "16:10 · Lithuanian · near copy",
+        "name": "Baltijos balsas",
+        "kind": "Telegram group · 4.2k members"
+      }
+    ]
+  },
+  "travel": {
+    "headline": "In three days it was copied 29 times, mostly in Lithuanian.",
+    "copies": 29,
+    "accounts": 21,
+    "timeLabel": "3 days",
+    "languages": [
+      {
+        "name": "Lithuanian",
+        "count": 18
+      },
+      {
+        "name": "Russian",
+        "count": 11
+      }
+    ]
+  },
+  "narrative": {
+    "headline": "Yes. It feeds a growing storyline about refugees and welfare.",
+    "name": "Refugees get bigger benefits than pensioners",
+    "stats": "533 posts from 71 accounts this week · up 21% on the week before"
+  }
+}

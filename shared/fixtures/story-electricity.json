@@ -1,0 +1,74 @@
+{
+  "id": "electricity",
+  "platform": "Telegram",
+  "status": "false",
+  "firstSeen": "2026-10-28",
+  "lastSeen": "2026-11-13",
+  "topic": "Energy prices",
+  "trend": {
+    "posts": 962,
+    "changePct": 12
+  },
+  "headline": "“EU sanctions will double electricity prices in Lithuania”",
+  "sub": "Telegram · Russian",
+  "post": {
+    "url": "https://t.me/novosti_baltii/20871",
+    "author": "@novosti_baltii",
+    "where": "Telegram channel",
+    "text": "„Из-за санкций ЕС свет в Литве подорожает вдвое уже этой зимой.“",
+    "translation": "“Because of EU sanctions, electricity in Lithuania will cost twice as much this winter.”"
+  },
+  "claim": {
+    "headline": "Its main claim doesn't hold up.",
+    "text": "Electricity prices will double because of EU sanctions",
+    "verdict": "false",
+    "explanation": "The energy regulator forecasts a change of a few percent for next quarter. Sanctions don't set household tariffs.",
+    "evidence": "The energy regulator's published tariff forecast contradicts it."
+  },
+  "origin": {
+    "headline": "It started in a Russian-language channel, then crossed into Lithuanian.",
+    "chain": [
+      {
+        "meta": "07:10 · Russian",
+        "name": "@energy_insider_ru",
+        "kind": "Telegram channel"
+      },
+      {
+        "meta": "08:30 · Russian · near copy",
+        "name": "@novosti_baltii",
+        "kind": "The post you picked"
+      },
+      {
+        "meta": "18:20 · Lithuanian · translated",
+        "name": "@kanalas_b",
+        "kind": "Telegram channel"
+      },
+      {
+        "meta": "next day 09:05 · Lithuanian · shared",
+        "name": "Taupi šeima",
+        "kind": "Facebook group · 12k members"
+      }
+    ]
+  },
+  "travel": {
+    "headline": "Over two days it was copied 38 times, mostly in Russian.",
+    "copies": 38,
+    "accounts": 24,
+    "timeLabel": "2 days",
+    "languages": [
+      {
+        "name": "Russian",
+        "count": 23
+      },
+      {
+        "name": "Lithuanian",
+        "count": 15
+      }
+    ]
+  },
+  "narrative": {
+    "headline": "Yes. It's part of a storyline about energy and sanctions.",
+    "name": "EU sanctions will double electricity prices",
+    "stats": "962 posts from 148 accounts this week · up 12% on the week before"
+  }
+}

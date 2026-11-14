@@ -68,7 +68,7 @@ export function Analyze() {
         <form onSubmit={submit} className="analyze-form" noValidate>
           <div className="analyze-field">
             <label htmlFor="link" style={{ fontSize: 13, fontWeight: 600 }}>
-              Telegram or Facebook link: a post, channel, group or page
+              Telegram or Facebook link to a post
             </label>
             <input
               id="link" className="field mono" value={url} placeholder="https://t.me/channel/1234"
@@ -78,7 +78,7 @@ export function Analyze() {
             <span id="link-msg" className={invalid ? "ferror" : "muted"} style={{ fontSize: 13 }} role={invalid ? "alert" : undefined}>
               {invalid
                 ? "That doesn't look like a Telegram or Facebook link. Try something like https://t.me/channel/1234."
-                : "Works with public Telegram channels and groups, and Facebook pages and groups."}
+                : "A post in a public Telegram channel or group, or on a Facebook page or group."}
             </span>
           </div>
           <button type="submit" className="btn" disabled={running} style={{ minWidth: 120 }}>
@@ -287,13 +287,23 @@ function Report({ report: r }: { report: PostReport }) {
             <small className="mono muted">{r.reading.model}</small>
           </section>
 
-          <section className="card" aria-labelledby="cl-h">
-            <span className="lbl">Cluster {r.cluster.id}</span>
-            <h2 id="cl-h" className="h2">{r.cluster.name}</h2>
-            <span className="muted" style={{ fontSize: 13 }}>{r.cluster.summary}</span>
-            <LanguageBar languages={r.cluster.languages} />
-            <Link to="/dashboard/narratives" className="btn btn-ghost" style={{ alignSelf: "flex-start" }}>Open in Narratives</Link>
-          </section>
+          {r.cluster ? (
+            <section className="card" aria-labelledby="cl-h">
+              <span className="lbl">Cluster {r.cluster.id}</span>
+              <h2 id="cl-h" className="h2">{r.cluster.name}</h2>
+              <span className="muted" style={{ fontSize: 13 }}>{r.cluster.summary}</span>
+              <LanguageBar languages={r.cluster.languages} />
+              <Link to="/dashboard/narratives" className="btn btn-ghost" style={{ alignSelf: "flex-start" }}>Open in Narratives</Link>
+            </section>
+          ) : (
+            <section className="card" aria-labelledby="cl-h">
+              <span className="lbl">Narrative</span>
+              <h2 id="cl-h" className="h2">Not part of a known narrative yet</h2>
+              <span className="muted" style={{ fontSize: 13 }}>
+                It isn't close to any cluster from the latest grouping. If similar posts keep appearing, the next run may group them.
+              </span>
+            </section>
+          )}
         </aside>
       </div>
     </div>

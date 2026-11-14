@@ -203,7 +203,24 @@ export interface PostReport {
   similar: { language: string; author: string; where: string; text: string; relation: string; similarity: number }[];
   categories: { name: string; score: number; method: string }[];
   reading: { tone: string; intent: string; techniques: { name: string; detail: string }[]; model: string };
-  cluster: { id: number; name: string; summary: string; languages: Language[] };
+  /** null: the post fits no known narrative yet. */
+  cluster: { id: number; name: string; summary: string; languages: Language[] } | null;
+}
+
+/**
+ * POST /api/analyze starts an analysis (or returns a finished one for a post
+ * analyzed before); GET /api/analyze/{id} is polled until it's done or failed.
+ */
+export interface AnalysisJob {
+  id: string;
+  status: "queued" | "running" | "done" | "failed";
+  /** Index into ANALYZE_STEPS while running; 5 when done. */
+  step: number;
+  report: PostReport | null;
+  /** Plain-language message when failed. */
+  error: string | null;
+  /** The HTTP-style status of the failure (503 = the AI stopped, ...). */
+  errorStatus: number | null;
 }
 
 /** Progress steps shown while a link is analyzed, in order. */
@@ -237,6 +254,15 @@ export interface Story {
 
 export interface TrendingResponse {
   stories: Story[];
+}
+
+/* ------------------------------------------------------------------- settings */
+
+/** GET/PUT /api/settings: shared by every browser using this install. */
+export interface AppSettings {
+  dataMode: "central" | "hybrid" | "local";
+  /** Can't be true in "local" mode (the backend refuses it). */
+  shareAnalyses: boolean;
 }
 
 /* ------------------------------------------------------------------- system */

@@ -1,0 +1,458 @@
+{
+  "id": "kanalas_b",
+  "name": "@kanalas_b",
+  "platform": "Telegram",
+  "typeLabel": "Telegram channel",
+  "subtitle": "18.4k subscribers · writes in Lithuanian · created March 2023",
+  "basedOn": "Based on 2,906 posts collected since March 2023.",
+  "stats": {
+    "postsPerDay": 23,
+    "originalPct": 8,
+    "nearCopyPct": 64,
+    "stateMediaLinkPct": 31
+  },
+  "daily": [
+    {
+      "date": "2026-08-17",
+      "posts": 12
+    },
+    {
+      "date": "2026-08-18",
+      "posts": 16
+    },
+    {
+      "date": "2026-08-19",
+      "posts": 18
+    },
+    {
+      "date": "2026-08-20",
+      "posts": 23
+    },
+    {
+      "date": "2026-08-21",
+      "posts": 14
+    },
+    {
+      "date": "2026-08-22",
+      "posts": 14
+    },
+    {
+      "date": "2026-08-23",
+      "posts": 17
+    },
+    {
+      "date": "2026-08-24",
+      "posts": 18
+    },
+    {
+      "date": "2026-08-25",
+      "posts": 16
+    },
+    {
+      "date": "2026-08-26",
+      "posts": 12
+    },
+    {
+      "date": "2026-08-27",
+      "posts": 22
+    },
+    {
+      "date": "2026-08-28",
+      "posts": 18
+    },
+    {
+      "date": "2026-08-29",
+      "posts": 17
+    },
+    {
+      "date": "2026-08-30",
+      "posts": 14
+    },
+    {
+      "date": "2026-08-31",
+      "posts": 14
+    },
+    {
+      "date": "2026-09-01",
+      "posts": 17
+    },
+    {
+      "date": "2026-09-02",
+      "posts": 18
+    },
+    {
+      "date": "2026-09-03",
+      "posts": 22
+    },
+    {
+      "date": "2026-09-04",
+      "posts": 12
+    },
+    {
+      "date": "2026-09-05",
+      "posts": 16
+    },
+    {
+      "date": "2026-09-06",
+      "posts": 18
+    },
+    {
+      "date": "2026-09-07",
+      "posts": 17
+    },
+    {
+      "date": "2026-09-08",
+      "posts": 14
+    },
+    {
+      "date": "2026-09-09",
+      "posts": 14
+    },
+    {
+      "date": "2026-09-10",
+      "posts": 23
+    },
+    {
+      "date": "2026-09-11",
+      "posts": 18
+    },
+    {
+      "date": "2026-09-12",
+      "posts": 16
+    },
+    {
+      "date": "2026-09-13",
+      "posts": 12
+    },
+    {
+      "date": "2026-09-14",
+      "posts": 16
+    },
+    {
+      "date": "2026-09-15",
+      "posts": 18
+    },
+    {
+      "date": "2026-09-16",
+      "posts": 17
+    },
+    {
+      "date": "2026-09-17",
+      "posts": 20
+    },
+    {
+      "date": "2026-09-18",
+      "posts": 14
+    },
+    {
+      "date": "2026-09-19",
+      "posts": 17
+    },
+    {
+      "date": "2026-09-20",
+      "posts": 18
+    },
+    {
+      "date": "2026-09-21",
+      "posts": 16
+    },
+    {
+      "date": "2026-09-22",
+      "posts": 12
+    },
+    {
+      "date": "2026-09-23",
+      "posts": 16
+    },
+    {
+      "date": "2026-09-24",
+      "posts": 24
+    },
+    {
+      "date": "2026-09-25",
+      "posts": 17
+    },
+    {
+      "date": "2026-09-26",
+      "posts": 14
+    },
+    {
+      "date": "2026-09-27",
+      "posts": 14
+    },
+    {
+      "date": "2026-09-28",
+      "posts": 17
+    },
+    {
+      "date": "2026-09-29",
+      "posts": 18
+    },
+    {
+      "date": "2026-09-30",
+      "posts": 15
+    },
+    {
+      "date": "2026-10-01",
+      "posts": 19
+    },
+    {
+      "date": "2026-10-02",
+      "posts": 16
+    },
+    {
+      "date": "2026-10-03",
+      "posts": 18
+    },
+    {
+      "date": "2026-10-04",
+      "posts": 17
+    },
+    {
+      "date": "2026-10-05",
+      "posts": 14
+    },
+    {
+      "date": "2026-10-06",
+      "posts": 15
+    },
+    {
+      "date": "2026-10-07",
+      "posts": 17
+    },
+    {
+      "date": "2026-10-08",
+      "posts": 24
+    },
+    {
+      "date": "2026-10-09",
+      "posts": 15
+    },
+    {
+      "date": "2026-10-10",
+      "posts": 13
+    },
+    {
+      "date": "2026-10-11",
+      "posts": 16
+    },
+    {
+      "date": "2026-10-12",
+      "posts": 18
+    },
+    {
+      "date": "2026-10-13",
+      "posts": 17
+    },
+    {
+      "date": "2026-10-14",
+      "posts": 13
+    },
+    {
+      "date": "2026-10-15",
+      "posts": 21
+    },
+    {
+      "date": "2026-10-16",
+      "posts": 14
+    },
+    {
+      "date": "2026-10-17",
+      "posts": 17
+    },
+    {
+      "date": "2026-10-18",
+      "posts": 19
+    },
+    {
+      "date": "2026-10-19",
+      "posts": 15
+    },
+    {
+      "date": "2026-10-20",
+      "posts": 22
+    },
+    {
+      "date": "2026-10-21",
+      "posts": 18
+    },
+    {
+      "date": "2026-10-22",
+      "posts": 16
+    },
+    {
+      "date": "2026-10-23",
+      "posts": 21
+    },
+    {
+      "date": "2026-10-24",
+      "posts": 24
+    },
+    {
+      "date": "2026-10-25",
+      "posts": 19
+    },
+    {
+      "date": "2026-10-26",
+      "posts": 17
+    },
+    {
+      "date": "2026-10-27",
+      "posts": 23
+    },
+    {
+      "date": "2026-10-28",
+      "posts": 20
+    },
+    {
+      "date": "2026-10-29",
+      "posts": 18
+    },
+    {
+      "date": "2026-10-30",
+      "posts": 22
+    },
+    {
+      "date": "2026-10-31",
+      "posts": 26
+    },
+    {
+      "date": "2026-11-01",
+      "posts": 19
+    },
+    {
+      "date": "2026-11-02",
+      "posts": 58
+    },
+    {
+      "date": "2026-11-03",
+      "posts": 41
+    },
+    {
+      "date": "2026-11-04",
+      "posts": 29
+    },
+    {
+      "date": "2026-11-05",
+      "posts": 24
+    },
+    {
+      "date": "2026-11-06",
+      "posts": 21
+    },
+    {
+      "date": "2026-11-07",
+      "posts": 25
+    },
+    {
+      "date": "2026-11-08",
+      "posts": 22
+    },
+    {
+      "date": "2026-11-09",
+      "posts": 19
+    },
+    {
+      "date": "2026-11-10",
+      "posts": 23
+    },
+    {
+      "date": "2026-11-11",
+      "posts": 27
+    },
+    {
+      "date": "2026-11-12",
+      "posts": 21
+    },
+    {
+      "date": "2026-11-13",
+      "posts": 24
+    },
+    {
+      "date": "2026-11-14",
+      "posts": 26
+    }
+  ],
+  "topics": [
+    {
+      "name": "Anti-NATO",
+      "pct": 38
+    },
+    {
+      "name": "Energy prices",
+      "pct": 21
+    },
+    {
+      "name": "Elections",
+      "pct": 14
+    },
+    {
+      "name": "Media distrust",
+      "pct": 12
+    },
+    {
+      "name": "Other",
+      "pct": 15
+    }
+  ],
+  "upstream": [
+    {
+      "name": "@kanal_a",
+      "kind": "Telegram channel · Russian",
+      "posts": 212,
+      "typicalDelay": "1 h 40 min"
+    },
+    {
+      "name": "rt.com",
+      "kind": "News site · state media (RU)",
+      "posts": 88,
+      "typicalDelay": "3 h 10 min"
+    },
+    {
+      "name": "@prawda_wschod",
+      "kind": "Telegram channel · Polish",
+      "posts": 41,
+      "typicalDelay": "5 h"
+    },
+    {
+      "name": "@novosti_baltii",
+      "kind": "Telegram channel · Russian",
+      "posts": 36,
+      "typicalDelay": "2 h 20 min"
+    }
+  ],
+  "recent": [
+    {
+      "id": "p-4521",
+      "url": "https://t.me/kanalas_b/4521",
+      "text": "NATO tankai vėl provokuoja prie Baltarusijos sienos…",
+      "publishedAt": "2026-11-03T11:00:00Z",
+      "views": 1912,
+      "verdict": "misleading"
+    },
+    {
+      "id": "p-e-1",
+      "url": "https://t.me/kanalas_b/4498",
+      "text": "Elektros kainos kils 40% dėl ES sankcijų…",
+      "publishedAt": "2026-11-02T18:20:00Z",
+      "views": 2340,
+      "verdict": "false"
+    },
+    {
+      "id": "p-t-1",
+      "url": "https://t.me/kanalas_b/4490",
+      "text": "Vilniuje vyks protestas prieš naujus mokesčius",
+      "publishedAt": "2026-11-02T09:05:00Z",
+      "views": 1104,
+      "verdict": "true"
+    },
+    {
+      "id": "p-v-1",
+      "url": "https://t.me/kanalas_b/4476",
+      "text": "Rinkimų komisija slepia balsų skaičiavimo klaidas",
+      "publishedAt": "2026-11-01T21:40:00Z",
+      "views": 3018,
+      "verdict": "unverified"
+    }
+  ]
+}

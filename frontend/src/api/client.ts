@@ -5,7 +5,7 @@
  */
 import { filtersToParams } from "../lib/filters";
 import type {
-  ChannelReport, ClaimsResponse, Filters, NarrativesResponse, PostReport,
+  AnalysisJob, AppSettings, ChannelReport, ClaimsResponse, Filters, NarrativesResponse, PostReport,
   SourcesResponse, SourceFilter, Story, SystemStatus, TrendingResponse,
 } from "./types";
 
@@ -36,6 +36,8 @@ export interface Api {
   story(id: string): Promise<Story>;
   traceLink(url: string): Promise<Story>;
   system(): Promise<SystemStatus>;
+  appSettings(): Promise<AppSettings>;
+  saveAppSettings(s: AppSettings): Promise<AppSettings>;
 }
 
 /** Read at call time so tests can switch it; Vite still replaces it with a constant in builds. */
@@ -68,23 +70,51 @@ async function request<T>(path: string, params: Record<string, string> = {}, ini
   return body as T;
 }
 
+/** How often a running analysis is checked, and for how long at most. Tests shorten these. */
+export const analysisPolling = { intervalMs: 1000, maxWaitMs: 20 * 60 * 1000 };
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Start an analysis, then poll it until it's done; report each step as it changes. */
+async function analyzeOverHttp(url: string, onStep?: (stepIndex: number) => void): Promise<PostReport> {
+  let job = await request<AnalysisJob>("/analyze", {}, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  const started = Date.now();
+  let lastStep = -1;
+  for (;;) {
+    if (job.status === "done" && job.report) return job.report;
+    if (job.status === "failed") throw new ApiError(job.errorStatus ?? 500, job.error ?? "The analysis failed.");
+    if (job.step !== lastStep && job.step < 5) {
+      lastStep = job.step;
+      onStep?.(job.step);
+    }
+    if (Date.now() - started > analysisPolling.maxWaitMs) {
+      throw new ApiError(504, "The analysis is taking too long. Try again later.");
+    }
+    await sleep(analysisPolling.intervalMs);
+    job = await request<AnalysisJob>(`/analyze/${encodeURIComponent(job.id)}`);
+  }
+}
+
 export const httpApi: Api = {
   narratives: (f) => request("/narratives", filtersToParams(f)),
   claims: (f) => request("/claims", { ...filtersToParams(f), ...(f.query ? { q: f.query } : {}) }),
   sources: (platform) => request("/sources", platform === "all" ? {} : { platform }),
   channel: (id) => request(`/sources/${encodeURIComponent(id)}`),
-  analyze: async (url, onStep) => {
-    onStep?.(0);
-    return request("/analyze", {}, {
-      method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
-  },
+  analyze: analyzeOverHttp,
   trending: (f) => request("/trending", filtersToParams(f)),
   story: (id) => request(`/stories/${encodeURIComponent(id)}`),
   traceLink: (url) => request("/trace", { url }),
   system: () => request("/system"),
+  appSettings: () => request("/settings"),
+  saveAppSettings: (s) => request("/settings", {}, {
+    method: "PUT",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(s),
+  }),
 };
 
 let demoApi: Promise<Api> | null = null;
@@ -121,9 +151,51 @@ export const api: Api = {
   story: (id) => pick().then((a) => a.story(id)),
   traceLink: (url) => pick().then((a) => a.traceLink(url)),
   system: () => pick().then((a) => a.system()),
+  appSettings: () => pick().then((a) => a.appSettings()),
+  saveAppSettings: (s) => pick().then((a) => a.saveAppSettings(s)),
 };
 
 /** Telegram or Facebook link to a post, channel, group or page. */
+/**
+ * The rule is spelled out character by character (no \s, \S or trim()), so the
+ * backend's copy in backend/veritas/links.py behaves identically: same spaces
+ * trimmed, ASCII-only case folding, and the rest of the link must be printable
+ * ASCII up to the end. Shared cases: shared/cases/links.json.
+ */
+const LINK_SPACE = "[ \t\n\r\f\v\u00a0\ufeff]";
+const TRIM = new RegExp(`^${LINK_SPACE}+|${LINK_SPACE}+$`, "g");
+const LINK = /^(https?:\/\/)?(t\.me|telegram\.me|(www\.|m\.)?facebook\.com|fb\.com)\/[!-~]+$/i;
+
 export function isSupportedLink(value: string): boolean {
-  return /^(https?:\/\/)?(t\.me|telegram\.me|(www\.|m\.)?facebook\.com|fb\.com)\/\S+/i.test(value.trim());
+  return LINK.test(value.replace(TRIM, ""));
+}
+
+const HOST_ALIASES: Record<string, string> = { "telegram.me": "t.me", "fb.com": "facebook.com" };
+
+/**
+ * One spelling per link, for looking it up: spaces trimmed, no http(s)://, no
+ * www. or m., telegram.me = t.me, fb.com = facebook.com, no #part, no trailing
+ * slash, ASCII lowercase, and no ?query (tracking) except on .php pages such as
+ * Facebook's story.php?story_fbid=…, where the query says which post it is.
+ * "HTTPS://T.me/Kanal/5/?x=1" -> "t.me/kanal/5".
+ * Same as link_key() in backend/veritas/links.py (shared cases: links.json "keys").
+ */
+export function linkKey(value: string): string {
+  let s = value.replace(TRIM, "").replace(/^https?:\/\//i, "");
+  const hash = s.indexOf("#");
+  if (hash >= 0) s = s.slice(0, hash);
+  const q = s.indexOf("?");
+  let query = "";
+  if (q >= 0) {
+    query = s.slice(q);
+    s = s.slice(0, q);
+  }
+  s = s.replace(/\/+$/, "");
+  if (/\.php$/i.test(s) && query.length > 1) s += query;
+  s = s.replace(/[A-Z]/g, (c) => c.toLowerCase());
+  const slash = s.indexOf("/");
+  let host = slash >= 0 ? s.slice(0, slash) : s;
+  const path = slash >= 0 ? s.slice(slash) : "";
+  host = host.replace(/^(www\.|m\.)/, "");
+  return (HOST_ALIASES[host] ?? host) + path;
 }

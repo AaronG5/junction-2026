@@ -2,9 +2,11 @@
  * Demo implementation of the API: answers from data.ts with the same
  * filtering rules the backend must follow. Loaded only in demo mode.
  */
-import { ApiError, isSupportedLink, type Api } from "../api/client";
-import { ANALYZE_STEPS, type Claim, type Cluster, type MapPoint, type StatusCounts, type Verdict } from "../api/types";
-import { matchesPlatform, matchesStatus, overlaps, resolveRange } from "../lib/filters";
+import { ApiError, isSupportedLink, linkKey, type Api } from "../api/client";
+import {
+  ANALYZE_STEPS, type AppSettings, type Claim, type Cluster, type MapPoint, type Source, type StatusCounts, type Story, type Verdict,
+} from "../api/types";
+import { matchesPlatform, matchesQuery, matchesStatus, overlaps, resolveRange } from "../lib/filters";
 import { channelReports, claims, clusters, postReport, run, sources, stories, systemStatus } from "./data";
 
 export { DEMO_DATA_MARKER } from "./data";
@@ -23,21 +25,30 @@ function countStatuses<T>(items: T[], verdictOf: (t: T) => Verdict): StatusCount
   return counts;
 }
 
-/** Deterministic pseudo-random map points (stand-in for real UMAP coordinates). */
+/**
+ * Deterministic pseudo-random map points (stand-in for real UMAP coordinates).
+ * Contract details the backend must match (B3): coordinates have 2 decimals
+ * (stored as DECIMAL(5,2)); order = posts that fit no cluster first, then each
+ * matching cluster's points, clusters in the same order as the cluster list.
+ */
 function mapPoints(visible: Cluster[]): MapPoint[] {
   let seed = 7;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const gauss = () => Math.sqrt(-2 * Math.log(rnd() || 1e-9)) * Math.cos(2 * Math.PI * rnd());
-  const clamp = (v: number) => Math.max(2, Math.min(98, v));
+  const clamp = (v: number) => Math.round(Math.max(2, Math.min(98, v)) * 100) / 100;
   const points: MapPoint[] = [];
   for (let i = 0; i < 26; i++) points.push({ x: clamp(5 + rnd() * 90), y: clamp(5 + rnd() * 90), clusterId: null });
-  const ids = new Set(visible.map((c) => c.id));
+  // Generate every cluster's points (in data order) so positions stay stable across filters,
+  // then emit only the visible clusters', in list order.
+  const byCluster = new Map<number, MapPoint[]>();
   for (const c of clusters) {
+    const own: MapPoint[] = [];
     for (let i = 0; i < c.map.n; i++) {
-      const p = { x: clamp(c.map.x + gauss() * c.map.sx), y: clamp(c.map.y + gauss() * c.map.sy), clusterId: c.id };
-      if (ids.has(c.id)) points.push(p); // generate all to keep positions stable across filters
+      own.push({ x: clamp(c.map.x + gauss() * c.map.sx), y: clamp(c.map.y + gauss() * c.map.sy), clusterId: c.id });
     }
+    byCluster.set(c.id, own);
   }
+  for (const c of visible) points.push(...(byCluster.get(c.id) ?? []));
   return points;
 }
 
@@ -45,11 +56,39 @@ function stripMap({ map: _map, ...rest }: (typeof clusters)[number]): Cluster {
   return rest;
 }
 
+/**
+ * List orders, the same as the backend's (B3). Ties are broken by id, compared
+ * as plain code-unit strings (the same in Python and JavaScript).
+ */
+const byId = (a: string | number, b: string | number) => (a < b ? -1 : a > b ? 1 : 0);
+/** Largest cluster first. */
+export const sortClusters = <T extends Cluster>(list: T[]) => [...list].sort((a, b) => b.size - a.size || byId(a.id, b.id));
+/** Most recently seen claim first. */
+export const sortClaims = (list: Claim[]) => [...list].sort((a, b) => byId(b.lastSeen, a.lastSeen) || byId(a.id, b.id));
+/** Most near copies first (the Sources table's default sort). */
+export const sortSources = (list: Source[]) => [...list].sort((a, b) => b.nearCopyPct - a.nearCopyPct || byId(a.id, b.id));
+/** Most posts first. */
+export const sortStories = (list: Story[]) => [...list].sort((a, b) => b.trend.posts - a.trend.posts || byId(a.id, b.id));
+
+/** Everything the backend's demo loader needs (exported to shared/demo/demo-data.json). */
+export function demoSeed() {
+  const all = sortClusters(clusters);
+  return {
+    run,
+    clusters: all.map(stripMap),
+    points: mapPoints(all),
+    claims: sortClaims(claims),
+    sources: sortSources(sources),
+    channelReports,
+    stories: sortStories(stories),
+  };
+}
+
 export const demoApi: Api = {
   async narratives(f) {
     await wait();
     const r = resolveRange(f);
-    const base = clusters.filter((c) => matchesPlatform(c.platforms, f.platform) && overlaps(c.firstSeen, c.lastSeen, r));
+    const base = sortClusters(clusters).filter((c) => matchesPlatform(c.platforms, f.platform) && overlaps(c.firstSeen, c.lastSeen, r));
     const visible = base.filter((c) => matchesStatus(c.status, f.status));
     return clone({
       run,
@@ -63,9 +102,8 @@ export const demoApi: Api = {
   async claims(f) {
     await wait();
     const r = resolveRange(f);
-    const q = (f.query ?? "").trim().toLowerCase();
-    const base = claims.filter((c: Claim) =>
-      (!q || c.text.toLowerCase().includes(q)) &&
+    const base = sortClaims(claims).filter((c: Claim) =>
+      matchesQuery(c.text, f.query ?? "") &&
       matchesPlatform(c.platforms, f.platform) &&
       overlaps(c.firstSeen, c.lastSeen, r));
     return clone({
@@ -77,7 +115,7 @@ export const demoApi: Api = {
 
   async sources(platform) {
     await wait();
-    return clone({ sources: sources.filter((s) => platform === "all" || s.platform === platform) });
+    return clone({ sources: sortSources(sources).filter((s) => platform === "all" || s.platform === platform) });
   },
 
   async channel(id) {
@@ -100,7 +138,7 @@ export const demoApi: Api = {
     await wait();
     const r = resolveRange(f);
     return clone({
-      stories: stories.filter((s) =>
+      stories: sortStories(stories).filter((s) =>
         matchesPlatform([s.platform], f.platform) && matchesStatus(s.status, f.status) && overlaps(s.firstSeen, s.lastSeen, r)),
     });
   },
@@ -115,11 +153,34 @@ export const demoApi: Api = {
   async traceLink(url) {
     await wait();
     if (!isSupportedLink(url)) throw new ApiError(400, "That isn't a Telegram or Facebook link.");
-    return clone(stories[0]);
+    // Like the backend: the story whose post is this link. Demo only: any other
+    // link shows the first example story instead of "not collected yet".
+    const key = linkKey(url);
+    return clone(stories.find((s) => s.post.url && linkKey(s.post.url) === key) ?? stories[0]);
   },
 
   async system() {
     await wait();
     return clone(systemStatus);
   },
+
+  async appSettings() {
+    await wait();
+    return clone(demoSettings);
+  },
+
+  async saveAppSettings(s) {
+    await wait();
+    if (s.dataMode === "local" && s.shareAnalyses) throw new ApiError(400, SHARING_WHILE_LOCAL);
+    demoSettings = clone(s);
+    return clone(demoSettings);
+  },
 };
+
+/** The backend's rule and message (backend/veritas/app_settings.py). */
+export const SHARING_WHILE_LOCAL = "Sharing can't be turned on while Veritas Lens works only on this computer. Choose Hybrid or Central server first.";
+let demoSettings: AppSettings = { dataMode: "hybrid", shareAnalyses: false };
+/** Test helper. */
+export function resetDemoSettings() {
+  demoSettings = { dataMode: "hybrid", shareAnalyses: false };
+}

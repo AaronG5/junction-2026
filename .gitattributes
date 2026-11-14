@@ -1,0 +1,4 @@
+# Generated and shared files keep LF line endings on every OS, so byte-for-byte
+# freshness checks (shared/README.md) work on Windows too.
+shared/** text eol=lf
+*.json text eol=lf

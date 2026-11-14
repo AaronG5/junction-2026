@@ -1,0 +1,92 @@
+{
+  "sources": [
+    {
+      "id": "tiesa_be_cenzuros",
+      "name": "Tiesa be cenzūros",
+      "kind": "Page · Lithuanian · 9.1k followers",
+      "platform": "Facebook",
+      "posts30d": 410,
+      "originalPct": 3,
+      "nearCopyPct": 77,
+      "mainTopic": "Refugees",
+      "openFlags": 7
+    },
+    {
+      "id": "kanalas_b",
+      "name": "@kanalas_b",
+      "kind": "Channel · Lithuanian · 18.4k subscribers",
+      "platform": "Telegram",
+      "posts30d": 690,
+      "originalPct": 8,
+      "nearCopyPct": 64,
+      "mainTopic": "Anti-NATO",
+      "openFlags": 5
+    },
+    {
+      "id": "prawda_wschod",
+      "name": "@prawda_wschod",
+      "kind": "Channel · Polish",
+      "platform": "Telegram",
+      "posts30d": 520,
+      "originalPct": 18,
+      "nearCopyPct": 52,
+      "mainTopic": "Anti-NATO",
+      "openFlags": 0
+    },
+    {
+      "id": "baltijos_balsas",
+      "name": "Baltijos balsas",
+      "kind": "Group · Lithuanian · 4.2k members",
+      "platform": "Telegram",
+      "posts30d": 3410,
+      "originalPct": 35,
+      "nearCopyPct": 48,
+      "mainTopic": "Elections",
+      "openFlags": 1
+    },
+    {
+      "id": "novosti_baltii",
+      "name": "@novosti_baltii",
+      "kind": "Channel · Russian",
+      "platform": "Telegram",
+      "posts30d": 1120,
+      "originalPct": 22,
+      "nearCopyPct": 41,
+      "mainTopic": "Energy prices",
+      "openFlags": 2
+    },
+    {
+      "id": "kanal_a",
+      "name": "@kanal_a",
+      "kind": "Channel · Russian",
+      "platform": "Telegram",
+      "posts30d": 1940,
+      "originalPct": 61,
+      "nearCopyPct": 12,
+      "mainTopic": "Anti-NATO",
+      "openFlags": 3
+    },
+    {
+      "id": "taupi_seima",
+      "name": "Taupi šeima",
+      "kind": "Group · Lithuanian · 12k members",
+      "platform": "Facebook",
+      "posts30d": 260,
+      "originalPct": 81,
+      "nearCopyPct": 6,
+      "mainTopic": "Everyday prices",
+      "openFlags": 0
+    },
+    {
+      "id": "rt_com",
+      "name": "rt.com",
+      "kind": "News site · state media (RU)",
+      "platform": "Website",
+      "posts30d": 2200,
+      "originalPct": 94,
+      "nearCopyPct": 2,
+      "mainTopic": "Anti-NATO",
+      "openFlags": 0
+    }
+  ]
+}
