@@ -48,7 +48,7 @@ def test_every_response_model_has_a_fixture() -> None:
 
 def test_manifest_entries_describe_a_real_api_call() -> None:
     for e in ENTRIES:
-        assert e["method"] in ("GET", "POST")
+        assert e["method"] in ("GET", "POST", "PUT")
         assert e["path"].startswith("/api/")
         assert all(isinstance(v, str) for v in e["query"].values())
         assert e["replay"] in ("exact", "shape")
@@ -57,7 +57,7 @@ def test_manifest_entries_describe_a_real_api_call() -> None:
 
 def test_error_fixtures_are_plain_sentences() -> None:
     errors = [e for e in ENTRIES if e["model"] == "Error"]
-    assert sorted(e["status"] for e in errors) == [400, 400, 404, 404]
+    assert sorted(e["status"] for e in errors) == [400, 400, 400, 404, 404]
     for e in errors:
         detail = load(e["file"])["detail"]
         assert detail[0].isupper() and detail.endswith("."), detail

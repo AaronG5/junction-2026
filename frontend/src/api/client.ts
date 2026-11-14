@@ -5,7 +5,7 @@
  */
 import { filtersToParams } from "../lib/filters";
 import type {
-  AnalysisJob, ChannelReport, ClaimsResponse, Filters, NarrativesResponse, PostReport,
+  AnalysisJob, AppSettings, ChannelReport, ClaimsResponse, Filters, NarrativesResponse, PostReport,
   SourcesResponse, SourceFilter, Story, SystemStatus, TrendingResponse,
 } from "./types";
 
@@ -36,6 +36,8 @@ export interface Api {
   story(id: string): Promise<Story>;
   traceLink(url: string): Promise<Story>;
   system(): Promise<SystemStatus>;
+  appSettings(): Promise<AppSettings>;
+  saveAppSettings(s: AppSettings): Promise<AppSettings>;
 }
 
 /** Read at call time so tests can switch it; Vite still replaces it with a constant in builds. */
@@ -107,6 +109,12 @@ export const httpApi: Api = {
   story: (id) => request(`/stories/${encodeURIComponent(id)}`),
   traceLink: (url) => request("/trace", { url }),
   system: () => request("/system"),
+  appSettings: () => request("/settings"),
+  saveAppSettings: (s) => request("/settings", {}, {
+    method: "PUT",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(s),
+  }),
 };
 
 let demoApi: Promise<Api> | null = null;
@@ -143,6 +151,8 @@ export const api: Api = {
   story: (id) => pick().then((a) => a.story(id)),
   traceLink: (url) => pick().then((a) => a.traceLink(url)),
   system: () => pick().then((a) => a.system()),
+  appSettings: () => pick().then((a) => a.appSettings()),
+  saveAppSettings: (s) => pick().then((a) => a.saveAppSettings(s)),
 };
 
 /** Telegram or Facebook link to a post, channel, group or page. */

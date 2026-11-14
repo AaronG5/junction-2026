@@ -4,7 +4,7 @@
  */
 import { ApiError, isSupportedLink, linkKey, type Api } from "../api/client";
 import {
-  ANALYZE_STEPS, type Claim, type Cluster, type MapPoint, type Source, type StatusCounts, type Story, type Verdict,
+  ANALYZE_STEPS, type AppSettings, type Claim, type Cluster, type MapPoint, type Source, type StatusCounts, type Story, type Verdict,
 } from "../api/types";
 import { matchesPlatform, matchesQuery, matchesStatus, overlaps, resolveRange } from "../lib/filters";
 import { channelReports, claims, clusters, postReport, run, sources, stories, systemStatus } from "./data";
@@ -163,4 +163,24 @@ export const demoApi: Api = {
     await wait();
     return clone(systemStatus);
   },
+
+  async appSettings() {
+    await wait();
+    return clone(demoSettings);
+  },
+
+  async saveAppSettings(s) {
+    await wait();
+    if (s.dataMode === "local" && s.shareAnalyses) throw new ApiError(400, SHARING_WHILE_LOCAL);
+    demoSettings = clone(s);
+    return clone(demoSettings);
+  },
 };
+
+/** The backend's rule and message (backend/veritas/app_settings.py). */
+export const SHARING_WHILE_LOCAL = "Sharing can't be turned on while Veritas Lens works only on this computer. Choose Hybrid or Central server first.";
+let demoSettings: AppSettings = { dataMode: "hybrid", shareAnalyses: false };
+/** Test helper. */
+export function resetDemoSettings() {
+  demoSettings = { dataMode: "hybrid", shareAnalyses: false };
+}

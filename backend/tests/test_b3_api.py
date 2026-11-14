@@ -59,8 +59,8 @@ def empty_db(tmp_path) -> Iterator[Settings]:
 
 
 def _call(client, entry: dict):
-    if entry["method"] == "POST":
-        return client.post(entry["path"], params=entry["query"], json=entry.get("body"))
+    if entry["method"] in ("POST", "PUT"):
+        return client.request(entry["method"], entry["path"], params=entry["query"], json=entry.get("body"))
     return client.get(entry["path"], params=entry["query"])
 
 

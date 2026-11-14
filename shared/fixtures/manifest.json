@@ -168,6 +168,15 @@
       "replay": "shape"
     },
     {
+      "file": "settings-default.json",
+      "model": "AppSettings",
+      "method": "GET",
+      "path": "/api/settings",
+      "query": {},
+      "status": 200,
+      "replay": "exact"
+    },
+    {
       "file": "error-source-unknown.json",
       "model": "Error",
       "method": "GET",
@@ -192,6 +201,19 @@
       "path": "/api/trace",
       "query": {
         "url": "hello"
+      },
+      "status": 400,
+      "replay": "exact"
+    },
+    {
+      "file": "error-settings-sharing-local.json",
+      "model": "Error",
+      "method": "PUT",
+      "path": "/api/settings",
+      "query": {},
+      "body": {
+        "dataMode": "local",
+        "shareAnalyses": true
       },
       "status": 400,
       "replay": "exact"

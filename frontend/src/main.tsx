@@ -11,10 +11,11 @@ import "@fontsource/ibm-plex-mono/500.css";
 import "./styles/app.css";
 import { AppRoutes } from "./App";
 import { preloadDemo } from "./api/client";
-import { applyTheme, getSettings } from "./lib/settings";
+import { applyTheme, getSettings, loadSharedSettings } from "./lib/settings";
 
 applyTheme(getSettings().theme);
 preloadDemo();
+void loadSharedSettings(); // data source + sharing come from the backend (not in demo mode)
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

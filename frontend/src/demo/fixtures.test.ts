@@ -42,13 +42,13 @@ describe("shared contract fixtures", () => {
   it("covers every API response type", () => {
     const models = new Set(built.manifest.fixtures.map((e) => e.model));
     expect([...models].sort()).toEqual([
-      "AnalysisJob", "ChannelReport", "ClaimsResponse", "Error", "NarrativesResponse", "SourcesResponse", "Story", "SystemStatus", "TrendingResponse",
+      "AnalysisJob", "AppSettings", "ChannelReport", "ClaimsResponse", "Error", "NarrativesResponse", "SourcesResponse", "Story", "SystemStatus", "TrendingResponse",
     ]);
   });
 
   it("error fixtures carry the status and a plain-language message", () => {
     const errors = built.manifest.fixtures.filter((e) => e.model === "Error");
-    expect(errors.map((e) => e.status).sort()).toEqual([400, 400, 404, 404]);
+    expect(errors.map((e) => e.status).sort()).toEqual([400, 400, 400, 404, 404]);
     for (const e of errors) {
       const body = built.files[e.file] as { detail: string };
       expect(Object.keys(body)).toEqual(["detail"]);

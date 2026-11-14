@@ -19,10 +19,10 @@ export interface FixtureEntry {
   file: string;
   /** Name of the response model on both sides, e.g. "NarrativesResponse"; "Error" for {detail}. */
   model: string;
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "PUT";
   path: string;
   query: Record<string, string>;
-  body?: Record<string, string>;
+  body?: Record<string, unknown>;
   /** HTTP status the backend must answer with. */
   status: number;
   /**
@@ -51,8 +51,8 @@ export async function buildFixtures(): Promise<Fixtures> {
   const entries: FixtureEntry[] = [];
   const files: Record<string, unknown> = {};
   const add = async (
-    file: string, model: string, method: "GET" | "POST", path: string, query: Record<string, string>,
-    call: () => Promise<unknown>, opts: { body?: Record<string, string>; replay?: "exact" | "shape" } = {},
+    file: string, model: string, method: "GET" | "POST" | "PUT", path: string, query: Record<string, string>,
+    call: () => Promise<unknown>, opts: { body?: Record<string, unknown>; replay?: "exact" | "shape" } = {},
   ) => {
     let status = 200;
     let data: unknown;
@@ -98,11 +98,15 @@ export async function buildFixtures(): Promise<Fixtures> {
   const traced = "t.me/Novosti_Baltii/20871/?single";
   await add("trace-electricity.json", "Story", "GET", "/api/trace", { url: traced }, () => demoApi.traceLink(traced));
   await add("system.json", "SystemStatus", "GET", "/api/system", {}, () => demoApi.system(), { replay: "shape" });
+  await add("settings-default.json", "AppSettings", "GET", "/api/settings", {}, () => demoApi.appSettings());
 
   // Error answers: the backend must use the same status and the same plain-language message.
   await add("error-source-unknown.json", "Error", "GET", "/api/sources/nobody", {}, () => demoApi.channel("nobody"));
   await add("error-story-unknown.json", "Error", "GET", "/api/stories/nope", {}, () => demoApi.story("nope"));
   await add("error-trace-invalid-link.json", "Error", "GET", "/api/trace", { url: "hello" }, () => demoApi.traceLink("hello"));
+  const sharingLocal = { dataMode: "local" as const, shareAnalyses: true };
+  await add("error-settings-sharing-local.json", "Error", "PUT", "/api/settings", {}, () => demoApi.saveAppSettings(sharingLocal),
+    { body: sharingLocal });
   await add("error-analyze-invalid-link.json", "Error", "POST", "/api/analyze", {}, () => demoApi.analyze("hello"), { body: { url: "hello" } });
 
   return {

@@ -256,6 +256,15 @@ export interface TrendingResponse {
   stories: Story[];
 }
 
+/* ------------------------------------------------------------------- settings */
+
+/** GET/PUT /api/settings: shared by every browser using this install. */
+export interface AppSettings {
+  dataMode: "central" | "hybrid" | "local";
+  /** Can't be true in "local" mode (the backend refuses it). */
+  shareAnalyses: boolean;
+}
+
 /* ------------------------------------------------------------------- system */
 
 export interface SystemStatus {

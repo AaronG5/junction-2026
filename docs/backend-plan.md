@@ -210,6 +210,8 @@ API keys go in `.env` (`OXYLABS_USERNAME`, `OXYLABS_PASSWORD`, `CONTEXT_DEV_API_
 - `/api/system` shows which model is loaded (read from the launcher's state), the hardware, and live health checks of llama-swap, MySQL and Qdrant.
 - `/api/settings` stores the data-source choice and sharing in the database, replacing the browser-only setting. This needs a small frontend change.
 
+**How it works (built):** `veritas/system.py` checks llama-swap, MySQL and Qdrant at the same time with 2-second timeouts; the model, hardware and upgrade come from the launcher's state file (`.local_ai/state.json`, written by the launcher since B8), so the backend never imports the launcher. `veritas/app_settings.py` keeps the data mode and sharing in the `settings` table. The frontend loads them at start and saves each change; a refused change is undone with the backend's message, and without a backend the choice stays in the browser (and says so). Demo mode keeps them in the browser, with the same rule.
+
 **Tests**
 - Each service down shows as stopped. The page still loads.
 - Settings survive a backend restart.
