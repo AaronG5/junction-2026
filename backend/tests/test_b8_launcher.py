@@ -77,6 +77,81 @@ def test_the_dashboard_address_is_the_one_users_can_open(monkeypatch):
     assert backend.backend_url() == "http://127.0.0.1:8000"
 
 
+# --------------------------------------------------------------------------- loading the models
+
+@pytest.fixture
+def swap(monkeypatch, tmp_path):
+    """A fake AI server: `answers` drives what each warm-up request returns."""
+    log = {"posts": [], "answers": {}, "states": ""}
+    monkeypatch.setattr(services, "read_env", lambda: {"LLAMA_SWAP_PORT": "8080"})
+    monkeypatch.setattr(services.paths, "LOGS_DIR", tmp_path)
+    monkeypatch.setattr(services, "_running_states", lambda: log["states"])
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+
+    def post(url, payload, timeout=30):
+        log["posts"].append(payload["model"])
+        answer = log["answers"].get(payload["model"], (200, b"{}"))
+        return answer.pop(0) if isinstance(answer, list) else answer
+
+    monkeypatch.setattr(services, "http_post_json", post)
+    return log
+
+
+def test_both_models_are_loaded_by_asking_them_the_apps_own_question(swap):
+    assert services.wait_models_loaded() is True
+    # A real request, not a status poll: that is what makes llama-swap load a
+    # model an earlier run left stopped.
+    assert swap["posts"] == ["chat", "embedding"]
+
+
+def test_a_model_that_is_still_starting_is_waited_for(swap):
+    swap["answers"]["chat"] = [(None, b""), (503, b"loading"), (200, b"{}")]
+    swap["states"] = "gemma-4-E4B-it: starting"
+    assert services.load_model("chat", timeout=60) is True
+    assert swap["posts"] == ["chat", "chat", "chat"]
+
+
+def test_an_unknown_model_fails_at_once_instead_of_waiting(swap):
+    swap["answers"]["chat"] = (404, b'{"error":"model not found"}')
+    assert services.load_model("chat", timeout=900) is False
+    assert swap["posts"] == ["chat"]  # no retries: waiting cannot fix the config
+
+
+def test_a_model_that_never_loads_gives_up_and_points_at_the_log(swap, monkeypatch, capsys):
+    clock = iter([0, 0, 0, 30, 60, 90, 600, 900, 1200])
+    monkeypatch.setattr(time, "time", lambda: next(clock))
+    swap["answers"]["chat"] = (503, b"still loading")
+    (swap_log := services.paths.LOGS_DIR / "llama-swap.log").write_text(
+        "llama-server exited with code 1\nfailed to allocate buffer\n", encoding="utf-8")
+    assert services.load_model("chat", timeout=600) is False
+    out = capsys.readouterr().out
+    assert str(swap_log) in out and "failed to allocate buffer" in out
+
+
+def test_one_broken_model_does_not_hide_the_other(swap):
+    swap["answers"]["chat"] = (404, b"no such model")
+    assert services.wait_models_loaded(timeout=60) is False
+    assert swap["posts"] == ["chat", "embedding"]  # the embedding model is still loaded
+
+
+def test_an_ai_server_left_behind_on_the_port_is_called_out(monkeypatch, tmp_path, capsys):
+    """Two llama-swaps means two copies of the models in memory - say so."""
+    monkeypatch.setattr(services, "read_env", lambda: {"LLAMA_SWAP_PORT": "8080"})
+    monkeypatch.setattr(services, "set_env_values", lambda values: None)
+    monkeypatch.setattr(services, "port_free", lambda port: False)
+    monkeypatch.setattr(services, "next_free_port", lambda port, taken: 8081)
+    monkeypatch.setattr(services, "http_get", lambda url, timeout=3: (200, b'{"running": []}'))
+    monkeypatch.setattr(services, "llama_swap_running", lambda: True)
+    monkeypatch.setattr(services.paths, "LOGS_DIR", tmp_path)
+    monkeypatch.setattr(services.paths, "SWAP_PID", tmp_path / "swap.pid")
+    monkeypatch.setattr(services.subprocess, "Popen", lambda cmd, **kw: SimpleNamespace(pid=7, poll=lambda: None))
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+
+    assert services.start_llama_swap("llama-swap", "hash1") is True
+    out = capsys.readouterr().out
+    assert "8081" in out and "left behind" in out and "--stop" in out
+
+
 # --------------------------------------------------------------------------- where things listen
 
 @pytest.fixture
