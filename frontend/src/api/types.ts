@@ -18,6 +18,8 @@ export type StatusCounts = Record<"all" | Verdict, number>;
 export type PlatformFilter = "all" | "Telegram" | "Facebook";
 export type RangePreset = "7" | "30" | "90" | "custom";
 export type StatusFilter = "all" | Verdict;
+/** Sources can also be filtered to websites. */
+export type SourceFilter = "all" | Platform;
 
 /** Filter state in the UI. Sent to the API as platform, from, to, status. */
 export interface Filters {
@@ -39,6 +41,8 @@ export interface Language {
 
 export interface PostRef {
   id: string;
+  /** Link to the post on its platform, when known. */
+  url?: string;
   text: string;
   author: string;
   /** e.g. "Telegram channel · Lithuanian" */
@@ -155,7 +159,7 @@ export interface ChannelReport {
   daily: { date: string; posts: number }[];
   topics: { name: string; pct: number }[];
   upstream: { name: string; kind: string; posts: number; typicalDelay: string }[];
-  recent: { id: string; text: string; publishedAt: string; views: number; verdict: Verdict }[];
+  recent: { id: string; url: string; text: string; publishedAt: string; views: number; verdict: Verdict }[];
 }
 
 /* ------------------------------------------------------------------ analyze */

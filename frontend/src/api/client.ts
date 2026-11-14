@@ -6,7 +6,7 @@
 import { filtersToParams } from "../lib/filters";
 import type {
   ChannelReport, ClaimsResponse, Filters, NarrativesResponse, PostReport,
-  SourcesResponse, PlatformFilter, Story, SystemStatus, TrendingResponse,
+  SourcesResponse, SourceFilter, Story, SystemStatus, TrendingResponse,
 } from "./types";
 
 /** The backend can't be reached, isn't running yet, or answered with something that isn't our API. */
@@ -29,7 +29,7 @@ export class ApiError extends Error {
 export interface Api {
   narratives(f: Filters): Promise<NarrativesResponse>;
   claims(f: Filters & { query?: string }): Promise<ClaimsResponse>;
-  sources(platform: PlatformFilter): Promise<SourcesResponse>;
+  sources(platform: SourceFilter): Promise<SourcesResponse>;
   channel(id: string): Promise<ChannelReport>;
   analyze(url: string, onStep?: (stepIndex: number) => void): Promise<PostReport>;
   trending(f: Filters): Promise<TrendingResponse>;

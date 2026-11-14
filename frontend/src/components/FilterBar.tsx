@@ -108,13 +108,16 @@ export function FilterBar({
 }
 
 /** "4 of 7 claims · Telegram · last 30 days" with a Clear button when filtered. */
-export function FilterSummary({ shown, total, noun, value, defaults, onClear }: {
+export function FilterSummary({ shown, total, noun, value, defaults, onClear, extra, extraActive = false }: {
   shown: number; total: number; noun: string; value: Filters; defaults: Filters; onClear: () => void;
+  /** Extra condition shown at the end, e.g. a search: 'matching "nato"'. */
+  extra?: string;
+  extraActive?: boolean;
 }) {
   return (
     <div className="fsummary" aria-live="polite">
-      <span><strong>{shown}</strong> of {total} {noun} · {describeFilters(value)}</span>
-      {isFiltered(value, defaults) && (
+      <span><strong>{shown}</strong> of {total} {noun} · {describeFilters(value)}{extra ? ` · ${extra}` : ""}</span>
+      {(isFiltered(value, defaults) || extraActive) && (
         <button type="button" className="link-btn" onClick={onClear}>Clear filters</button>
       )}
     </div>

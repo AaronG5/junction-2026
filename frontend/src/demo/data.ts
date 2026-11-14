@@ -35,7 +35,7 @@ export const clusters: DemoCluster[] = [
     id: 12, name: "NATO “provocations” at the Belarus border", size: 1284, changePct: 38, accounts: 212,
     status: "false", platforms: ["Telegram", "Facebook"], firstSeen: d(-12), lastSeen: d(0), languages: L(47, 41, 12, "English"),
     typical: [
-      { id: "p-4521", text: "NATO tankai vėl provokuoja prie Baltarusijos sienos…", author: "@kanalas_b", where: "Telegram channel · Lithuanian" },
+      { id: "p-4521", url: "https://t.me/kanalas_b/4521", text: "NATO tankai vėl provokuoja prie Baltarusijos sienos…", author: "@kanalas_b", where: "Telegram channel · Lithuanian" },
       { id: "p-a-881", text: "Танки НАТО снова провоцируют у белорусской границы", author: "@kanal_a", where: "Telegram channel · Russian" },
     ],
     edge: [{ id: "p-fb-77", text: "Pratybos prie sienos: ar tikrai reikia jas rengti dabar?", author: "Tiesos balsas", where: "Facebook page · Lithuanian", note: "Asks a question instead of claiming aggression. Sits next to the media-distrust cluster." }],
@@ -45,7 +45,7 @@ export const clusters: DemoCluster[] = [
     id: 7, name: "EU sanctions will double electricity prices", size: 962, changePct: 12, accounts: 148,
     status: "false", platforms: ["Telegram", "Facebook"], firstSeen: d(-17), lastSeen: d(-1), languages: L(52, 38, 10),
     typical: [
-      { id: "p-e-1", text: "Elektros kainos kils 40% dėl ES sankcijų…", author: "@kanalas_b", where: "Telegram channel · Lithuanian" },
+      { id: "p-e-1", url: "https://t.me/kanalas_b/4498", text: "Elektros kainos kils 40% dėl ES sankcijų…", author: "@kanalas_b", where: "Telegram channel · Lithuanian" },
       { id: "p-e-2", text: "Из-за санкций ЕС свет в Литве подорожает вдвое", author: "@novosti_baltii", where: "Telegram channel · Russian" },
     ],
     edge: [{ id: "p-e-3", text: "Šildymo sezonas brangsta: kaip sutaupyti?", author: "Taupi šeima", where: "Facebook group · Lithuanian", note: "Practical advice. Same topic, no claim about sanctions." }],
@@ -177,10 +177,10 @@ export const channelReports: Record<string, ChannelReport> = {
       { name: "@novosti_baltii", kind: "Telegram channel · Russian", posts: 36, typicalDelay: "2 h 20 min" },
     ],
     recent: [
-      { id: "p-4521", text: "NATO tankai vėl provokuoja prie Baltarusijos sienos…", publishedAt: d(-11) + "T11:00:00Z", views: 1912, verdict: "misleading" },
-      { id: "p-e-1", text: "Elektros kainos kils 40% dėl ES sankcijų…", publishedAt: d(-12) + "T18:20:00Z", views: 2340, verdict: "false" },
-      { id: "p-t-1", text: "Vilniuje vyks protestas prieš naujus mokesčius", publishedAt: d(-12) + "T09:05:00Z", views: 1104, verdict: "true" },
-      { id: "p-v-1", text: "Rinkimų komisija slepia balsų skaičiavimo klaidas", publishedAt: d(-13) + "T21:40:00Z", views: 3018, verdict: "unverified" },
+      { id: "p-4521", url: "https://t.me/kanalas_b/4521", text: "NATO tankai vėl provokuoja prie Baltarusijos sienos…", publishedAt: d(-11) + "T11:00:00Z", views: 1912, verdict: "misleading" },
+      { id: "p-e-1", url: "https://t.me/kanalas_b/4498", text: "Elektros kainos kils 40% dėl ES sankcijų…", publishedAt: d(-12) + "T18:20:00Z", views: 2340, verdict: "false" },
+      { id: "p-t-1", url: "https://t.me/kanalas_b/4490", text: "Vilniuje vyks protestas prieš naujus mokesčius", publishedAt: d(-12) + "T09:05:00Z", views: 1104, verdict: "true" },
+      { id: "p-v-1", url: "https://t.me/kanalas_b/4476", text: "Rinkimų komisija slepia balsų skaičiavimo klaidas", publishedAt: d(-13) + "T21:40:00Z", views: 3018, verdict: "unverified" },
     ],
   },
 };
