@@ -1,5 +1,7 @@
 # Backend plan (with tests)
 
+The analysis steps themselves are described in [analysis-cycle.md](analysis-cycle.md). This plan is how we build and test them.
+
 Goal: a backend that serves `/api/*` exactly as the frontend expects ([frontend/src/api/types.ts](../frontend/src/api/types.ts)), reading MySQL and Qdrant and using the local AI through llama-swap. Same way of working as the frontend: **one phase at a time, every phase ends with all tests green, stop for a commit.**
 
 **Ground rules**
@@ -30,6 +32,7 @@ This is the most important part of the plan. Three mechanisms:
 | *(none)*, unit | nothing | `uv run pytest` | always, takes seconds |
 | `integration` | Docker MySQL + Qdrant running | `uv run pytest -m integration` | skipped automatically if Docker isn't up |
 | `llm` | llama-swap running | `uv run pytest -m llm` | skipped automatically if the AI server isn't up |
+| `scrape` | API keys, internet | `uv run pytest -m scrape` | only when run by hand: uses paid credits |
 
 ## Code layout
 
@@ -136,7 +139,7 @@ The analyzers:
   - one analyzer returns valid JSON on a real post
 
 ### B6: Analyze a link
-`/api/analyze` runs the pipeline:
+`/api/analyze` runs the steps of the [analysis cycle](analysis-cycle.md):
 1. read the link
 2. find the post
 3. embed it
@@ -144,11 +147,19 @@ The analyzers:
 5. check claims
 6. Gemma's reading
 
-Results are stored, so the same link is answered instantly the next time. Progress is reported per step (see question 1 below).
+Results are stored, so the same link is answered instantly the next time.
 
-**Collecting posts is not part of this plan.** Without a scraper, the backend can only analyze posts already in the database, and otherwise says so in plain words. The pipeline has a clear "fetch post" interface so a Telegram or Facebook scraper can be plugged in later.
+**Progress: a job, plus polling.** `POST /api/analyze` starts a job and returns its ID at once. The screen asks `GET /api/analyze/{id}` every second for the current step, then gets the report. This is simple and robust; speed isn't the priority. It needs a small change in the frontend's API client.
+
+**Collecting posts.** There's one "collect a post" interface with two providers behind it:
+- **Oxylabs** for Facebook and Telegram.
+- **context.dev** for news sites and evidence pages.
+
+API keys go in `.env` (`OXYLABS_USERNAME`, `OXYLABS_PASSWORD`, `CONTEXT_DEV_API_KEY`). Without keys, the backend can still analyze posts already in the database, and says so in plain words otherwise. The team's parser that writes scraped data to MySQL plugs in here too.
 
 **Tests**
+- **Scraper adapters, against saved real responses** (no live calls, no API costs): a saved Oxylabs Facebook response becomes the right post, account, time and media. A context.dev article becomes the right text and author. Empty, private, rate-limited and malformed responses each give their own error.
+- **Live scraper tests** (`scrape` marker, run by hand, cost credits): one real Facebook post and one real news article.
 - **Link parsing:** `t.me/kanalas_b/4521` → Telegram, channel `kanalas_b`, message 4521. This covers Facebook page, group and post links, and the same post written different ways (with or without `https`, `www`, tracking parameters).
 - **The full pipeline with a fake AI and a test database:** every step runs, results are stored, and the report matches the contract.
 - Analyzing the same link twice reuses the stored result, with no second AI call.
@@ -182,7 +193,7 @@ New launcher steps:
 - **Unit:** the new steps with fakes: migrations called once, a build skipped when up to date, backend restarted only when its config changed, demo data loaded only with the flag.
 - **End to end on this machine:** `launch.bat --demo-data`, then every screen at `http://127.0.0.1:8000` shows data (screenshots like the frontend phases), then `launch.bat --stop` leaves no backend process behind.
 
-### B9: clustering (can come later)
+### B9: clustering (after B8, decided)
 A batch job:
 1. Group posts with UMAP + HDBSCAN.
 2. Store each post's map position, its cluster, and its rank (typical vs edge).
@@ -205,15 +216,23 @@ This needs heavier packages, so it'll be an optional install: `uv sync --extra c
 
 The backend is shaped so each can be added without rewrites: the scraper plugs into B6's "fetch post", and central/hybrid mode plugs into the API client.
 
-## Open questions
+## Decisions
 
-1. **Progress while analyzing.** Real analysis takes tens of seconds. Options:
-   - **(a) job + polling (recommended):** POST starts a job, then the screen asks every second which step it's on. Simple and robust.
-   - **(b) live stream (SSE):** smoother, more moving parts.
-   - **(c) single request:** no progress steps at all.
+| Question | Decision |
+|---|---|
+| Progress while analyzing | Job + polling. Speed is not the priority; optimize later. |
+| Scrapers | Oxylabs and context.dev, behind one "collect a post" interface (B6). The team writes the parser and MySQL writer. |
+| Database name | Renamed to `veritas_lens` (database and login user). Done on the dev machine; `.env`, `.env.example`, the launcher defaults and docker-compose updated. |
+| Clustering | After B8. |
+| Automatic test runs (GitHub Actions) | Not needed. Tests are run locally at the end of every phase. |
 
-   (a) and (b) need a small change in the frontend's API client.
-2. **Scrapers.** Who builds them, and do you already have tools (for example Oxylabs) the backend should call? Until one exists, "Analyze a link" only works for posts already collected.
-3. **Database name.** It's `junction` in `.env` today. Rename it to `veritas_lens` now, while nothing real is stored in it?
-4. **Clustering (B9).** Include it in this round, or after B8?
-5. **Automatic checks.** Should the tests run on GitHub for every push (GitHub Actions)? Unit tests are easy to run there; integration tests would need Docker services in the workflow.
+## Sample data: `articles.json`
+
+2,997 articles scraped from **respublika.lt** (a news site, not Facebook):
+- Only **33 have the full text.** The rest have a headline and teaser.
+- 307 have no date, and dates go back to 2016.
+
+Planned use:
+- **Real input for tests:** the 33 full articles in Lithuanian are ideal for B5 (fingerprints, Gemma analyzers) and for testing the context.dev adapter's output format. This is better than invented text.
+- **Temporary data:** posts and a source (`respublika.lt`, platform Website) for the screens. No verdicts are invented: real articles stay "not checked" until the real cycle has checked them.
+- It stays out of the public repository (see the note in chat), for example in `shared/samples/`, which is ignored by git.
