@@ -49,6 +49,46 @@ RETRY_TEMPERATURE = 0.4   # the second attempt samples a different answer (at 0 
 log = logging.getLogger("veritas.ai")
 
 
+def content_text(data: dict) -> str:
+    try:
+        return str(data["choices"][0]["message"].get("content") or "")
+    except (KeyError, IndexError, TypeError, AttributeError):
+        return ""
+
+
+def _salvage(content: str, schema):
+    """Recover a JSON object from an answer that degenerated (endless blank lines, cut off at the token
+    limit): collapse whitespace, close an open string and the object, fill missing required text
+    fields with "" and validate. Returns None when nothing usable is there."""
+    import re
+    text = re.sub(r"\s+", " ", content or "").strip()
+    start = text.find("{")
+    if start < 0:
+        return None
+    text = text[start:]
+    candidates = [text]
+    body = text.rstrip(", ")
+    for tail in ('"}', "}", '""}', '"]}', "]}"):
+        candidates.append(body + tail)
+    for cand in candidates:
+        try:
+            obj = json.loads(cand)
+        except ValueError:
+            continue
+        if not isinstance(obj, dict):
+            continue
+        for name, field_info in schema.model_fields.items():
+            if name not in obj and field_info.annotation is str:
+                obj[name] = ""
+        try:
+            value = schema.model_validate(obj)
+        except ValidationError:
+            continue
+        if any(isinstance(v, str) and v.strip() for v in obj.values()):
+            return value
+    return None
+
+
 def document_input(text: str, title: str | None = None) -> str:
     """The exact string EmbeddingGemma embeds for a stored post (document prompt, cut to the opening).
     Shared with the importer, which uses it as the key for vectors precomputed elsewhere."""
@@ -367,7 +407,13 @@ class LocalAI:
             try:
                 choice = data["choices"][0]
                 content = choice["message"].get("content") or ""
-                value = schema.model_validate(json.loads(content))
+                try:
+                    value = schema.model_validate(json.loads(content))
+                except (ValueError, ValidationError):
+                    value = _salvage(content, schema)   # runaway whitespace / cut-off object: keep what's there
+                    if value is None:
+                        raise
+                    log.info("Salvaged a degenerate answer to %s", prompt.label)
             except (KeyError, IndexError, TypeError, ValueError, ValidationError) as exc:
                 reason = _finish_reason(data)
                 log.warning("Unusable answer to %s (attempt %d, finish_reason=%s, model=%s): %s | answer starts: %r",
@@ -376,9 +422,12 @@ class LocalAI:
                             if isinstance(data.get("choices"), list) else "")
                 # Cut off (often while Gemma still "thought", which it sometimes does even
                 # when asked not to): the retry gets a much bigger budget.
-                if reason == "length":
+                runaway = content_text(data).count("\n") > 40
+                if reason == "length" and not runaway:
                     body["max_tokens"] = min(body["max_tokens"] * 4, MAX_TOKENS_CEILING)
                 body["temperature"] = RETRY_TEMPERATURE
+                # Break newline/whitespace loops on the retry (vLLM and llama.cpp both accept these).
+                body.update(repetition_penalty=1.15, repeat_penalty=1.15, frequency_penalty=0.3)
                 continue
             return Answer(value=value, model=self.model_name(self.chat_model), prompt=prompt.label)
         who = "cloud model" if self.engine == "modal" else "local AI"
