@@ -70,7 +70,7 @@ try {
   check(sections.join('|').includes('Propaganda patterns') && sections.join('|').includes('Fact check') &&
         sections.join('|').includes('Where it came from'), 'all three sections: ' + sections.slice(1).join(', '));
   check(await pop.locator('.steps').count() === 0, 'progress list is gone when done');
-  check(/Gemma, on your computer/.test(await pop.locator('.deep h3').first().textContent()), 'heading says the analysis ran on this computer (default engine)');
+  check(/Gemma 26B, in the cloud/.test(await pop.locator('.deep h3').first().textContent()), 'heading says the analysis ran in the cloud (default engine)');
   // The existing content is still there, above the new sections.
   check(/@two_majors on Telegram/.test(await pop.locator('dl.rows').textContent()), 'existing popover content kept (Telegram source row)');
 
@@ -149,9 +149,9 @@ try {
   await nv.screenshot({ path: path.join(outDir, '11-deep-highlights.png') });
 
   // A clean post: the analysis runs, finds nothing, and says so plainly.
-  // ...analyzed with the "Cloud (Modal)" engine chosen in the settings popup: the heading says so.
+  // ...analyzed with the "This computer" engine chosen in the settings popup: the heading says so.
   const [sw] = ctx.serviceWorkers().length ? ctx.serviceWorkers() : [await ctx.waitForEvent('serviceworker')];
-  await sw.evaluate(() => chrome.storage.sync.set({ deepEngine: 'cloud' }));
+  await sw.evaluate(() => chrome.storage.sync.set({ deepEngine: 'local' }));
   await page.waitForTimeout(200);
   const plain = page.locator('article').filter({ hasNotText: /Nvidia|puppet|regime|Patriot/i }).first();
   await plain.locator('ppg-deep button').click();
@@ -160,8 +160,8 @@ try {
   check(await page.locator('ppg-popover ol.tl').count() === 0, 'no timeline when this post is all there is');
   check(/No checkable factual claims found|No trusted source found/.test(t) && /No earlier trace found|earliest trace/.test(t),
     'a plain post gets plain answers: ' + t.replace(/\s+/g, ' ').slice(0, 200));
-  check(/Gemma 26B, in the cloud/.test(t), 'heading says the analysis ran in the cloud when that engine is chosen');
-  await sw.evaluate(() => chrome.storage.sync.set({ deepEngine: 'local' }));
+  check(/Gemma, on your computer/.test(t), 'heading says the analysis ran on this computer when that engine is chosen');
+  await sw.evaluate(() => chrome.storage.sync.set({ deepEngine: 'cloud' }));
   await page.keyboard.press('Escape');
 
   check(errors.length === 0, 'no console errors' + (errors.length ? ': ' + errors.join(' | ') : ''));
