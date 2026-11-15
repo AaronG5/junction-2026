@@ -12,10 +12,10 @@ export const DEFAULTS = Object.freeze({
   deepUrl: 'http://127.0.0.1:8000',
   // Where the in-depth analysis runs (the popup's "runs on" switch): 'local' = deepUrl (Providence
   // with Gemma on this computer), 'cloud' = the same analysis with stock Gemma 26B on Modal (DEEP_CLOUD_URL).
-  deepEngine: 'local',
+  deepEngine: 'cloud',
   // Also keep every post in Providence on this computer (POST {deepUrl}/api/ext/save), so the
   // local database grows while you browse, even when the badges come from another server.
-  savePosts: true,
+  savePosts: false,   // needs Providence running on this computer; off so the extension works out of the box
   showAll: false,
   sensitivity: 'normal',
   mock: false,
@@ -299,7 +299,6 @@ const LIVE_HOSTS = /^https:\/\/(([a-z]+\.)?x\.com|([a-z]+\.)?twitter\.com|(www|w
 // opened with ?live (demo/feed.html?live), which uses the configured backend.
 function backendKey(senderUrl) {
   const u = senderUrl || '';
-  if (settings.mock) return 'mock';
   if (!LIVE_HOSTS.test(u) && !/[?&]live\b/.test(u)) return 'mock';
   return trimBase(settings.baseUrl) || DEFAULTS.baseUrl;
 }

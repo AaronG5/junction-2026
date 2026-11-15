@@ -4,11 +4,11 @@ const DEFAULTS = {
   enabled: true,
   baseUrl: 'https://augustasrink--ppg-ext-web.us-east.modal.run',
   deepUrl: 'http://127.0.0.1:8000',
-  deepEngine: 'local',
+  deepEngine: 'cloud',
   showAll: false,
   sensitivity: 'normal',
   mock: false,
-  savePosts: true,
+  savePosts: false,
 };
 const $ = (id) => document.getElementById(id);
 const DEEP_NOTES = {
@@ -30,7 +30,6 @@ async function load() {
   const s = await chrome.storage.sync.get(DEFAULTS);
   $('enabled').checked = s.enabled;
   $('showAll').checked = s.showAll;
-  $('mock').checked = s.mock;
   $('savePosts').checked = s.savePosts;
   $('baseUrl').value = s.baseUrl;
   $('deepUrl').value = s.deepUrl;
@@ -39,7 +38,6 @@ async function load() {
   showEngine(engine);
   document.querySelector(`input[name=sensitivity][value=${s.sensitivity === 'strict' ? 'strict' : 'normal'}]`).checked = true;
   document.body.classList.toggle('off', !s.enabled);
-  if (s.mock) status('Mock mode: no requests leave your browser.');
   refreshCounters();
 }
 
@@ -51,11 +49,10 @@ function refreshCounters() {
   });
 }
 
-for (const id of ['enabled', 'showAll', 'mock', 'savePosts']) {
+for (const id of ['enabled', 'showAll', 'savePosts']) {
   $(id).addEventListener('change', async (e) => {
     await chrome.storage.sync.set({ [id]: e.target.checked });
     if (id === 'enabled') document.body.classList.toggle('off', !e.target.checked);
-    if (id === 'mock') status(e.target.checked ? 'Mock mode: no requests leave your browser.' : '');
   });
 }
 for (const r of document.querySelectorAll('input[name=sensitivity]')) {
