@@ -304,6 +304,8 @@ a.chip:hover { background: var(--ink); color: var(--paper); border-color: var(--
 }
 .seg button + button { border-left: 1px solid var(--rule); }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+/* The ring sits just inside the button: the site-wide 3px offset left a gap inside the control. */
+.seg button:focus-visible { outline-offset: -2px; }
 .sidebar .seg { border-color: rgba(201, 182, 152, .3); }
 .sidebar .seg button { color: var(--on-wood-2); }
 .sidebar .seg button + button { border-left-color: rgba(201, 182, 152, .3); }
