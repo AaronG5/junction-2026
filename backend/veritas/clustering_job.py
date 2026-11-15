@@ -7,8 +7,9 @@ runs just reports the running one. The state lives in memory; the results are in
   rebuild  groups everything again from scratch (all posts, or the last N days), like
            `uv run python backend/cluster.py --rebuild`.
 Either way, the typical and edge posts of every cluster that changed then get their
-highlights and claims (veritas/cluster_insight.py). While it runs, the message says
-what it is doing.
+highlights and claims (veritas/cluster_insight.py), and the copies between posts, the
+source profiles and the trending stories are brought up to date (veritas/derive.py).
+While it runs, the message says what it is doing.
 """
 from __future__ import annotations
 
@@ -22,6 +23,7 @@ from .ai import AiError, AiUnavailable, LocalAI
 from .cluster_insight import enrich_clusters, unread_clusters
 from .clustering import ClusteringUnavailable, _libs, run_clustering
 from .clustering_update import update_clustering
+from .derive import derive_all
 from .config import Settings
 from .db import DatabaseUnavailable, connect
 from .factcheck import gemini_for
@@ -49,6 +51,9 @@ def summary(result: dict) -> tuple[str, str]:
     """(status, message) for a finished run's report."""
     insight = result.get("insight") or {}
     read = f" Read {insight['posts']} typical posts." if insight.get("posts") else ""
+    derived = result.get("derived") or {}
+    if derived.get("stories") or derived.get("sources"):
+        read += f" Updated {derived.get('sources', 0)} sources and {derived.get('stories', 0)} stories."
     checked = insight.get("checked") or {}
     if checked:
         order = ("false", "misleading", "true", "unverified")
@@ -141,4 +146,16 @@ def cluster_and_read(conn, qdrant: Qdrant, ai: LocalAI, *, mode: str = "update",
         ids = {c["cluster_id"] for c in result.get("clusters", [])} | set(unread_clusters(conn, result["run_id"], gemini is not None))
         if ids:
             result["insight"] = enrich_clusters(conn, ai, qdrant, ids, progress=say, gemini=gemini)
+    if read:
+        result["derived"] = derive_all(conn, qdrant, translator(gemini or ai), progress=say)
     return result
+
+
+def translator(engine):
+    """Text -> (English, prompt label, model), with Gemini when it is set up, else the local AI."""
+    from .analyzers import translate
+
+    def run(text: str) -> tuple[str, str, str]:
+        answer = translate(engine, text)
+        return answer.value.translation.strip(), answer.prompt, answer.model
+    return run

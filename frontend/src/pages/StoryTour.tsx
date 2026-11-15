@@ -97,10 +97,12 @@ function Step({ story: s, step, headingRef }: { story: Story; step: number; head
         <article className="tour-card">
           <div className="row-between"><b>{s.post.author}</b><span className="muted" style={{ fontSize: 13 }}>{s.post.where}</span></div>
           <p style={{ fontSize: 22, lineHeight: 1.45 }}>{s.post.text}</p>
-          <div className="tour-translation">
-            <span className="lbl">In English</span>
-            <span lang="en" className="muted" style={{ fontSize: 16 }}>{s.post.translation}</span>
-          </div>
+          {s.post.translation && s.post.translation !== s.post.text && (
+            <div className="tour-translation">
+              <span className="lbl">In English</span>
+              <span lang="en" className="muted" style={{ fontSize: 16 }}>{s.post.translation}</span>
+            </div>
+          )}
         </article>
         <p className="muted tour-why">We read posts in their own language. The translation is just for you; the checks run on the original.</p>
       </section>

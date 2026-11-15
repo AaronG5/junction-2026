@@ -2,7 +2,7 @@
 claim extraction and fact checks with Google Search (veritas/factcheck.py).
 
 - The key comes from .env (GEMINI_API_KEY) and is sent only in a request header; it never
-  appears in errors, logs or reprs. The model is GEMINI_MODEL (default gemini-pro-latest).
+  appears in errors, logs or reprs. The model is GEMINI_MODEL (default gemini-flash-latest: cheap, and good enough for claims and checks).
 - Answers are JSON fitting a schema (pydantic), like the local AI's (veritas/ai.py), so
   prompts and checks work the same way. An unusable answer is retried; so are rate limits
   and server errors (with waits), because speed is not the priority here.
@@ -27,7 +27,7 @@ from .ai import Prompt
 log = logging.getLogger("veritas.gemini")
 
 API = "https://generativelanguage.googleapis.com/v1beta"
-DEFAULT_MODEL = "gemini-pro-latest"
+DEFAULT_MODEL = "gemini-flash-latest"
 RETRY_WAITS = (5, 20, 60)          # seconds before retrying a rate limit or a server error
 T = TypeVar("T", bound=BaseModel)
 

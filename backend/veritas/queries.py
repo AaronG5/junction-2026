@@ -15,6 +15,7 @@ Orders (the frontend's demo sorts the same way; ties by id, compared as plain te
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -271,12 +272,21 @@ def trending(conn, f: ListFilters) -> TrendingResponse:
     return TrendingResponse(stories=keep[:MAX_STORIES])
 
 
+_POST_STORY = re.compile(r"^post-([1-9][0-9]{0,18})$")
+
+
 def story(conn, story_key: str) -> Story:
     rows = [r for r in _rows(conn, _STORY_COLUMNS + " WHERE s.story_key = %s", (story_key,))
             if r["story_key"] == story_key and r["platform_code"] in PLATFORM_NAMES]
-    if not rows:
-        raise NotFound(NO_STORY)
-    return _story(rows[0])
+    if rows:
+        return _story(rows[0])
+    m = _POST_STORY.match(story_key)
+    if m:   # a collected post that isn't a trending story: told on request (veritas/derive.py)
+        from .derive import build_story
+        built = build_story(conn, int(m.group(1)), picked=True)
+        if built is not None:
+            return Story.model_validate(built)
+    raise NotFound(NO_STORY)
 
 
 def trace(conn, url: str) -> Story:
@@ -285,7 +295,20 @@ def trace(conn, url: str) -> Story:
     rows = [r for r in _rows(conn, _STORY_COLUMNS.replace("s.body,", "s.body, s.post_link_key,")
                              + " WHERE s.post_link_key = %s", (key,))
             if r["post_link_key"] == key and r["platform_code"] in PLATFORM_NAMES]
-    if not rows:
+    if rows:
+        rows.sort(key=lambda r: (-r["trend_posts"], r["story_key"]))
+        return _story(rows[0])
+    # Not a trending story's post, but maybe collected: tell its own story.
+    from .analysis import _find_post
+    from .derive import build_story
+    from .links import parse_link
+    link = parse_link(url)
+    found = _find_post(conn, link) if link is not None and link.kind == "post" else None
+    if found is None and link is not None:   # stored under another id format (e.g. Facebook reels): the link itself
+        bare = url.strip()
+        found = next(iter(_rows(conn, "SELECT post_id FROM posts WHERE url IN (%s, %s, %s) AND deleted_at IS NULL"
+                                      " ORDER BY post_id LIMIT 1", (bare, bare.rstrip("/"), bare.rstrip("/") + "/"))), None)
+    built = build_story(conn, found["post_id"], picked=True) if found else None
+    if built is None:
         raise NotFound(NOT_COLLECTED)
-    rows.sort(key=lambda r: (-r["trend_posts"], r["story_key"]))
-    return _story(rows[0])
+    return Story.model_validate(built)
