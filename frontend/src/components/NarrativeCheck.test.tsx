@@ -164,7 +164,7 @@ describe("the start page's text box runs the narrative check", () => {
     await within(r).findByText("Potentially propaganda");
     expect(r).toHaveTextContent("Narrative it asserts");
     expect(r).toHaveTextContent("Ukraine is a puppet state run by the United States and NATO.");
-    expect(r).toHaveTextContent(/Documented by EUvsDisinfo · similarity 0\.87/);
+    expect(r).not.toHaveTextContent(/Documented by/);
     expect(r).toHaveTextContent(narrativeFlagged.content!.reason);
     expect(within(within(r).getByRole("list", { name: "Techniques" })).getAllByRole("listitem")).toHaveLength(4);
     const marks = within(r).getByTestId("checked-text").querySelectorAll("mark");

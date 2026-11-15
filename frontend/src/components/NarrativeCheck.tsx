@@ -185,9 +185,6 @@ function ResultBody({ text, r, judging }: { text: string; r: NarrativeResult; ju
         <div className="kv">
           <span className="lbl">{judging ? "Closest known narrative" : "Narrative it asserts"}</span>
           <b>{c.narrative.text}</b>
-          <span className="muted" style={{ fontSize: 13 }}>
-            Documented by {sourceName(c.narrative.source)} · similarity <span className="mono num">{pct(c.narrative.sim)}</span>
-          </span>
         </div>
       )}
 
