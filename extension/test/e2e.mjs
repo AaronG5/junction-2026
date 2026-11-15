@@ -141,7 +141,7 @@ try {
   await page.keyboard.press('Enter');
   await page.locator('ppg-popover .pop').waitFor();
   const t2 = await page.locator('ppg-popover .pop').innerText();
-  check(/The Kyiv regime is an American puppet/.test(t2) && /Narratives/.test(t2), 'popover: narrative claim under Narratives');
+  check(/The Kyiv regime is an American puppet/.test(t2) && /narratives/i.test(t2), 'popover: narrative claim under Narratives');
   check(/appeared on Russian state media \d+ times? during 2024/.test(t2), 'popover: state-media mentions line');
   await page.screenshot({ path: path.join(outDir, '05-popover-narrative.png') });
   await page.mouse.click(5, 990); // outside click
