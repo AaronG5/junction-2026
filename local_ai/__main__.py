@@ -204,9 +204,16 @@ def step_ai_server(ctx):
             f"is reported below, in detail at {services.swap_public_url()}/ui.")
     if services.wait_models_loaded():
         ctx.results["ai"] = True
+        return
+    # Separate "the model won't load" from "llama-server can't run here at all".
+    ok, detail = runtime.server_runs(ctx.server)
+    if ok:
+        ui.info(f"llama-server itself runs ({detail}), so the problem is with loading the "
+                f"model: see the lines above and {paths.SWAP_CONFIG} for the exact command.")
     else:
-        ui.warn(f"The dashboard will start, but analysing needs the AI. Full log: "
-                f"{paths.LOGS_DIR / 'llama-swap.log'}, status page: {services.swap_public_url()}/ui")
+        ui.warn(f"llama-server cannot run on this computer: {detail}")
+    ui.warn(f"The dashboard will start, but analysing needs the AI. Full log: "
+            f"{paths.LOGS_DIR / 'llama-swap.log'}, status page: {services.swap_public_url()}/ui")
 
 
 def step_database(ctx):
@@ -239,6 +246,15 @@ def step_demo(ctx):
     ui.ok(backend.load_demo_data())
 
 
+def step_import(ctx):
+    if not getattr(ctx.args, "import_data", False):
+        ui.info("Skipped (add --import-data to load the collected Telegram posts and news articles)")
+        return
+    ui.info("Loading data/parsed/ and making a vector for every post. The first time this takes a while;"
+            " it continues where it stopped if interrupted.")
+    ui.ok(backend.import_data())
+
+
 def step_backend(ctx):
     if ctx.args.no_backend:
         ui.info("Skipped (--no-backend)")
@@ -260,6 +276,7 @@ STEPS = [
     ("Setting up vector search", step_vectors),
     ("Building the dashboard", step_frontend),
     ("Loading the demo data", step_demo),
+    ("Loading the collected data", step_import),
     ("Starting the dashboard", step_backend),
 ]
 
@@ -325,6 +342,9 @@ def main():
     p.add_argument("--no-backend", action="store_true", help="do not start the dashboard server")
     p.add_argument("--demo-data", action="store_true",
                    help="load the example data (only into an empty database; remove it with backend/demo_data.py --remove)")
+    p.add_argument("--import-data", action="store_true",
+                   help="load the collected Telegram posts and news articles from data/parsed/ and make their "
+                        "vectors (safe to repeat; continues where it stopped)")
     p.add_argument("--status", action="store_true", help="show what is running")
     p.add_argument("--stop", action="store_true", help="stop the dashboard, the AI server and the databases")
     p.add_argument("-y", "--yes", action="store_true", help="accept the defaults, never ask")

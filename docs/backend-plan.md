@@ -252,13 +252,26 @@ This needs heavier packages, so it'll be an optional install: `uv sync --extra c
 - Each group: centre (stored in Qdrant `clusters`, also used to assign new posts at once), ranks (1 = most typical), 2 typical and 1 edge post, platforms and language shares, accounts, first/last seen, main claim (the claim most of its posts make), and a name and summary from Gemma (`prompts/cluster_name.v1.md`).
 - Narratives across runs: a new group whose centre is at least 0.85 similar to one from the previous run continues that narrative, and gets its week-on-week change; others start a new narrative.
 - Fewer than 20 posts in the window: no run, "no clusters" message. A failure marks the run failed, and the screens keep showing the last good run.
-- Not yet run on real data: the demo data has no vectors. Posts analyzed through "Analyze a link" (B6) or collected by the team's scraper get vectors, and then appear in the next run.
+- The demo data has no vectors. Posts analyzed through "Analyze a link" (B6) or loaded from the team's scrape (B10, `--import-data`) get vectors, and then appear in the next run.
 
 **Tests**
 - **Synthetic data with known groups:** three clear groups are found, scattered points are marked as noise, and the same input always gives the same result.
 - Typical posts are the ones closest to the centre, and edge posts the farthest.
 - Re-running on a newer week links the same story to the same narrative.
 - A week with too few posts gives "no clusters" instead of nonsense.
+
+### B10: loading the collected data (built)
+The scrapers' output in `data/parsed/` (about 47,000 Telegram posts from 70 channels, and the `respublika.lt` and `bukimevieningi.lt` articles) used to sit in the repository unread. `veritas/importer.py` loads it, run with `uv run python backend/import_data.py` or the launcher's `--import-data` flag.
+
+**How it works**
+- Each file becomes the same `CollectedPost` records the live collectors make, and goes through B6's `save_collected`, so ids, accounts and copy detection behave exactly as for a post pasted into the dashboard. Telegram ids follow the architecture doc (`infalt/4521`, lowercased); articles are `web` posts of the site's domain with `sha256(canonical URL)` as id, `title`, `byline` and `language = lt`. Subscriber counts from `telegram_sources.json` go to `account_metrics`; every post gets a `content_hash`.
+- Two passes, so a long run can be stopped and continued: rows first (fast, no AI), then a vector for every post with `embedded_at` NULL, in batches of 32, each batch committed before the next. `--no-embed` and `--embed-only` run one pass; `--limit N` is a quick check; `--source` picks one file.
+- Loading the same file again changes nothing; a post whose text changed is updated and embedded again. Posts without text are left out.
+- The embedding input is cut at 5,000 characters (`ai.EMBED_MAX_CHARS`): the model's window is 2,048 tokens, and the architecture doc's default for long articles is one vector for the title and the opening. This applies to "Analyze a link" too, so both paths make comparable vectors.
+
+**Tests** (`test_b10_import.py`): the record rules, the committed files all load without duplicate ids, the embedding cut, the launcher flag, and (integration) rows, metrics, hashes and vectors in a throwaway database and Qdrant with the fake AI: a second run is a no-op, a changed text is re-embedded, a stopped embedding run continues.
+
+**Not done yet:** `source_profiles` and `stories` (what the Sources and Trending screens list) are still written only by the demo loader. They are derived statistics (share of near copies, main topic, originator ratio) that need the vectors and an analysis pass first, so the imported posts show up through "Analyze a link", similar posts, and clustering, not yet as rows on those two screens.
 
 ## Not in this plan
 - Scrapers for Telegram, Facebook and news sites.
@@ -277,13 +290,16 @@ The backend is shaped so each can be added without rewrites: the scraper plugs i
 | Clustering | After B8. |
 | Automatic test runs (GitHub Actions) | Not needed. Tests are run locally at the end of every phase. |
 
-## Sample data: `articles.json`
+## The collected data
 
-2,997 articles scraped from **respublika.lt** (a news site, not Facebook):
-- Only **33 have the full text.** The rest have a headline and teaser.
-- 307 have no date, and dates go back to 2016.
+Everything the scrapers produced lives in `data/parsed/` and is loaded by B10:
 
-Planned use:
-- **Real input for tests:** the 33 full articles in Lithuanian are ideal for B5 (fingerprints, Gemma analyzers) and for testing the context.dev adapter's output format. This is better than invented text.
-- **Temporary data:** posts and a source (`respublika.lt`, platform Website) for the screens. No verdicts are invented: real articles stay "not checked" until the real cycle has checked them.
-- It stays out of the public repository (see the note in chat), for example in `shared/samples/`, which is ignored by git.
+| File | What | Loaded as |
+|---|---|---|
+| `telegram/posts.json` (+ `data/positives/telegram_sources.json`) | about 47,000 posts from 70 channels, text only | Telegram posts and channel accounts, subscriber counts in `account_metrics` |
+| `respublika.lt/articles.json` | 2,997 articles, all with the full text | `web` posts of `respublika.lt`, language `lt` |
+| `bukime_vieningi/articles.json` | 100 articles | `web` posts of `bukimevieningi.lt`, language `lt` |
+
+An older copy of the respublika file (only 33 articles with a body) used to sit at the repository root as `articles.json`; it was removed, the complete one under `data/parsed/` is the source. No verdicts are invented for any of it: imported posts stay "not checked" until the analysis cycle has looked at them.
+
+Still unused: `data/datasets/rt_tv_transcripts.zip` (1.9 GB, gitignored, referenced nowhere).

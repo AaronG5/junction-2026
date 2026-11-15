@@ -32,6 +32,10 @@ EMBEDDING_DIMENSIONS = 768
 # EmbeddingGemma's task prompts; must equal embedding_models row 1 in init.sql.
 DOCUMENT_PROMPT = "title: {title} | text: {text}"
 QUERY_PROMPT = "task: search result | query: {text}"
+# The embedding model reads 2048 tokens (local_ai/models.json). Lithuanian and Russian run
+# about 3 characters per token, so this keeps the title and the opening inside the window.
+EMBED_MAX_CHARS = 5000
+TITLE_MAX_CHARS = 300
 
 MAX_TOKENS_CEILING = 8192
 
@@ -215,11 +219,14 @@ class LocalAI:
         return vectors
 
     def embed_documents(self, texts: Sequence[str], titles: Sequence[str | None] | None = None) -> list[list[float]]:
-        """Vectors for posts to store (EmbeddingGemma's document prompt; no title = "none")."""
+        """Vectors for posts to store (EmbeddingGemma's document prompt; no title = "none").
+        Long texts are cut at EMBED_MAX_CHARS: the vector stands for the title and the
+        opening (docs/data-architecture.md), and the model's window is 2048 tokens."""
         titles = list(titles) if titles is not None else [None] * len(texts)
         if len(titles) != len(texts):
             raise ValueError("Give one title (or None) per text.")
-        inputs = [DOCUMENT_PROMPT.replace("{title}", (t or "none").strip() or "none").replace("{text}", x)
+        inputs = [DOCUMENT_PROMPT.replace("{title}", (t or "none").strip()[:TITLE_MAX_CHARS] or "none")
+                  .replace("{text}", x[:EMBED_MAX_CHARS])
                   for t, x in zip(titles, texts)]
         return self._embed(inputs)
 
