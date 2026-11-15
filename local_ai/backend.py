@@ -120,6 +120,23 @@ def _npm():
     return shutil.which("npm.cmd" if os.name == "nt" else "npm") or shutil.which("npm")
 
 
+def packages_are_current():
+    """True when node_modules is there and no newer than the lock file.
+
+    npm stamps node_modules/.package-lock.json on every install, so an older
+    stamp (or none) means the lock file gained packages since: pulling a branch
+    that adds a dependency leaves a node_modules that can't build."""
+    modules = FRONTEND_DIR / "node_modules"
+    if not modules.is_dir():
+        return False
+    lock = FRONTEND_DIR / "package-lock.json"
+    if not lock.is_file():
+        return True
+    stamp = modules / ".package-lock.json"
+    installed = stamp.stat().st_mtime if stamp.is_file() else modules.stat().st_mtime
+    return installed >= lock.stat().st_mtime
+
+
 def build_frontend(npm=None):
     """Build the dashboard when Node.js is here and the build is out of date.
     Returns what happened: "current", "built", "prebuilt" (no Node, using the
@@ -129,7 +146,7 @@ def build_frontend(npm=None):
     npm = npm if npm is not None else _npm()
     if not npm:
         return "prebuilt" if DIST_INDEX.is_file() else "missing"
-    if not (FRONTEND_DIR / "node_modules").is_dir():
+    if not packages_are_current():
         code = subprocess.run([npm, "ci", "--no-audit", "--no-fund"], cwd=str(FRONTEND_DIR)).returncode
         if code != 0:
             raise ui.StepFailed("Installing the dashboard's packages failed (npm ci).")
