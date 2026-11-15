@@ -489,7 +489,7 @@ PPG_Popover.prototype._details = function (pop, r, prefix) {
 
   if (c.state_media_echo && c.state_media_echo.length) {
     var e = el('section');
-    e.appendChild(el('h3', null, prefix + 'State-media echo'));
+    e.appendChild(el('h3', null, prefix + 'State media mentions'));
     c.state_media_echo.slice(0, 2).forEach(function (x) {
       var line = 'This narrative aired ' + x.n_aired + '× on ' + srcName(x.source);
       var rg = rangeText(x.first, x.last);

@@ -183,7 +183,7 @@ function ResultBody({ text, r, judging }: { text: string; r: NarrativeResult; ju
 
       {c?.narrative && (asserted || judging) && (
         <div className="kv">
-          <span className="lbl">{judging ? "Closest known narrative" : "Narrative it asserts"}</span>
+          <span className="lbl">{judging ? "Closest known narrative" : "Narratives"}</span>
           <b>{c.narrative.text}</b>
         </div>
       )}
@@ -215,9 +215,9 @@ function ResultBody({ text, r, judging }: { text: string; r: NarrativeResult; ju
 
       {echo.length > 0 && (
         <div className="kv">
-          <span className="lbl">State-media echo</span>
+          <span className="lbl">State media mentions</span>
           <span>{echoSentence(echo[0])}</span>
-          <span className="muted" style={{ fontSize: 13 }}>“{echo[0].text}” · similarity <span className="mono num">{pct(echo[0].sim)}</span>. Context only: it doesn't decide the verdict.</span>
+          <span className="muted" style={{ fontSize: 13 }}>“{echo[0].text}”</span>
         </div>
       )}
 

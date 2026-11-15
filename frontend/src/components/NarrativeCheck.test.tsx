@@ -162,7 +162,7 @@ describe("the start page's text box runs the narrative check", () => {
     expect(box()).toHaveValue(FLAGGED_EXAMPLE);
     const r = await screen.findByRole("region", { name: "Narrative check" });
     await within(r).findByText("Potentially propaganda");
-    expect(r).toHaveTextContent("Narrative it asserts");
+    expect(r).toHaveTextContent("Narratives");
     expect(r).toHaveTextContent("Ukraine is a puppet state run by the United States and NATO.");
     expect(r).not.toHaveTextContent(/Documented by/);
     expect(r).toHaveTextContent(narrativeFlagged.content!.reason);
