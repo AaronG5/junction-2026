@@ -33,7 +33,7 @@ from typing import Annotated, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .ai import LocalAI, load_prompt
+from .ai import AiError, LocalAI, load_prompt
 from .queries import PLATFORM_NAMES
 from .vectors import Point, Qdrant
 
@@ -57,9 +57,26 @@ class ClusteringUnavailable(Exception):
 
 
 class ClusterNameAnswer(BaseModel):
+    # Generous limits: a long name or summary is trimmed (_trim), not refused. Refusing it made
+    # whole runs fail when a model wrote a long summary twice in a row.
     model_config = ConfigDict(extra="forbid", strict=True)
-    name: Annotated[str, Field(max_length=120)]
-    summary: Annotated[str, Field(max_length=400)]
+    name: Annotated[str, Field(max_length=600)]
+    summary: Annotated[str, Field(max_length=3000)]
+
+
+NAME_MAX, SUMMARY_MAX = 120, 400
+
+
+def _trim(text: str, limit: int) -> str:
+    text = " ".join((text or "").split()).strip(" .\"'“”")
+    return text if len(text) <= limit else text[:limit - 1].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+
+
+def fallback_name(texts: list[str]) -> str:
+    """A provisional name when the AI can't give one: the start of the most typical post."""
+    first = next((t for t in texts if (t or "").strip()), "")
+    words = " ".join(first.split()).split(" ")[:8]
+    return (" ".join(words) + ("…" if len(first.split()) > 8 else "")) if words != [""] else "Unnamed narrative"
 
 
 @dataclass
@@ -180,9 +197,16 @@ def _ref(row: dict, note: str | None = None) -> dict:
 
 
 def _name(ai: LocalAI, texts: list[str]) -> tuple[str, str]:
+    """A cluster's name and one-sentence summary. When the AI's answers can't be used, the
+    cluster gets a provisional name from its most typical post, so the run still finishes
+    (an AI that isn't running still stops it: AiUnavailable)."""
     joined = "\n\n".join(f"{i}. {t[:500]}" for i, t in enumerate(texts, 1))
-    answer = ai.ask(load_prompt("cluster_name"), ClusterNameAnswer, text=joined)
-    return answer.value.name.strip() or "Unnamed narrative", answer.value.summary.strip()
+    try:
+        answer = ai.ask(load_prompt("cluster_name"), ClusterNameAnswer, text=joined)
+    except AiError as exc:
+        log.warning("Naming a cluster failed, using its most typical post instead: %s", exc)
+        return fallback_name(texts), ""
+    return _trim(answer.value.name, NAME_MAX) or fallback_name(texts), _trim(answer.value.summary, SUMMARY_MAX)
 
 
 _POST_ROWS = ("SELECT p.post_id, p.text, p.url, p.language, p.published_at, pl.code AS platform,"

@@ -319,3 +319,34 @@ def test_live_gemma_names_a_group():
         "EU sanctions will double electricity prices this winter",
     ])
     assert 0 < len(name.split()) <= 12 and summary
+
+
+class ScriptedAI:
+    """Answers the naming prompt from a list (strings as they are, dicts as JSON)."""
+
+    def __init__(self, *answers):
+        self.answers = list(answers)
+        self.calls = 0
+
+    def __call__(self, request):
+        if request.url.path.endswith("/models"):
+            return httpx.Response(200, json={"data": []})
+        self.calls += 1
+        a = self.answers.pop(0)
+        return httpx.Response(200, json={"choices": [{"message": {"content": a if isinstance(a, str) else json.dumps(a)}}]})
+
+    def client(self):
+        return LocalAI("http://ai.test/v1", transport=httpx.MockTransport(self))
+
+
+def test_a_long_name_and_summary_are_trimmed_not_refused():
+    ai = ScriptedAI({"name": "word " * 60, "summary": "This is a long summary. " * 40})
+    name, summary = clustering._name(ai.client(), ["Post one", "Post two"])
+    assert ai.calls == 1 and len(name) <= 120 and name.endswith("…") and len(summary) <= 400
+
+
+def test_naming_that_keeps_failing_falls_back_to_the_most_typical_post():
+    ai = ScriptedAI("not json", {"name": 5})
+    name, summary = clustering._name(ai.client(), ["Elektros kainos kils 40% dėl ES sankcijų, sako kanalas", "x"])
+    assert ai.calls == 2 and summary == ""
+    assert name == "Elektros kainos kils 40% dėl ES sankcijų, sako…"

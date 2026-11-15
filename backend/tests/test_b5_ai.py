@@ -343,3 +343,12 @@ def test_the_bigger_budget_has_a_ceiling():
     with pytest.raises(AiError):
         translate(fake.client(), POST)  # starts at 4096
     assert [r["max_tokens"] for r in fake.requests] == [4096, 8192]
+
+
+def test_the_retry_is_a_different_request_and_the_reason_is_logged(caplog):
+    """At temperature 0 an identical retry gives the identical unusable answer: the retry samples."""
+    fake = FakeAI({"claims": "not a list"}, {"claims": []})
+    with caplog.at_level("WARNING", logger="veritas.ai"):
+        extract_claims(fake.client(), POST)
+    assert [r["temperature"] for r in fake.requests] == [0, 0.4]
+    assert "Unusable answer to claims.v1 (attempt 1" in caplog.text and "claims: Input should be a valid list" in caplog.text

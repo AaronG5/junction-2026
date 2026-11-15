@@ -20,6 +20,7 @@ AiError (an answer that couldn't be used).
 from __future__ import annotations
 
 import json
+import logging
 import math
 import re
 import time
@@ -43,6 +44,9 @@ EMBED_MAX_CHARS = 5000
 TITLE_MAX_CHARS = 300
 
 MAX_TOKENS_CEILING = 8192
+RETRY_TEMPERATURE = 0.4   # the second attempt samples a different answer (at 0 it would repeat the first)
+
+log = logging.getLogger("veritas.ai")
 
 
 def document_input(text: str, title: str | None = None) -> str:
@@ -146,6 +150,14 @@ def grammar_schema(schema: dict) -> dict:
     if isinstance(schema, list):
         return [grammar_schema(v) for v in schema]
     return schema
+
+
+def _why(exc: Exception) -> str:
+    if isinstance(exc, ValidationError):
+        return "; ".join(f"{'.'.join(str(p) for p in e['loc']) or 'answer'}: {e['msg']}" for e in exc.errors()[:3])
+    if isinstance(exc, json.JSONDecodeError):
+        return "not JSON"
+    return f"unexpected shape ({type(exc).__name__})"
 
 
 @dataclass(frozen=True)
@@ -336,7 +348,9 @@ class LocalAI:
 
     def ask(self, prompt: Prompt, schema: type[T], *, max_tokens: int = 1024, **values: str) -> Answer[T]:
         """Ask the chat model; the answer must be JSON fitting `schema`.
-        An unusable answer is retried once; a second one raises AiError."""
+        An unusable answer is retried once (with a bigger budget when it was cut off, and a little
+        randomness so it isn't the same answer again); a second one raises AiError. Why each
+        answer was unusable is logged."""
         system, user = prompt.fill(**values)
         body = {
             "model": self.chat_model,
@@ -354,11 +368,17 @@ class LocalAI:
                 choice = data["choices"][0]
                 content = choice["message"].get("content") or ""
                 value = schema.model_validate(json.loads(content))
-            except (KeyError, IndexError, TypeError, ValueError, ValidationError):
+            except (KeyError, IndexError, TypeError, ValueError, ValidationError) as exc:
+                reason = _finish_reason(data)
+                log.warning("Unusable answer to %s (attempt %d, finish_reason=%s, model=%s): %s | answer starts: %r",
+                            prompt.label, _attempt + 1, reason, data.get("model"), _why(exc),
+                            str(((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "")[:300]
+                            if isinstance(data.get("choices"), list) else "")
                 # Cut off (often while Gemma still "thought", which it sometimes does even
                 # when asked not to): the retry gets a much bigger budget.
-                if _finish_reason(data) == "length":
+                if reason == "length":
                     body["max_tokens"] = min(body["max_tokens"] * 4, MAX_TOKENS_CEILING)
+                body["temperature"] = RETRY_TEMPERATURE
                 continue
             return Answer(value=value, model=self.model_name(self.chat_model), prompt=prompt.label)
         who = "cloud model" if self.engine == "modal" else "local AI"
