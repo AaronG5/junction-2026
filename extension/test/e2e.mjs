@@ -190,6 +190,19 @@ try {
   check(scanned > 100 && flagged > 3, `popup counters: scanned ${scanned}, flagged ${flagged}`);
   await popup.screenshot({ path: path.join(outDir, '08-popup.png'), fullPage: true });
 
+  // 8b. "In-depth analysis runs on": This computer (default) | Cloud (Modal), stored in chrome.storage.sync
+  check(await popup.locator('input[name=deepEngine][value=local]').isChecked(), 'in-depth analysis runs on this computer by default');
+  await popup.locator('label:has(input[name=deepEngine][value=cloud])').click();
+  await popup.waitForTimeout(200);
+  const stored = await popup.evaluate(() => chrome.storage.sync.get('deepEngine'));
+  check(stored.deepEngine === 'cloud' && await popup.locator('#deepUrl').isDisabled() && /Modal GPU/.test(await popup.locator('#deepStatus').innerText()),
+    'choosing Cloud (Modal) is saved, and the local address is greyed out');
+  await popup.screenshot({ path: path.join(outDir, '08b-popup-cloud.png'), fullPage: true });
+  await popup.locator('label:has(input[name=deepEngine][value=local])').click();
+  await popup.waitForTimeout(200);
+  check((await popup.evaluate(() => chrome.storage.sync.get('deepEngine'))).deepEngine === 'local' && !(await popup.locator('#deepUrl').isDisabled()),
+    'switching back to This computer');
+
   // 9. "show all" setting reaches the page live
   await popup.locator('label.row:has(#showAll)').click();
   await page.bringToFront();

@@ -5,7 +5,9 @@
 //   3. Where it came from    a timeline from the earliest known trace to this post in your feed
 // Shared by X (src/content.js) and Facebook (src/fb/content.js). Network calls go through the
 // worker (messages deep-start / deep-get); the job runs on the Veritas Lens backend on this
-// computer (backend/veritas/deep.py), or in src/mock.js in mock mode.
+// computer (backend/veritas/deep.py), or, when the settings popup says "Cloud (Modal)", the same
+// code with stock Gemma 26B on Modal (propaganda/gemma/modal_deep.py); in src/mock.js in mock mode.
+// The popover's heading says which one ran.
 //
 // Highlights use the CSS Custom Highlight API: ranges over the post's own text nodes, styled
 // with ::highlight(). The page's DOM is never changed, so X's and Facebook's React can't break.
@@ -15,6 +17,16 @@
 
 var PPG_DEEP_POLL_MS = 1500;
 var PPG_DEEP_MAX_MS = 5 * 60 * 1000;
+var PPG_DEEP_CLOUD_MAX_MS = 15 * 60 * 1000; // the cloud model may first need a few minutes to start
+var PPG_DEEP_ENGINES = { local: 'Gemma, on your computer', cloud: 'Gemma 26B, in the cloud' };
+// The engine chosen in the settings popup (chrome.storage.sync deepEngine), for posts not analyzed yet.
+var PPG_deepEngine = 'local';
+try {
+  chrome.storage.sync.get({ deepEngine: 'local' }, function (s) { if (s && s.deepEngine === 'cloud') PPG_deepEngine = 'cloud'; });
+  chrome.storage.onChanged.addListener(function (ch, area) {
+    if (area === 'sync' && ch.deepEngine) PPG_deepEngine = ch.deepEngine.newValue === 'cloud' ? 'cloud' : 'local';
+  });
+} catch (e) { /* no extension context (tests) */ }
 var PPG_DEEP_WAIT_MS = 10000; // wait this long for the fast check before starting without it
 var PPG_TIERS = { clear: 'Clear', likely: 'Likely', possible: 'Possible' };
 var PPG_VERDICTS = { supported: 'Supported', refuted: 'Refuted', misleading: 'Misleading', unverified: 'Unverified' };
@@ -52,27 +64,30 @@ var PPG_Deep = (function () {
   function start(item, getResult, shared) {
     var s = state(item.id);
     if (s.status === 'starting' || s.status === 'running' || s.status === 'done') return;
-    set(item.id, { status: 'starting' });
+    set(item.id, { status: 'starting', engine: PPG_deepEngine });
     var t0 = Date.now();
     (function go() {
       var r = getResult();
       if ((!r || (r.status === 'pending' && !r.source_match)) && Date.now() - t0 < PPG_DEEP_WAIT_MS) { setTimeout(go, 250); return; }
       send({ type: 'deep-start', body: { item: item, shared: shared || null, context: context(r) } }, function (res) {
-        if (!res || !res.ok || !res.data) { set(item.id, { status: 'error', error: (res && res.error) || 'The analysis could not start.' }); return; }
-        track(item.id, res.data, Date.now());
+        var engine = res && res.engine === 'cloud' ? 'cloud' : 'local';
+        if (!res || !res.ok || !res.data) { set(item.id, { status: 'error', engine: engine, error: (res && res.error) || 'The analysis could not start.' }); return; }
+        track(item.id, res.data, Date.now(), engine);
       });
     })();
   }
 
-  function track(id, job, t0) {
+  function track(id, job, t0, engine) {
     var status = job.status === 'done' ? 'done' : job.status === 'error' ? 'error' : 'running';
-    set(id, { status: status, job: job, error: job.error || null });
+    set(id, { status: status, job: job, engine: engine, error: job.error || null });
     if (status !== 'running') return;
-    if (Date.now() - t0 > PPG_DEEP_MAX_MS) { set(id, { status: 'error', job: job, error: 'The analysis took too long. Try again.' }); return; }
+    if (Date.now() - t0 > (engine === 'cloud' ? PPG_DEEP_CLOUD_MAX_MS : PPG_DEEP_MAX_MS)) {
+      set(id, { status: 'error', job: job, engine: engine, error: 'The analysis took too long. Try again.' }); return;
+    }
     setTimeout(function () {
       send({ type: 'deep-get', id: job.id }, function (res) {
-        if (!res || !res.ok || !res.data) { set(id, { status: 'error', job: job, error: (res && res.error) || 'The analysis was lost. Try again.' }); return; }
-        track(id, res.data, t0);
+        if (!res || !res.ok || !res.data) { set(id, { status: 'error', job: job, engine: engine, error: (res && res.error) || 'The analysis was lost. Try again.' }); return; }
+        track(id, res.data, t0, engine);
       });
     }, PPG_DEEP_POLL_MS);
   }
@@ -433,7 +448,8 @@ function PPG_deepSection(pop, ctx) {
 
   var head = ppgD('section');
   var h = ppgD('h3', null, 'In-depth analysis');
-  h.appendChild(ppgD('span', 'sub', 'Gemma, on your computer'));
+  var engine = s.engine || PPG_deepEngine;
+  h.appendChild(ppgD('span', 'sub', PPG_DEEP_ENGINES[engine] || PPG_DEEP_ENGINES.local));
   head.appendChild(h);
   box.appendChild(head);
 
@@ -457,6 +473,8 @@ function PPG_deepSection(pop, ctx) {
       steps.appendChild(li);
     });
     head.appendChild(steps);
+    // The cloud model asleep: its first answer waits for a GPU (the server says so in job.note).
+    if (job.note) head.appendChild(ppgD('p', 'meta deep-note', job.note));
   }
 
   if (job.patterns) box.appendChild(patternsSection(job.patterns, PPG_highlight.missing(ctx.item.id)));

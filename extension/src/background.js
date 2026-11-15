@@ -10,6 +10,9 @@ export const DEFAULTS = Object.freeze({
   // In-depth analysis ("Analyze" button: patterns, truth check, trace) needs the local Gemma,
   // so it goes to the Veritas Lens backend on this computer.
   deepUrl: 'http://127.0.0.1:8000',
+  // Where the in-depth analysis runs (the popup's "runs on" switch): 'local' = deepUrl (Veritas Lens
+  // with Gemma on this computer), 'cloud' = the same analysis with stock Gemma 26B on Modal (DEEP_CLOUD_URL).
+  deepEngine: 'local',
   // Also keep every post in Veritas Lens on this computer (POST {deepUrl}/api/ext/save), so the
   // local database grows while you browse, even when the badges come from another server.
   savePosts: true,
@@ -18,6 +21,9 @@ export const DEFAULTS = Object.freeze({
   mock: false,
 });
 const DEEP_TIMEOUT_MS = 15000;
+// The cloud in-depth analysis (propaganda/gemma/modal_deep.py). Its first request may wait for a container.
+export const DEEP_CLOUD_URL = 'https://augustasrink--ppg-gemma-deep-web.us-east.modal.run';
+const DEEP_CLOUD_TIMEOUT_MS = 90000;
 const CLIENT = 'ext/0.1';
 const BATCH_MAX = 16;
 const BATCH_MS = 400;
@@ -323,8 +329,17 @@ let mockDeep = null;
 const DEEP_ITEM_KEYS = ['id', 'url', 'author', 'author_name', 'text', 'lang', 'time', 'kind', 'quoted_id', 'platform', 'group'];
 const DEEP_OLD = 'Veritas Lens on this computer is running an older version without the in-depth analysis. Restart it (launch.bat --stop, then launch.bat).';
 const DEEP_DOWN ='The in-depth analysis runs on your own computer, and Veritas Lens isn’t answering there. Start it with launch.bat (or launch.sh).';
+const DEEP_CLOUD_DOWN = 'The cloud in-depth analysis isn’t answering. Check your internet connection and try again, or switch to “This computer” in the extension’s settings.';
+
+function deepEngine() { return settings.deepEngine === 'cloud' ? 'cloud' : 'local'; }
 
 async function deepCall(msg, sender) {
+  const engine = deepEngine();
+  const res = await deepCallOn(engine, msg, sender);
+  return { ...res, engine };
+}
+
+async function deepCallOn(engine, msg, sender) {
   const useMock = backendKey(sender.url || (sender.tab && sender.tab.url)) === 'mock';
   if (useMock && !mockDeep) mockDeep = new MockDeep();
   try {
@@ -340,7 +355,7 @@ async function deepCall(msg, sender) {
       const res = await deepFetch('/api/ext/deep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       // A 404 here means the server is up but has no in-depth analysis: a Veritas Lens started
       // before it was added (or another server at that address).
-      if (res.status === 404) return { ok: false, status: 404, error: DEEP_OLD };
+      if (res.status === 404) return { ok: false, status: 404, error: engine === 'cloud' ? DEEP_CLOUD_DOWN : DEEP_OLD };
       return res;
     }
     const id = String(msg.id || '');
@@ -348,15 +363,17 @@ async function deepCall(msg, sender) {
     if (useMock) { const j = await mockDeep.get(id); return j ? { ok: true, data: j } : { ok: false, status: 404, error: 'Unknown analysis.' }; }
     return await deepFetch('/api/ext/deep/' + id, { method: 'GET' });
   } catch (e) {
-    return { ok: false, status: 0, error: DEEP_DOWN };
+    return { ok: false, status: 0, error: engine === 'cloud' ? DEEP_CLOUD_DOWN : DEEP_DOWN };
   }
 }
 
 async function deepFetch(path, init) {
+  const cloud = deepEngine() === 'cloud';
   const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), DEEP_TIMEOUT_MS);
+  const t = setTimeout(() => ctl.abort(), cloud ? DEEP_CLOUD_TIMEOUT_MS : DEEP_TIMEOUT_MS);
   try {
-    const res = await fetch(trimBase(settings.deepUrl || DEFAULTS.deepUrl) + path, { ...init, signal: ctl.signal, credentials: 'omit', cache: 'no-store' });
+    const base = cloud ? DEEP_CLOUD_URL : trimBase(settings.deepUrl || DEFAULTS.deepUrl);
+    const res = await fetch(base + path, { ...init, signal: ctl.signal, credentials: 'omit', cache: 'no-store' });
     let data = null;
     try { data = await res.json(); } catch (e) { /* not JSON */ }
     if (!res.ok) return { ok: false, status: res.status, error: (data && data.detail) || ('The analysis server answered with error ' + res.status + '.') };

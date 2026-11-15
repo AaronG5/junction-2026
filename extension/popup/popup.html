@@ -46,13 +46,21 @@
     <p id="status" class="status" role="status" aria-live="polite"></p>
   </div>
 
-  <div class="field">
-    <label for="deepUrl">In-depth analysis (Analyze button)</label>
+  <fieldset class="row" id="deepEngineRow">
+    <legend>In-depth analysis runs on<small>the Analyze button’s Gemma; the badges don’t change</small></legend>
+    <div class="seg">
+      <label><input type="radio" name="deepEngine" value="local"><span>This computer</span></label>
+      <label><input type="radio" name="deepEngine" value="cloud"><span>Cloud (Modal)</span></label>
+    </div>
+  </fieldset>
+
+  <div class="field" id="deepUrlField">
+    <label for="deepUrl">In-depth analysis address (This computer)</label>
     <div class="url">
       <input id="deepUrl" type="url" spellcheck="false" autocomplete="off">
       <button id="saveDeep" type="button">Save</button>
     </div>
-    <p id="deepStatus" class="status" role="status" aria-live="polite">Veritas Lens on this computer, with Gemma.</p>
+    <p id="deepStatus" class="status" role="status" aria-live="polite"></p>
   </div>
 </section>
 
