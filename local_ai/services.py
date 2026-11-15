@@ -375,15 +375,26 @@ MODEL_NAMES = {"chat": "chat model", "embedding": "embedding model"}
 # How long one model may take to load. The generated config gives llama-swap
 # itself 600 s (healthCheckTimeout), so waiting much longer only hides a failure.
 LOAD_TIMEOUT = 600
+RETRY_PAUSE = 3                 # seconds between attempts while a model loads
+INSTANT_FAILURE_SECONDS = 5     # an error faster than this = the process never got going
+CRASHES_BEFORE_GIVING_UP = 3
 
 
-def _log_tail(name="llama-swap.log", lines=2):
-    """The last lines of the AI server log, to show why a model didn't load."""
+# llama-swap's own bookkeeping lines; what explains a failure is what llama-server
+# printed just before them, which these would otherwise push out of the tail.
+LOG_NOISE = ("non-200 response", "upstream command exited prematurely", "group: starting")
+
+
+def _log_tail(name="llama-swap.log", lines=4):
+    """The last lines llama-server itself wrote to the AI server log: the reason
+    a model didn't load (missing library, unsupported CPU, bad model file)."""
     try:
         text = (paths.LOGS_DIR / name).read_text(encoding="utf-8", errors="replace")
     except OSError:
         return ""
-    return " | ".join(line.strip() for line in text.splitlines() if line.strip())[-400:] if text else ""
+    kept = [line.strip() for line in text.splitlines()
+            if line.strip() and not any(noise in line for noise in LOG_NOISE)]
+    return " | ".join(kept[-lines:])[-600:]
 
 
 def _running_states():
@@ -415,6 +426,7 @@ def load_model(alias, timeout=LOAD_TIMEOUT, report_every=20):
     name = MODEL_NAMES.get(alias, alias)
     url = swap_url() + path
     started = last_report = time.time()
+    crashes = 0
     while True:
         left = timeout - (time.time() - started)
         if left <= 0:
@@ -424,6 +436,7 @@ def load_model(alias, timeout=LOAD_TIMEOUT, report_every=20):
             if tail:
                 ui.info(f"Last from the AI server: {tail}")
             return False
+        asked = time.time()
         status, body = http_post_json(url, payload, timeout=min(left, report_every))
         if status == 200:
             ui.ok(f"The {name} is loaded and answering ({_elapsed(time.time() - started)})")
@@ -434,13 +447,28 @@ def load_model(alias, timeout=LOAD_TIMEOUT, report_every=20):
                     f"({status}: {body[:200].decode('utf-8', 'replace').strip()}). "
                     f"Check {paths.SWAP_CONFIG}.")
             return False
+        # An error that comes straight back means llama-swap started llama-server
+        # and it died at once ("upstream command exited prematurely"). That is a
+        # broken install, not a slow load: asking again only fills the log.
+        if status is not None and status >= 500 and time.time() - asked < INSTANT_FAILURE_SECONDS:
+            crashes += 1
+            if crashes >= CRASHES_BEFORE_GIVING_UP:
+                ui.warn(f"The {name} starts and exits at once ({crashes} times in a row): "
+                        f"llama-server itself is failing, not the load. llama-swap said: "
+                        f"{body[:200].decode('utf-8', 'replace').strip() or status}")
+                tail = _log_tail()
+                if tail:
+                    ui.info(f"Last from llama-server: {tail}")
+                return False
+        else:
+            crashes = 0
         now = time.time()
         if now - last_report >= report_every:
             states = _running_states()
             ui.info(f"Still loading the {name} ({_elapsed(now - started)}"
                     + (f"; {states}" if states else "") + ")...")
             last_report = now
-        time.sleep(1)
+        time.sleep(RETRY_PAUSE)
 
 
 def wait_models_loaded(timeout=None):

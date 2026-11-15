@@ -121,6 +121,22 @@ def _run_server(server, *args, timeout=60):
         return 1, str(e)
 
 
+def server_runs(server):
+    """Can llama-server start at all on this computer? Returns (ok, detail).
+    When a model 'exits prematurely' under llama-swap this tells a broken
+    binary (CPU without the instructions it was built for, missing shared
+    library, too old a glibc) apart from a problem with the model itself."""
+    code, out = _run_server(server, "--version", timeout=30)
+    out = " ".join(out.split())  # one line, however it was printed
+    if code == 0 and out:
+        return True, out[:200]
+    if code < 0:  # ended by a signal: -4 is SIGILL, an instruction this CPU lacks
+        why = {-4: "SIGILL: it uses CPU instructions this computer does not have",
+               -11: "SIGSEGV: it crashed"}.get(code, f"signal {-code}")
+        return False, f"{why}. Run the launcher with --build-from-source to compile a build for this CPU."
+    return False, out[-400:] or f"exit code {code}"
+
+
 def gpu_visible(server, backend):
     """True if llama-server can actually use the GPU (driver/runtime OK)."""
     if backend in ("cpu", "metal"):  # Metal devices are listed as "MTL0", always present

@@ -1,6 +1,7 @@
 """B8: the launcher's new steps, with fakes (no processes started, nothing installed)."""
 from __future__ import annotations
 
+import itertools
 import json
 import os
 import subprocess
@@ -118,14 +119,72 @@ def test_an_unknown_model_fails_at_once_instead_of_waiting(swap):
 
 
 def test_a_model_that_never_loads_gives_up_and_points_at_the_log(swap, monkeypatch, capsys):
-    clock = iter([0, 0, 0, 30, 60, 90, 600, 900, 1200])
-    monkeypatch.setattr(time, "time", lambda: next(clock))
+    # Every call to the clock moves it 10 s: each answer looks like a slow load, never a crash.
+    monkeypatch.setattr(time, "time", itertools.count(0, 10).__next__)
     swap["answers"]["chat"] = (503, b"still loading")
     (swap_log := services.paths.LOGS_DIR / "llama-swap.log").write_text(
         "llama-server exited with code 1\nfailed to allocate buffer\n", encoding="utf-8")
     assert services.load_model("chat", timeout=600) is False
     out = capsys.readouterr().out
     assert str(swap_log) in out and "failed to allocate buffer" in out
+
+
+def test_a_model_whose_process_dies_at_once_is_not_retried_for_ten_minutes(swap, capsys):
+    """What the server showed: llama-swap answers 500 instantly, hundreds of times.
+    Three instant failures are proof enough; after that only the log gets longer."""
+    swap["answers"]["chat"] = (500, b"upstream command exited prematurely")
+    (services.paths.LOGS_DIR / "llama-swap.log").write_text(
+        "[INFO] starting gemma-3-1b-it\n"
+        "gemma-3-1b-it: error while loading shared libraries: libgomp.so.1: cannot open shared object file\n"
+        "[WARN] group: starting gemma-3-1b-it failed: upstream command exited prematurely\n"
+        "[WARN] non-200 response, recording partial metrics: status=500, path=/v1/chat/completions\n" * 50,
+        encoding="utf-8")
+    assert services.load_model("chat", timeout=600) is False
+    assert swap["posts"] == ["chat"] * 3
+    out = capsys.readouterr().out
+    assert "exits at once" in out and "upstream command exited prematurely" in out
+    assert "libgomp.so.1" in out            # llama-server's own line, dug out from under the noise
+    assert "non-200 response" not in out    # the noise itself isn't repeated
+
+
+def test_a_slow_error_is_a_load_in_progress_not_a_crash(swap, monkeypatch):
+    """A 503 that took 20 s to come back is llama-swap holding the request while the
+    model loads; that must keep waiting, not count towards 'exits at once'."""
+    monkeypatch.setattr(time, "time", itertools.count(0, 10).__next__)
+    swap["answers"]["chat"] = [(503, b"loading")] * 5 + [(200, b"{}")]
+    assert services.load_model("chat", timeout=600) is True
+    assert swap["posts"] == ["chat"] * 6
+
+
+def test_the_step_tells_a_broken_binary_from_a_broken_model(monkeypatch, capsys):
+    monkeypatch.setattr(launcher.services, "start_llama_swap", lambda *a: True)
+    monkeypatch.setattr(launcher.services, "swap_public_url", lambda env=None: "http://127.0.0.1:8080")
+    monkeypatch.setattr(launcher.services, "wait_models_loaded", lambda: False)
+    monkeypatch.setattr(launcher.runtime, "server_runs",
+                        lambda server: (False, "SIGILL: it uses CPU instructions this computer does not have"))
+    ctx = _ctx(no_ai_server=False)
+    ctx.server, ctx.swap_binary, ctx.config_hash = "llama-server", "llama-swap", "h"
+    launcher.step_ai_server(ctx)
+    out = capsys.readouterr().out
+    assert "cannot run on this computer" in out and "SIGILL" in out
+    assert "ai" not in ctx.results
+
+    monkeypatch.setattr(launcher.runtime, "server_runs", lambda server: (True, "version: 7000 (abc123)"))
+    launcher.step_ai_server(ctx)
+    assert "problem is with loading the model" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("code,out,ok,expect", [
+    (0, "version: 7000 (abc123)\nbuilt with gcc", True, "version: 7000"),
+    (-4, "", False, "CPU instructions"),
+    (127, "error while loading shared libraries: libgomp.so.1", False, "libgomp.so.1"),
+    (1, "", False, "exit code 1"),
+])
+def test_server_runs_explains_why_llama_server_cannot_start(monkeypatch, code, out, ok, expect):
+    from local_ai import runtime
+    monkeypatch.setattr(runtime, "_run_server", lambda server, *a, **k: (code, out))
+    got_ok, detail = runtime.server_runs("llama-server")
+    assert got_ok is ok and expect in detail
 
 
 def test_one_broken_model_does_not_hide_the_other(swap):

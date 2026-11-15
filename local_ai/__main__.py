@@ -204,9 +204,16 @@ def step_ai_server(ctx):
             f"is reported below, in detail at {services.swap_public_url()}/ui.")
     if services.wait_models_loaded():
         ctx.results["ai"] = True
+        return
+    # Separate "the model won't load" from "llama-server can't run here at all".
+    ok, detail = runtime.server_runs(ctx.server)
+    if ok:
+        ui.info(f"llama-server itself runs ({detail}), so the problem is with loading the "
+                f"model: see the lines above and {paths.SWAP_CONFIG} for the exact command.")
     else:
-        ui.warn(f"The dashboard will start, but analysing needs the AI. Full log: "
-                f"{paths.LOGS_DIR / 'llama-swap.log'}, status page: {services.swap_public_url()}/ui")
+        ui.warn(f"llama-server cannot run on this computer: {detail}")
+    ui.warn(f"The dashboard will start, but analysing needs the AI. Full log: "
+            f"{paths.LOGS_DIR / 'llama-swap.log'}, status page: {services.swap_public_url()}/ui")
 
 
 def step_database(ctx):
