@@ -32,7 +32,7 @@ def test_items_become_records():
     g = to_collected(FB_GROUP)
     assert (g.platform, g.external_id, g.account, g.account_name, g.account_type, g.byline) == \
         ("facebook", "kaimynai_3674462936037307", "kaimynai", "Kaimynų grupė", "group", "Jonas J")
-    assert g.url == "https://www.facebook.com/groups/kaimynai/posts/3674462936037307"
+    assert g.url == "https://www.facebook.com/groups/Kaimynai/posts/3674462936037307"   # spelling kept, tracking gone
     r = to_collected(FB_REEL)
     assert (r.external_id, r.account) == ("1455920952739663", "lrt.lt")
 
@@ -73,6 +73,17 @@ class TestStored:
         s.run_once([to_collected({**X_ITEM, "text": X_ITEM["text"] + " Edited."})])
         rows = world.rows("SELECT text FROM posts")
         assert len(rows) == 1 and rows[0]["text"].endswith("Edited.") and s.stored == 2
+
+    def test_a_stored_link_is_corrected_when_the_post_comes_again(self, world):
+        s = store_for(world)
+        page = {"id": "fb17975", "url": "https://www.facebook.com/LRT.LT/posts/pfbid02UZPuNcJ/?__cft__[0]=AZ", "text": "Naujiena",
+                "author": "LRT.LT", "author_name": "LRT", "platform": "facebook"}
+        s.run_once([to_collected(page)])
+        with world.conn() as conn, conn.cursor() as cur:   # as an earlier version stored it: lower case, broken
+            cur.execute("UPDATE posts SET url = LOWER(url)")
+        s.run_once([to_collected(page)])
+        assert world.rows("SELECT url FROM posts") == [{"url": "https://www.facebook.com/LRT.LT/posts/pfbid02UZPuNcJ"}]
+        assert s.stored == 1   # the text didn't change: no second write of the post, no new vector
 
     def test_ai_down_keeps_the_rows(self, world):
         world.ai.up = False

@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 import secrets
 import threading
 from collections import OrderedDict
@@ -281,6 +282,27 @@ def _feed_note(item: dict) -> str:
 
 # --------------------------------------------------------------------------- similar posts in our database
 
+_X_STATUS = re.compile(r"(?:x|twitter)\.com/[A-Za-z0-9_]{1,15}/status/(\d{5,25})", re.IGNORECASE)
+
+
+def is_same_post(row: dict, url: str | None) -> bool:
+    """Is this database row the post being analyzed? Posts the extension saves (veritas/ext_store.py)
+    are stored under their cleaned link (lower case, no trailing slash or tracking query), so links are
+    compared the way links.link_key spells them, and by the post's own id."""
+    from .links import link_key, parse_link
+
+    if not url or not row.get("url"):
+        return False
+    if link_key(row["url"]) == link_key(url):
+        return True
+    x_mine, x_row = _X_STATUS.search(url), _X_STATUS.search(row["url"])
+    if x_mine and x_row:
+        return x_mine.group(1) == x_row.group(1)
+    link = parse_link(url)
+    return bool(link and link.kind == "post" and link.external_id and row.get("platform") == link.platform
+                and str(row.get("external_id") or "").lower() == link.external_id.lower())
+
+
 def similar_in_database(settings, ai: LocalAI, text: str, url: str | None) -> list[dict]:
     """Earlier posts in Veritas Lens' own database with the same or similar text. Empty when the
     database or vector store isn't running (the trace then shows what else is known)."""
@@ -303,10 +325,9 @@ def similar_in_database(settings, ai: LocalAI, text: str, url: str | None) -> li
         log.info("trace: database search skipped (%s)", exc)
         return []
     out = []
-    mine = (url or "").rstrip("/")
     for h in hits:
         r = rows.get(h.payload.get("post_id"))
-        if not r or (r.get("url") or "").rstrip("/") == mine:
+        if not r or is_same_post(r, url):
             continue
         sim = round(min(1.0, h.score), 4)
         out.append({"relation": "Near copy" if sim >= 0.95 else "Same content" if sim >= 0.85 else "Similar post",

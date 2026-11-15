@@ -23,6 +23,7 @@ import re
 import threading
 from datetime import datetime, timezone
 from typing import Callable, Iterable
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from .collectors import CollectedPost
 from .links import parse_link
@@ -44,6 +45,17 @@ def _time(value) -> datetime | None:
     except ValueError:
         return None
     return (t if t.tzinfo else t.replace(tzinfo=timezone.utc)).astimezone(timezone.utc)
+
+
+def _clean_link(url: str) -> str:
+    """The link without tracking: no query (except the post's own story_fbid/id on .php pages), no
+    #part, no trailing slash. The case is kept: Facebook post ids like "pfbid0Ab..." are case-sensitive."""
+    parts = urlsplit(url)
+    path = parts.path.rstrip("/") or "/"
+    query = ""
+    if path.endswith(".php"):
+        query = urlencode([(k, v) for k, v in parse_qsl(parts.query) if k in ("story_fbid", "id", "fbid", "v")])
+    return urlunsplit((parts.scheme, parts.netloc, path, query, ""))
 
 
 def to_collected(item: dict) -> CollectedPost | None:
@@ -70,12 +82,15 @@ def to_collected(item: dict) -> CollectedPost | None:
         group = (item.get("group") or "").strip()[:255] or None
         author = (item.get("author") or "").strip().lower()[:255] or None
         if link is not None and link.kind == "post" and link.external_id:
-            external_id, clean_url, owner = link.external_id, link.url, link.account
+            # The stored link keeps Facebook's own spelling: post ids like "pfbid0Ab..." are case-sensitive,
+            # and links.link_key (lower case) would break them. Only the tracking query and slash go.
+            clean_url = _clean_link(url)
+            external_id, owner = link.external_id, link.account
         else:  # reels, videos, photos: Facebook's own post id
             pid = re.sub(r"^fb", "", str(item.get("id") or ""))
             if not pid:
                 return None
-            external_id, clean_url, owner = pid, url.split("?")[0], None
+            external_id, clean_url, owner = pid, _clean_link(url), None
         if "/groups/" in clean_url and owner:
             return CollectedPost(platform="facebook", external_id=external_id, url=clean_url, text=text,
                                  account=owner, account_name=group or owner, account_type="group",
@@ -97,9 +112,13 @@ def save_posts(conn, posts: Iterable[CollectedPost]) -> list[tuple[int, str]]:
     changed = []
     for c in posts:
         with conn.cursor() as cur:
-            cur.execute("SELECT post_id, text FROM posts WHERE uuid = %s", (post_uuid(c.platform, c.external_id).bytes,))
+            cur.execute("SELECT post_id, text, url FROM posts WHERE uuid = %s", (post_uuid(c.platform, c.external_id).bytes,))
             existing = cur.fetchone()
         if existing is not None and existing["text"] == c.text:
+            if c.url and existing["url"] != c.url:   # e.g. a link stored lower-cased by an earlier version
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE posts SET url = %s WHERE post_id = %s", (c.url, existing["post_id"]))
+                conn.commit()
             continue
         post_id = save_collected(conn, c)
         if existing is not None:

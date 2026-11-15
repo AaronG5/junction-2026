@@ -201,7 +201,16 @@ var PPG_highlight = (function () {
 
   function check() {
     frame = 0;
+    // Only when the highlighted text itself is what the pointer is on: not through the analysis
+    // window, our tooltip, or the site's own menus and dialogs lying over it.
+    var top = document.elementFromPoint(px, py);
+    if (!top || (top.closest && top.closest('ppg-popover, ppg-tip, ppg-badge, ppg-deep'))) { hide(); return; }
     var hit = hitAt(px, py);
+    if (hit) {
+      var holder = hit.r.range.commonAncestorContainer;
+      if (holder.nodeType !== 1) holder = holder.parentNode;
+      if (!(holder && (holder.contains(top) || top.contains(holder)))) hit = null;
+    }
     if (!hit) { hide(); return; }
     if (shown !== hit.r) show(hit.r);
     place(hit.rect);

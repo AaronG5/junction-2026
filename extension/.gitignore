@@ -1,1 +1,3 @@
 node_modules/
+# Screenshots the browser tests write on every run
+test/out/

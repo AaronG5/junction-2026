@@ -219,3 +219,29 @@ def test_api_ai_failing_mid_job_ends_with_a_plain_error(client):
     del ai.answers["claimsearch"]   # the fake AI raises KeyError -> 500 from the AI -> AiUnavailable
     job = wait(c, c.post("/api/ext/deep", json={"item": {**ITEM, "id": "fb3"}}).json()["id"])
     assert job["status"] == "error" and job["error"] and job["patterns"] is not None
+
+
+# --------------------------------------------------------------------------- the trace never lists the post itself
+
+@pytest.mark.parametrize("item", [
+    {"id": "fb3674462936037307", "url": "https://www.facebook.com/groups/NT247/posts/3674462936037307/", "text": "t",
+     "author": "a.b", "author_name": "A B", "platform": "facebook", "group": "G"},
+    {"id": "fb1797528575746957", "url": "https://www.facebook.com/LRT.LT/posts/pfbid02UZPuNcJYtrVWGJgD74SNz?__cft__[0]=AZ",
+     "text": "t", "author": "LRT.LT", "author_name": "LRT", "platform": "facebook"},
+    {"id": "fb1455920952739663", "url": "https://www.facebook.com/reel/1455920952739663/", "text": "t",
+     "author": "LRT.LT", "author_name": "LRT", "platform": "facebook"},
+    {"id": "1890412233445566771", "url": "https://x.com/EU_Insider/status/1890412233445566771", "text": "t",
+     "author": "EU_Insider", "author_name": "EU Insider"},
+])
+def test_a_saved_post_is_recognised_as_the_post_itself(item):
+    from veritas.deep import is_same_post
+    from veritas.ext_store import to_collected
+
+    saved = to_collected(item)   # exactly how the extension's posts are stored
+    row = {"url": saved.url, "platform": saved.platform, "external_id": saved.external_id}
+    assert is_same_post(row, item["url"])
+    import re as _re
+    pid = saved.external_id.split("_")[-1]
+    other = {**row, "url": _re.sub(_re.escape(pid), "999999", saved.url, flags=_re.IGNORECASE), "external_id": "other_999999"}
+    assert not is_same_post(other, item["url"])
+    assert not is_same_post(row, None)

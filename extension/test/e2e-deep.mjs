@@ -40,7 +40,7 @@ const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ppg-deep-'));
 const ctx = await chromium.launchPersistentContext(userDataDir, {
   executablePath: findChromium(), headless: false,
   args: ['--headless=new', `--disable-extensions-except=${extDir}`, `--load-extension=${extDir}`, '--no-sandbox'],
-  viewport: { width: 1000, height: 1100 }, deviceScaleFactor: 1,
+  viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 1,   // wide enough for the panel beside the post
 });
 
 try {
@@ -91,6 +91,23 @@ try {
   check(marked.some((t) => /CIA operation/i.test(t)), 'the highlighted text is the flagged phrase: ' + JSON.stringify(marked));
   await page.screenshot({ path: path.join(outDir, '10-deep-popover.png') });
 
+  // The window is a fixed panel beside the post: it doesn't cover the post, and stays put on scroll.
+  const rects = async () => page.evaluate(() => {
+    const p = document.querySelector('ppg-popover').shadowRoot.querySelector('.pop').getBoundingClientRect();
+    const a = [...document.querySelectorAll('article')].find((x) => /Nvidia scandal/.test(x.textContent)).getBoundingClientRect();
+    return { pop: { left: p.left, right: p.right, top: p.top }, post: { left: a.left, right: a.right } };
+  });
+  const r1 = await rects();
+  check(r1.pop.left >= r1.post.right || r1.pop.right <= r1.post.left, `the analysis window doesn't cover the post (window ${Math.round(r1.pop.left)}-${Math.round(r1.pop.right)}, post ${Math.round(r1.post.left)}-${Math.round(r1.post.right)})`);
+  await page.mouse.move(r1.post.left + 20, 600);
+  await page.mouse.wheel(0, 250);
+  await page.waitForTimeout(300);
+  const r2 = await rects();
+  check(r2.pop.top === r1.pop.top && r2.pop.left === r1.pop.left, 'the window stays in place while the page scrolls');
+  await page.mouse.wheel(0, -250);
+  await page.waitForTimeout(300);
+  await page.locator('ppg-popover .pop').waitFor({ timeout: 1000 });
+
   await page.keyboard.press('Escape');
 
   // Hovering a highlighted phrase explains it, right there in the post.
@@ -108,6 +125,19 @@ try {
   await page.mouse.move(5, 5);
   await page.waitForTimeout(150);
   check(await page.locator('ppg-tip').count() === 0, 'the explanation goes away when the pointer leaves');
+
+  // Something lying over the highlighted text (the site's menus, our window): no explanation through it.
+  await page.evaluate((b) => {
+    const d = document.createElement('div');
+    d.id = 'cover';
+    d.style.cssText = `position:fixed;left:${b.x - 40}px;top:${b.y - 20}px;width:80px;height:40px;background:#fff;z-index:10`;
+    document.body.appendChild(d);
+  }, box);
+  await page.mouse.move(box.x, box.y);
+  await page.waitForTimeout(200);
+  check(await page.locator('ppg-tip').count() === 0, 'no explanation through something covering the text');
+  await page.evaluate(() => document.getElementById('cover').remove());
+  await page.mouse.move(5, 5);
 
   check((await btn.locator('.dot').count()) >= 1 && /pattern/.test(await btn.getAttribute('aria-label')), 'button summarizes the result: ' + (await btn.getAttribute('aria-label')));
   const over = await nv.evaluate((a) => { const h = a.querySelector('ppg-deep'); return h.getBoundingClientRect().right - a.getBoundingClientRect().right; });

@@ -210,6 +210,7 @@ PPG_Popover.prototype.isOpen = function () { return !!(this.host && this.host.is
  */
 PPG_Popover.prototype.open = function (anchorBtn, ctx) {
   this.close(false);
+  this._place = null;   // placed beside this post (see _position)
   this.returnFocus = anchorBtn;
   this.ctx = ctx;
   var host = document.createElement('ppg-popover');
@@ -295,24 +296,47 @@ PPG_Popover.prototype._onDocDown = function (e) {
   this.close(false);
 };
 
-PPG_Popover.prototype._onScroll = function () {
+PPG_Popover.prototype._onScroll = function (e) {
   var self = this;
+  if (e && e.type === 'resize') this._place = null;   // scrolling keeps the panel where it is
   if (this._raf) return;
   this._raf = requestAnimationFrame(function () { self._raf = 0; if (self.isOpen()) self._position(); });
 };
 
+// A fixed side panel beside the post: it opens on the side of the post with more room, just below
+// the site's top bar, and stays put while the page scrolls, so it never covers the post (or the
+// highlighted text in it). Placed once per opening, again when the window is resized. Only when
+// neither side has room (a narrow window) is it docked at the right edge, over the page.
+var PPG_PANEL_W = 360, PPG_PANEL_MIN_W = 280, PPG_PANEL_GAP = 12;
+
 PPG_Popover.prototype._position = function () {
   var a = this.returnFocus;
   if (!a || !a.isConnected) { this.close(false); return; }
-  var r = a.getBoundingClientRect();
-  var vw = window.innerWidth, vh = window.innerHeight;
-  var pw = Math.min(360, vw - 16), ph = this.pop.offsetHeight || 300;
-  var left = Math.max(8, Math.min(r.left, vw - pw - 8));
-  var top = r.bottom + 6;
-  if (top + ph > vh - 8 && r.top - ph - 6 > 8) top = r.top - ph - 6;
-  top = Math.max(8, Math.min(top, vh - ph - 8));
-  this.pop.style.left = left + 'px';
-  this.pop.style.top = top + 'px';
+  if (!this._place) this._place = this._pickPlace(a);
+  var p = this._place;
+  this.pop.style.left = p.left + 'px';
+  this.pop.style.top = p.top + 'px';
+  this.pop.style.width = p.width + 'px';
+  this.pop.style.maxHeight = Math.max(160, window.innerHeight - p.top - 12) + 'px';
+};
+
+PPG_Popover.prototype._pickPlace = function (anchor) {
+  var vw = window.innerWidth;
+  var host = anchor.getRootNode && anchor.getRootNode().host;   // the badge / Analyze button host
+  var post = (host || anchor).closest('article, [aria-posinset], div[role="article"], div[role="feed"] > div');
+  var r = (post || host || anchor).getBoundingClientRect();
+  var right = vw - r.right - PPG_PANEL_GAP - 8, left = r.left - PPG_PANEL_GAP - 8;
+  var top = 16;
+  var bar = document.querySelector('[role="banner"]');               // Facebook's fixed top bar
+  if (bar) { var b = bar.getBoundingClientRect(); if (b.top <= 0 && b.bottom > 0 && b.bottom < 160) top = b.bottom + 8; }
+  var width = Math.min(PPG_PANEL_W, vw - 16);
+  if (right >= width) return { left: r.right + PPG_PANEL_GAP, top: top, width: width };
+  if (left >= width) return { left: r.left - PPG_PANEL_GAP - width, top: top, width: width };
+  if (Math.max(right, left) >= PPG_PANEL_MIN_W) {                     // a bit narrower still fits beside it
+    width = Math.max(right, left);
+    return right >= left ? { left: r.right + PPG_PANEL_GAP, top: top, width: width } : { left: 8, top: top, width: width };
+  }
+  return { left: vw - width - 8, top: top, width: width };            // narrow window: docked right
 };
 
 function el(tag, cls, text) {
