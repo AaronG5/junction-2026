@@ -7,9 +7,13 @@
   leaves both untouched.
 - remove_orphans(): delete Qdrant points whose post no longer exists (e.g. rows
   removed by hand or by a cascade). Safe to run any time.
+- content_hash(): posts.content_hash, the sha256 of the text with its whitespace
+  normalized, so exact copies are found whatever their line breaks.
 """
 from __future__ import annotations
 
+import hashlib
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Iterable, Sequence
@@ -19,6 +23,14 @@ import pymysql
 from .vectors import Point, Qdrant
 
 EMBEDDING_MODEL_ID = 1  # embedding_models row for embeddinggemma-300m (init.sql)
+
+
+def content_hash(text: str | None) -> bytes | None:
+    """sha256 (32 bytes) of the text with runs of whitespace collapsed; None for no text."""
+    normalized = re.sub(r"\s+", " ", text or "").strip()
+    if not normalized:
+        return None
+    return hashlib.sha256(normalized.encode("utf-8")).digest()
 
 
 def _rfc3339(value: datetime | None) -> str | None:
