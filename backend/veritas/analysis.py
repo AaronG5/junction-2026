@@ -29,7 +29,7 @@ from . import analyzers
 from .ai import AiError, AiUnavailable, LocalAI
 from .collectors import NOT_SET_UP, CollectedPost, CollectError, Collector
 from .config import Settings
-from .content import store_post_vector
+from .content import content_hash, store_post_vector
 from .db import DatabaseUnavailable, connect
 from .ids import NAMESPACE, account_uuid, post_uuid
 from .links import ParsedLink, link_key, parse_link
@@ -356,14 +356,19 @@ def save_collected(conn, c: CollectedPost) -> int:
             (account_uuid(c.platform, c.account).bytes, platform["platform_id"], c.account,
              c.account if c.platform == "telegram" else None, c.account_name, c.account_type))
         account_id = cur.lastrowid
+        if c.followers is not None:
+            cur.execute("INSERT IGNORE INTO account_metrics (account_id, captured_at, followers) VALUES (%s, CURRENT_TIMESTAMP(3), %s)",
+                        (account_id, c.followers))
         published = c.published_at.astimezone(timezone.utc).replace(tzinfo=None) if c.published_at else None
         cur.execute(
             "INSERT INTO posts (uuid, platform_id, account_id, container_account_id, external_id, url, title, text, byline,"
-            " published_at, scraped_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP(3))"
-            " ON DUPLICATE KEY UPDATE text = VALUES(text), title = VALUES(title), scraped_at = VALUES(scraped_at),"
+            " language, content_hash, published_at, scraped_at)"
+            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP(3))"
+            " ON DUPLICATE KEY UPDATE text = VALUES(text), title = VALUES(title), content_hash = VALUES(content_hash),"
+            " language = COALESCE(VALUES(language), language), scraped_at = VALUES(scraped_at),"
             " is_stub = FALSE, post_id = LAST_INSERT_ID(post_id)",
             (post_uuid(c.platform, c.external_id).bytes, platform["platform_id"], account_id, account_id, c.external_id,
-             c.url, c.title, c.text, c.byline, published))
+             c.url, c.title, c.text, c.byline, c.language, content_hash(c.text), published))
         post_id = cur.lastrowid
         if c.views is not None:
             cur.execute("INSERT IGNORE INTO post_metrics (post_id, captured_at, views) VALUES (%s, CURRENT_TIMESTAMP(3), %s)",

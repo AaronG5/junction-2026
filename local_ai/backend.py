@@ -84,6 +84,19 @@ def load_demo_data():
     return out
 
 
+# Embedding tens of thousands of posts takes a while on a small GPU; the import
+# commits as it goes, so a timeout only means "run the launcher again to continue".
+IMPORT_TIMEOUT = 6 * 3600
+
+
+def import_data(timeout=IMPORT_TIMEOUT):
+    """Load data/parsed/ (the team's Telegram posts and news articles) and make their vectors."""
+    code, out = run_tool("import_data.py", timeout=timeout)
+    if code != 0:
+        raise ui.StepFailed(out or "The collected data could not be loaded.")
+    return out.splitlines()[-1] if out else "Collected data loaded."
+
+
 # ---- the dashboard (frontend build) ---------------------------------------------------
 
 def _newest_input_mtime():

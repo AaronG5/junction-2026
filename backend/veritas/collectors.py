@@ -55,6 +55,8 @@ class CollectedPost:
     title: str | None = None
     byline: str | None = None
     media: list[str] = field(default_factory=list)
+    language: str | None = None         # BCP 47 code when the source says so (e.g. "lt"); None = let Gemma find out
+    followers: int | None = None        # the account's subscriber count at collection time, when known
 
 
 class Collector(Protocol):
