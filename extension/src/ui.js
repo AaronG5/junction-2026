@@ -481,9 +481,8 @@ PPG_Popover.prototype._details = function (pop, r, prefix) {
 
   if (c.narrative && c.narrative.text) {
     var n = el('section');
-    n.appendChild(el('h3', null, prefix + 'Matches a known narrative'));
+    n.appendChild(el('h3', null, prefix + 'Narratives'));
     n.appendChild(el('blockquote', null, '“' + c.narrative.text + '”'));
-    n.appendChild(el('p', 'meta', 'Source: ' + srcName(c.narrative.source) + (c.narrative.sim != null ? ' · ' + pct(c.narrative.sim) + ' similar' : '')));
     pop.appendChild(n);
   }
 

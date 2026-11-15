@@ -186,7 +186,8 @@ await test('popover: content, focus, Esc, feedback; server text is not parsed as
   pop.open(btn, { item: { id: result.id }, result, vm: vm(result) });
   const root = pop.root;
   const text = root.querySelector('.pop').textContent;
-  assert.match(text, /EUvsDisinfo · 93% similar/);
+  assert.doesNotMatch(text, /EUvsDisinfo · 93% similar/);
+  assert.match(text, /Narratives/);
   assert.match(text, /This narrative aired 253× on RT, Jan–Oct 2024\./);
   assert.match(text, /@two_majors · 2026-11-13 · 97% similar/);
   assert.match(text, /same text posted by 6 other accounts/);
