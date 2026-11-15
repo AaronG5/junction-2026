@@ -363,12 +363,6 @@ function monYear(d) {
   var m = /^(\d{4})-(\d{2})/.exec(d || '');
   return m ? { y: m[1], m: MONTHS[+m[2] - 1] } : null;
 }
-function rangeText(first, last) {
-  var a = monYear(first), b = monYear(last);
-  if (!a || !b) return '';
-  if (a.y === b.y) return a.m === b.m ? a.m + ' ' + a.y : a.m + '–' + b.m + ' ' + a.y;
-  return a.m + ' ' + a.y + '–' + b.m + ' ' + b.y;
-}
 function shortDate(d) {
   var t = Date.parse(d || '');
   if (isNaN(t)) return d || '';
@@ -489,12 +483,11 @@ PPG_Popover.prototype._details = function (pop, r, prefix) {
   if (c.state_media_echo && c.state_media_echo.length) {
     var e = el('section');
     e.appendChild(el('h3', null, prefix + 'State media mentions'));
-    c.state_media_echo.slice(0, 2).forEach(function (x) {
-      var line = 'This narrative aired ' + x.n_aired + '× on ' + srcName(x.source);
-      var rg = rangeText(x.first, x.last);
-      e.appendChild(el('p', null, line + (rg ? ', ' + rg : '') + '.'));
-      if (x.text) e.appendChild(el('p', 'meta', snippet(x.text, 140)));
-    });
+    var aired = 0;
+    c.state_media_echo.forEach(function (x) { if (x.n_aired > 0) aired += x.n_aired; });
+    e.appendChild(el('p', null, aired > 0
+      ? 'This narrative appeared on Russian state media ' + aired + (aired === 1 ? ' time' : ' times') + ' during 2024.'
+      : 'This narrative appeared on Russian state media.'));
     pop.appendChild(e);
   }
 

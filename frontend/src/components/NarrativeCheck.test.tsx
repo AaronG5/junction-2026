@@ -7,7 +7,7 @@ import { setDemoDelay } from "../demo";
 import { narrativeClean, narrativeFlagged } from "../demo/data";
 import { resetSettingsForTests } from "../lib/settings";
 import { renderApp } from "../test/renderApp";
-import { CLEAN_EXAMPLE, FLAGGED_EXAMPLE, echoSentence, highlight, inputKind } from "./NarrativeCheck";
+import { CLEAN_EXAMPLE, FLAGGED_EXAMPLE, echoSummary, highlight, inputKind } from "./NarrativeCheck";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -128,10 +128,9 @@ describe("helpers", () => {
   });
 
   it("words the state-media echo", () => {
-    expect(echoSentence(narrativeFlagged.content!.state_media_echo[0])).toBe("This narrative aired 253× on RT, Jan–Oct 2024.");
-    expect(echoSentence({ text: "x", source: "ria", n_aired: null, first: null, last: null, sim: 0.7 })).toBe("This narrative appeared on RIA Novosti.");
-    expect(echoSentence({ text: "x", source: "rt", n_aired: 4, first: "2023-11-02", last: "2024-02-01", sim: 0.7 }))
-      .toBe("This narrative aired 4× on RT, Nov 2023–Feb 2024.");
+    expect(echoSummary([{ text: "x", source: "rt", n_aired: 18, first: "2024-06-01", last: "2024-09-01", sim: 0.7 },
+      { text: "y", source: "rt", n_aired: 2, first: "2024-04-01", last: "2024-09-01", sim: 0.7 }])).toBe("This narrative appeared on Russian state media 20 times during 2024.");
+    expect(echoSummary([{ text: "x", source: "ria", n_aired: null, first: null, last: null, sim: 0.7 }])).toBe("This narrative appeared on Russian state media.");
   });
 });
 
@@ -172,7 +171,7 @@ describe("the start page's text box runs the narrative check", () => {
     expect(marks[0]).toHaveTextContent("The Kyiv regime (flagged: name-calling)");
     expect(within(r).getByText("Copies a known pro-Kremlin Telegram post")).toBeInTheDocument();
     expect(within(r).getByRole("link", { name: "@kanal_a" })).toHaveAttribute("href", "https://t.me/kanal_a/58214");
-    expect(r).toHaveTextContent("This narrative aired 253× on RT, Jan–Oct 2024.");
+    expect(r).toHaveTextContent(/This narrative appeared on Russian state media \d[\d,]* times? during 2024\./);
     expect(within(r).getByText("Closest matches")).toBeInTheDocument();
     expect(r).toHaveTextContent("Automated assessment, may be wrong. Not a claim about who is behind any account.");
     expect(r).not.toHaveTextContent(/fake|bot\b/i);

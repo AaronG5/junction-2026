@@ -77,21 +77,12 @@ const SOURCE_NAMES: Record<string, string> = {
 };
 export const sourceName = (s: string | null | undefined) => (s ? SOURCE_NAMES[s.toLowerCase()] ?? s : "an unnamed source");
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-function monthYear(iso: string | null): [string, string] | null {
-  const m = iso?.match(/^(\d{4})-(\d{2})/);
-  return m ? [MONTHS[Number(m[2]) - 1] ?? m[2], m[1]] : null;
-}
-
-/** "This narrative aired 253× on RT, Jan–Oct 2024." */
-export function echoSentence(e: StateMediaEcho): string {
-  const where = sourceName(e.source);
-  const times = e.n_aired && e.n_aired > 1 ? `aired ${e.n_aired.toLocaleString("en-US")}× on ${where}` : `appeared on ${where}`;
-  const a = monthYear(e.first), b = monthYear(e.last);
-  let when = "";
-  if (a && b) when = a[1] === b[1] ? (a[0] === b[0] ? `, ${a[0]} ${a[1]}` : `, ${a[0]}–${b[0]} ${a[1]}`) : `, ${a[0]} ${a[1]}–${b[0]} ${b[1]}`;
-  else if (a) when = `, ${a[0]} ${a[1]}`;
-  return `This narrative ${times}${when}.`;
+/** One line for all state-media matches: how many times it aired on Russian state media in 2024 (RT transcripts). */
+export function echoSummary(echo: StateMediaEcho[]): string {
+  const n = echo.reduce((sum, e) => sum + (e.n_aired && e.n_aired > 0 ? e.n_aired : 0), 0);
+  return n > 0
+    ? `This narrative appeared on Russian state media ${n.toLocaleString("en-US")} ${n === 1 ? "time" : "times"} during 2024.`
+    : "This narrative appeared on Russian state media.";
 }
 
 const pct = (sim: number) => sim.toFixed(2);
@@ -216,8 +207,7 @@ function ResultBody({ text, r, judging }: { text: string; r: NarrativeResult; ju
       {echo.length > 0 && (
         <div className="kv">
           <span className="lbl">State media mentions</span>
-          <span>{echoSentence(echo[0])}</span>
-          <span className="muted" style={{ fontSize: 13 }}>“{echo[0].text}”</span>
+          <span>{echoSummary(echo)}</span>
         </div>
       )}
 
