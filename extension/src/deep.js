@@ -12,7 +12,7 @@
 // Highlights use the CSS Custom Highlight API: ranges over the post's own text nodes, styled
 // with ::highlight(). The page's DOM is never changed, so X's and Facebook's React can't break.
 // Everything is built with textContent; nothing from a post or the model is parsed as HTML.
-/* global chrome, PPG_TOKENS, PPG_theme */
+/* global chrome, PPG_TOKENS, PPG_theme, PPG_loadFonts, PPG_fontsPending */
 /* exported PPG_Deep, PPG_highlight, PPG_DeepButton, PPG_deepSection */
 
 var PPG_DEEP_POLL_MS = 1500;
@@ -101,10 +101,13 @@ var PPG_highlight = (function () {
   var reg = null;
   var ranges = new Map();  // post id -> [{tier, range}]
   var missing = new Map(); // post id -> Set of quotes not found on screen
+  // The dashboard's tiers (frontend .hl-clear/-likely/-possible): one colour, the trace red, with
+  // the tier in the line itself: solid, dashed, dotted. A middle red that reads on X's white,
+  // dim and black grounds alike.
   var CSS_TEXT =
-    '::highlight(ppg-clear){background-color:rgba(208,59,59,.24);text-decoration:underline 2px rgba(208,59,59,.95);text-underline-offset:3px}' +
-    '::highlight(ppg-likely){background-color:rgba(236,131,90,.24);text-decoration:underline 2px rgba(236,131,90,.95);text-underline-offset:3px}' +
-    '::highlight(ppg-possible){background-color:rgba(224,185,60,.22);text-decoration:underline 2px dotted rgba(200,160,40,.95);text-underline-offset:3px}';
+    '::highlight(ppg-clear){background-color:rgba(222,64,38,.16);text-decoration:underline solid 2px rgba(222,64,38,.95);text-underline-offset:3px}' +
+    '::highlight(ppg-likely){background-color:rgba(222,64,38,.12);text-decoration:underline dashed 1.5px rgba(222,64,38,.95);text-underline-offset:3px}' +
+    '::highlight(ppg-possible){text-decoration:underline dotted 2px rgba(222,64,38,.95);text-underline-offset:3px}';
 
   function ensure() {
     if (reg) return;
@@ -179,14 +182,14 @@ var PPG_highlight = (function () {
   // highlighted ranges' boxes (throttled to one check per frame).
   var TIER_ORDER = { clear: 0, likely: 1, possible: 2 };
   var TIP_CSS =
-    ':host{all:initial;position:fixed;z-index:2147483646;pointer-events:none;' +
-    'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}' +
-    '.tip{box-sizing:border-box;max-width:300px;background:var(--surface);color:var(--text);border:1px solid var(--border);' +
-    'border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);padding:8px 10px;font-size:12.5px;line-height:1.4}' +
-    '.top{display:flex;gap:6px;align-items:baseline;margin-bottom:2px}' +
-    '.tier{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}' +
-    '.tier.clear{color:#D03B3B}.tier.likely{color:#D9692F}.tier.possible{color:#B08A17}' +
-    '.tech{font-weight:700}.why{color:var(--text-muted)}';
+    ':host{position:fixed;z-index:2147483646;pointer-events:none}' +
+    '.tip{box-sizing:border-box;max-width:300px;background:var(--card);color:var(--ink);border:1px solid var(--edge);' +
+    'box-shadow:var(--lift);padding:8px 11px 9px;font-size:12.5px;line-height:1.45;font-stretch:94%}' +
+    '.top{display:flex;gap:8px;align-items:baseline;margin-bottom:3px}' +
+    '.tier{font-family:var(--font-data);font-size:9.5px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--red);' +
+    'padding-bottom:1px;border-bottom:2px solid var(--red)}' +
+    '.tier.likely{border-bottom-style:dashed}.tier.possible{border-bottom-style:dotted}' +
+    '.tech{font-family:var(--font-display);font-weight:700}.why{color:var(--ink-2)}';
   var tip = null, shown = null, frame = 0, px = 0, py = 0, listening = false;
 
   function listen() {
@@ -297,19 +300,24 @@ var PPG_highlight = (function () {
 // ---------------------------------------------------------------- the "Analyze" button
 var PPG_DEEP_BTN_CSS =
   ':host{display:inline-flex;align-items:center;height:20px;max-height:20px;margin-left:6px;vertical-align:middle;white-space:nowrap;line-height:1;contain:layout style}' +
-  'button{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;' +
-  'border-radius:10px;font-size:11.5px;font-weight:600;color:var(--text-muted);border:1px solid var(--border);background:transparent}' +
-  'button:hover{color:var(--text);border-color:var(--text-muted)}' +
-  'button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}' +
-  '.ic{font-size:12px;font-weight:800}' +
-  '.dot{width:7px;height:7px;border-radius:50%;display:inline-block}' +
-  '.clear{background:#D03B3B}.likely{background:#EC835A}.possible{background:#E0B93C}' +
-  '.n{margin-right:2px}' +
-  'button.tiny .tx{display:none}button.tiny{padding:0 6px}' +
-  '.spin{width:10px;height:10px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--text-muted);box-sizing:border-box;animation:r .9s linear infinite}' +
+  // The dashboard's ghost button, at badge size: hairline, ink, square; ink fill on hover.
+  'button{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:20px;padding:1px 7px 0;' +
+  'font-family:var(--font-display);font-size:10px;font-weight:700;font-stretch:96%;letter-spacing:.08em;text-transform:uppercase;' +
+  'color:var(--ink-2);border:1px solid var(--rule);background:transparent}' +
+  'button:hover{color:var(--card);background:var(--ink);border-color:var(--ink)}' +
+  'button:focus-visible{outline:2px solid var(--red);outline-offset:2px}' +
+  '.ic{font-size:12px;font-weight:800;letter-spacing:0}' +
+  // Tier marks, as in the dashboard: one red, the tier in the line (solid, dashed, dotted).
+  '.dot{width:8px;height:8px;display:inline-block;box-sizing:border-box}' +
+  '.clear{background:var(--red)}.likely{background:var(--red-wash);border:1.5px dashed var(--red)}.possible{border:1.5px dotted var(--red)}' +
+  'button:hover .likely,button:hover .possible{border-color:var(--card)}button:hover .clear{background:var(--card)}' +
+  '.n{margin-right:2px;font-family:var(--font-data);font-weight:500;letter-spacing:0}' +
+  'button.tiny .tx{display:none}button.tiny{padding:1px 6px 0}' +
+  '.spin{width:10px;height:10px;border-radius:50%;border:2px solid var(--rule);border-top-color:var(--red);box-sizing:border-box;animation:r .8s linear infinite}' +
   '@keyframes r{to{transform:rotate(360deg)}}@media (prefers-reduced-motion:reduce){.spin{animation:none}}';
 
 function PPG_DeepButton(onClick) {
+  if (typeof PPG_loadFonts === 'function') PPG_loadFonts();
   this.host = document.createElement('ppg-deep');
   this.host.setAttribute('data-ppg', 'deep');
   this.root = this.host.attachShadow({ mode: 'open' });
@@ -373,6 +381,10 @@ PPG_DeepButton.prototype.render = function (s) {
 // chips before it), drop its words and keep the icon and dots. aria-label keeps the words.
 PPG_DeepButton.prototype.fit = function () {
   var self = this;
+  if (typeof PPG_fontsPending !== 'undefined' && PPG_fontsPending && !this._refit) {
+    this._refit = true;
+    PPG_fontsPending.then(function () { self._refit = false; self.fit(); });
+  }
   requestAnimationFrame(function () {
     if (!self.host.isConnected) return;
     var box = self.host.closest('article, [aria-posinset], div[role="article"]') || self.host.parentElement;
@@ -384,36 +396,43 @@ PPG_DeepButton.prototype.fit = function () {
 
 // ---------------------------------------------------------------- popover sections
 var PPG_DEEP_POP_CSS =
-  '.deep h3 .sub{text-transform:none;letter-spacing:0;font-weight:500;margin-left:6px}' +
-  '.legend{display:flex;gap:10px;flex-wrap:wrap;margin:2px 0 6px;font-size:11.5px;color:var(--text-muted)}' +
-  '.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}' +
-  '.t-clear{background:rgba(208,59,59,.35);border-bottom:2px solid #D03B3B}' +
-  '.t-likely{background:rgba(236,131,90,.35);border-bottom:2px solid #EC835A}' +
-  '.t-possible{background:rgba(224,185,60,.32);border-bottom:2px dotted #C8A028}' +
-  '.pat{margin:6px 0;padding-left:8px;border-left:3px solid var(--border)}' +
-  '.pat.clear{border-left-color:#D03B3B}.pat.likely{border-left-color:#EC835A}.pat.possible{border-left-color:#E0B93C}' +
-  '.tier{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-right:6px}' +
-  '.tier.clear{color:var(--v-false-text)}.tier.likely{color:var(--v-mis-text)}.tier.possible{color:var(--text-muted)}' +
-  '.mark{border-radius:3px;padding:0 2px}' +
-  '.claim{margin:8px 0}' +
-  '.vd{display:inline-block;font-size:11px;font-weight:700;border-radius:8px;padding:1px 7px;margin-right:6px;border:1px solid}' +
-  '.vd.supported{color:#2F7D4F;border-color:#2F7D4F;background:rgba(47,125,79,.1)}' +
-  '.vd.refuted{color:var(--v-false-text);border-color:var(--v-false);background:var(--v-false-soft)}' +
-  '.vd.misleading{color:var(--v-mis-text);border-color:var(--v-mis);background:var(--v-mis-soft)}' +
-  '.vd.unverified{color:var(--text-muted);border-color:var(--border)}' +
+  '.deep{display:flex;flex-direction:column;gap:12px}' +
+  '.deep section{display:flex;flex-direction:column;gap:5px}' +
+  '.deep h3{margin:0;font-family:var(--font-display);font-size:9.5px;font-weight:650;font-stretch:118%;letter-spacing:.2em;' +
+  'text-transform:uppercase;color:var(--ink-3);line-height:1.3}' +
+  // The head: the dashboard's rule-row, a label sunk into a hairline.
+  '.deep .dh h3{display:flex;align-items:center;gap:10px;color:var(--ink-2)}' +
+  '.deep .dh h3::after{content:"";flex:1;height:1px;background:var(--rule)}' +
+  '.deep h3 .sub{font-family:var(--font-data);font-size:10px;font-weight:400;font-stretch:100%;text-transform:none;letter-spacing:0;color:var(--ink-3)}' +
+  '.go-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}' +
+  '.engine{font-family:var(--font-data);font-size:10.5px;color:var(--ink-3)}' +
+  '.legend{display:flex;gap:12px;flex-wrap:wrap;font-family:var(--font-data);font-size:11px;color:var(--ink-2)}' +
+  '.sw{display:inline-block;width:14px;height:8px;margin-right:5px;vertical-align:0;border-bottom:2px solid var(--red)}' +
+  '.t-clear{background:var(--red-wash)}.t-likely{background:var(--red-wash);border-bottom-style:dashed}.t-possible{border-bottom-style:dotted}' +
+  '.pat{margin:2px 0;padding-left:9px;border-left:2px solid var(--red)}' +
+  '.pat.likely{border-left-style:dashed}.pat.possible{border-left-style:dotted}' +
+  '.tier{font-family:var(--font-data);font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;margin-right:6px;color:var(--red)}' +
+  '.claim{display:flex;flex-direction:column;gap:2px;margin:3px 0}' +
+  // Fact-check verdicts: the dashboard's stamps, in the verdict scale.
+  '.vd{display:inline-block;font-family:var(--font-display);font-size:9.5px;font-weight:800;font-stretch:104%;letter-spacing:.12em;' +
+  'text-transform:uppercase;padding:2px 6px 1px;margin-right:7px;border:1.5px solid currentColor;vertical-align:1px;line-height:1.3}' +
+  '.vd.supported{color:var(--verdict-credible)}.vd.refuted{color:var(--verdict-false)}' +
+  '.vd.misleading{color:var(--verdict-misleading)}.vd.unverified{color:var(--verdict-unverified)}' +
   '.basis{font-style:italic}' +
-  'ol.tl{list-style:none;margin:6px 0 0;padding:0}' +
-  'ol.tl li{position:relative;padding:0 0 10px 18px;border-left:2px solid var(--border);margin-left:5px}' +
+  // Where it came from: the thread. Trace nodes in red, this post in ink.
+  'ol.tl{list-style:none;margin:2px 0 0;padding:0}' +
+  'ol.tl li{position:relative;padding:0 0 10px 18px;border-left:1.5px solid var(--red);margin-left:5px}' +
   'ol.tl li:last-child{border-left-color:transparent;padding-bottom:0}' +
-  'ol.tl li::before{content:"";position:absolute;left:-6px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--text-muted);box-sizing:border-box}' +
-  'ol.tl li.telegram::before,ol.tl li.state_media::before,ol.tl li.narrative::before{border-color:var(--v-false)}' +
-  'ol.tl li.this::before{background:var(--accent);border-color:var(--accent)}' +
-  '.when{font-size:11.5px;color:var(--text-muted)}' +
-  '.steps{margin:4px 0;padding-left:0;list-style:none}' +
-  '.steps li{margin:2px 0;color:var(--text-muted)}.steps li.now{color:var(--text);font-weight:600}' +
-  '.err{color:var(--v-false-text)}' +
-  '.deep-go{background:var(--accent-soft);color:var(--accent-soft-text);border:1px solid var(--accent);margin-top:4px}' +
-  '.deep-go:hover{background:var(--accent);color:var(--on-accent)}';
+  'ol.tl li::before{content:"";position:absolute;left:-6px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--card);border:2px solid var(--ink-3);box-sizing:border-box}' +
+  'ol.tl li.telegram::before,ol.tl li.state_media::before,ol.tl li.narrative::before{border-color:var(--red)}' +
+  'ol.tl li:first-child::before{background:var(--red);border-color:var(--red)}' +
+  'ol.tl li.this::before{background:var(--ink);border-color:var(--ink)}' +
+  'ol.tl b{font-family:var(--font-display);font-stretch:88%}' +
+  '.when{font-family:var(--font-data);font-size:10.5px;color:var(--ink-3)}' +
+  '.steps{margin:0;padding-left:0;list-style:none;font-family:var(--font-data);font-size:11.5px}' +
+  '.steps li{margin:2px 0;color:var(--ink-3)}.steps li.now{color:var(--ink);font-weight:500}' +
+  '.err{color:var(--red)}' +
+  '.deep-go{align-self:flex-start}';
 
 function ppgD(tag, cls, text) {
   var e = document.createElement(tag);
@@ -446,24 +465,30 @@ function PPG_deepSection(pop, ctx) {
   st.textContent = PPG_DEEP_POP_CSS;
   box.appendChild(st);
 
-  var head = ppgD('section');
-  var h = ppgD('h3', null, 'In-depth analysis');
   var engine = s.engine || PPG_deepEngine;
-  h.appendChild(ppgD('span', 'sub', PPG_DEEP_ENGINES[engine] || PPG_DEEP_ENGINES.local));
-  head.appendChild(h);
-  box.appendChild(head);
+  var engineName = PPG_DEEP_ENGINES[engine] || PPG_DEEP_ENGINES.local;
 
   if (s.status === 'idle' || s.status === 'error') {
-    if (s.status === 'error') head.appendChild(ppgD('p', 'err', s.error || 'The analysis failed.'));
-    head.appendChild(ppgD('p', 'meta', 'Marks propaganda patterns in the text, checks its claims and traces where it came from. Usually takes 10–60 s.'));
-    // Not "primary": that class is the footer's "Report a mistake" (and tests find it by it).
+    // Just the button (and where it runs). Not "primary": tests find the feedback link by .wrong.
+    var row = ppgD('div', 'go-row');
     var go = ppgD('button', 'btn deep-go', s.status === 'error' ? 'Try again' : 'Analyze in depth');
     go.type = 'button';
+    go.setAttribute('aria-label', (s.status === 'error' ? 'Try the in-depth analysis again' : 'Analyze in depth') +
+      ': propaganda patterns, fact check and where it came from. Runs on ' + engineName);
     go.addEventListener('click', function () { if (ctx.deepStart) ctx.deepStart(); });
-    head.appendChild(go);
+    row.appendChild(go);
+    row.appendChild(ppgD('span', 'engine', engineName));
+    if (s.status === 'error') box.appendChild(ppgD('p', 'err', s.error || 'The analysis failed.'));
+    box.appendChild(row);
     pop.appendChild(box);
     return;
   }
+
+  var head = ppgD('section', 'dh');
+  var h = ppgD('h3', null, 'In-depth analysis');
+  h.appendChild(ppgD('span', 'sub', engineName));
+  head.appendChild(h);
+  box.appendChild(head);
 
   if (s.status !== 'done') {
     var steps = ppgD('ul', 'steps');

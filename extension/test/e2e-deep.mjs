@@ -72,7 +72,7 @@ try {
   check(await pop.locator('.steps').count() === 0, 'progress list is gone when done');
   check(/Gemma, on your computer/.test(await pop.locator('.deep h3').first().textContent()), 'heading says the analysis ran on this computer (default engine)');
   // The existing content is still there, above the new sections.
-  check(await pop.locator('blockquote').first().isVisible() && /Telegram source post/.test(await pop.locator('.pop').textContent()), 'existing popover content kept (Telegram source)');
+  check(/@two_majors on Telegram/.test(await pop.locator('dl.rows').textContent()), 'existing popover content kept (Telegram source row)');
 
   const legend = await pop.locator('.legend').first().textContent();
   check(/2 clear/.test(legend) && /likely/.test(legend), 'patterns summed up per tier: ' + legend);

@@ -118,20 +118,25 @@ try {
   const after = await page.evaluate(() => window.__tweetClicks || 0);
   check(after === before, 'badge click does not open the tweet');
   const popText = await page.locator('ppg-popover .pop').innerText();
-  check(/two_majors/.test(popText) && /97% similar/.test(popText), 'popover: Telegram source with similarity');
-  check(/Not a claim about who is behind this account/.test(popText), 'popover: footer disclaimer');
-  check(/loaded language/.test(popText), 'popover: technique tags');
-  check(/same text posted by 6 other accounts/.test(popText), 'popover: coordination reasons');
+  check(/Source\s+@two_majors on Telegram · open/i.test(popText), 'popover: Source row "@channel on Telegram · open"');
+  check(/Not a claim about who is behind this account/.test(popText), 'popover: disclaimer line');
+  check(/Coordinated\s+6 accounts, same text/i.test(popText), 'popover: Coordinated row');
+  check(await page.locator('ppg-popover .labels, ppg-popover section:not(.deep section)').count() === 0, 'popover: no chip row, no divided sections');
+  check(!/loaded language/i.test(popText), 'popover: techniques collapsed by default');
   await page.screenshot({ path: path.join(outDir, '04-popover-nvidia.png') });
+  await page.locator('ppg-popover details.more summary').click();
+  const opened = await page.locator('ppg-popover details.more').innerText();
+  check(/loaded language/i.test(opened) && /Copied Telegram post/i.test(opened), 'popover: techniques and the copied post in the details');
+  await page.screenshot({ path: path.join(outDir, '04b-popover-nvidia-details.png') });
 
   // focus trap: tab many times, focus stays inside
   for (let i = 0; i < 12; i++) await page.keyboard.press('Tab');
   const inside = await page.evaluate(() => document.activeElement && document.activeElement.tagName === 'PPG-POPOVER');
   check(inside, 'focus trapped in popover');
   // feedback
-  await page.locator('ppg-popover button.primary').click();
+  await page.locator('ppg-popover button.wrong').click();
   await page.locator('ppg-popover .thanks').waitFor({ timeout: 2000 });
-  check(true, 'feedback "Report a mistake" sent');
+  check(true, 'feedback "Wrong?" sent');
   await page.keyboard.press('Escape');
   check(await page.locator('ppg-popover').count() === 0, 'Esc closes popover');
 
@@ -141,8 +146,8 @@ try {
   await page.keyboard.press('Enter');
   await page.locator('ppg-popover .pop').waitFor();
   const t2 = await page.locator('ppg-popover .pop').innerText();
-  check(/The Kyiv regime is an American puppet/.test(t2) && /narratives/i.test(t2), 'popover: narrative claim under Narratives');
-  check(/State Media Mentions: \d+/i.test(t2), 'popover: state media mentions count');
+  check(/Narrative\s+The Kyiv regime is an American puppet/i.test(t2), 'popover: Narrative row with the claim only');
+  check(/State media\s+\d+ mentions/i.test(t2), 'popover: State media row with the mentions count');
   await page.screenshot({ path: path.join(outDir, '05-popover-narrative.png') });
   await page.mouse.click(5, 990); // outside click
   check(await page.locator('ppg-popover').count() === 0, 'outside click closes popover');
@@ -177,6 +182,11 @@ try {
   await page.waitForTimeout(400);
   check(await page.locator('ppg-badge[data-theme=dark]').count() > 0, 'badges follow the page dark theme');
   await page.screenshot({ path: path.join(outDir, '07-feed-dark.png') });
+  await art('1890412233445566771').locator('ppg-badge button.source').click();
+  await page.locator('ppg-popover .pop').waitFor();
+  check(await page.locator('ppg-popover[data-theme=dark]').count() === 1, 'popover follows the page dark theme');
+  await page.screenshot({ path: path.join(outDir, '07b-popover-dark.png') });
+  await page.keyboard.press('Escape');
 
   check(consoleMsgs.length === 0, 'no console errors or warnings' + (consoleMsgs.length ? ': ' + consoleMsgs.slice(0, 3).join(' | ') : ''));
 
@@ -198,6 +208,9 @@ try {
   check(stored.deepEngine === 'cloud' && await popup.locator('#deepUrl').isDisabled() && /Modal GPU/.test(await popup.locator('#deepStatus').innerText()),
     'choosing Cloud (Modal) is saved, and the local address is greyed out');
   await popup.screenshot({ path: path.join(outDir, '08b-popup-cloud.png'), fullPage: true });
+  await popup.emulateMedia({ colorScheme: 'dark' });
+  await popup.screenshot({ path: path.join(outDir, '08c-popup-dark.png'), fullPage: true });
+  await popup.emulateMedia({ colorScheme: 'light' });
   await popup.locator('label:has(input[name=deepEngine][value=local])').click();
   await popup.waitForTimeout(200);
   check((await popup.evaluate(() => chrome.storage.sync.get('deepEngine'))).deepEngine === 'local' && !(await popup.locator('#deepUrl').isDisabled()),
@@ -209,6 +222,13 @@ try {
   await page.waitForTimeout(500);
   const dots = await page.locator('ppg-badge button.dot').count();
   check(dots > 0, `show-all draws grey dots (${dots})`);
+  await page.click('#theme');            // back to light for the clean popover
+  await page.waitForTimeout(2200);
+  await page.locator('ppg-badge button.dot').first().click();
+  await page.locator('ppg-popover .pop').waitFor();
+  check(/Nothing found/i.test(await page.locator('ppg-popover h2').innerText()), 'clean popover: "Nothing found" verdict line');
+  await page.screenshot({ path: path.join(outDir, '13-popover-clean.png') });
+  await page.keyboard.press('Escape');
   // turning off removes every badge
   await popup.locator('#enabled').click();
   await page.waitForTimeout(400);
