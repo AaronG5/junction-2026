@@ -36,6 +36,7 @@ It works in Chrome, Edge, Brave and other Chromium browsers, version 116 or late
 | Sensitivity | normal | **Strict** shows the judge's flag only when `score ≥ 0.75`. Source matches and coordination are shown in both modes. |
 | Mock mode | off | On X too, answer from `src/mock.js` and send nothing over the network. About 5% of posts get flagged, chosen by a hash of the id. The fast path takes 300 ms, the judge 3 s. |
 | Backend URL | `https://augustasrink--ppg-ext-web.us-east.modal.run` | Where `/api/ext/*` lives. |
+| In-depth analysis | `http://127.0.0.1:8000` | Where the **Analyze** button's analysis runs (`/api/ext/deep`): Veritas Lens on your computer, with the local Gemma. |
 
 The settings live in `chrome.storage.sync`. The counters (scanned, flagged) cover the current browser session.
 
@@ -72,6 +73,33 @@ Clicking a chip (or pressing Enter on it) opens a popover with:
 The popover traps focus and closes on Esc or an outside click.
 
 When the post is too narrow for full chips, they step down: first short labels, then icons only. The full wording stays in `aria-label` and `title`.
+
+## In-depth analysis (the Analyze button)
+
+Every post that gets a badge also gets an **Analyze** button: on X at the end of the action row
+(reply / repost / like), on Facebook next to the badge under the post text. The automatic check above
+stays as it is; the in-depth analysis runs only when asked, on your own computer with Gemma
+(`backend/veritas/deep.py`, about 10–60 s). It adds three sections to the popover, below the existing ones:
+
+1. **Propaganda patterns.** Phrases that use a propaganda or manipulation technique, each with a tier:
+   **Clear**, **Likely** or **Possible**. They are **highlighted in the post itself**: red, orange and dotted
+   yellow underlines. Highlights use the CSS Custom Highlight API, so the site's DOM is never changed.
+   A phrase behind "See more" is listed but can't be highlighted (the popover says so).
+2. **Fact check.** Each checkable claim with a verdict: **Accurate**, **False**, **Misleading** or **Can't tell**,
+   with the model's confidence and a short explanation. These come from the model's own knowledge;
+   no sources are consulted yet, and the section says so.
+3. **Where it came from.** A timeline, oldest first: the documented narrative and its state-media echo,
+   matching Telegram posts (both from the automatic check), earlier similar posts in the Veritas Lens database,
+   the original post when this one quotes or shares it, and finally this post and how it reached your feed
+   (the group, page or repost). A one-line summary names the earliest trace.
+
+While it runs, the button shows the step (`Analyzing 2/3`) and the popover lists the steps, filling in each
+part as it arrives. When done, the button summarises the result: a coloured dot and count per tier, plus
+the number of false or misleading claims. Results last for the page's life; the backend keeps finished jobs
+in memory, so the same post is answered at once.
+
+Code: `src/deep.js` (job tracking, highlights, button, popover sections; shared by X and Facebook),
+the `deep-start` / `deep-get` messages in `src/background.js`, `MockDeep` in `src/mock.js`.
 
 ## How it works
 
@@ -133,13 +161,14 @@ npm test             # all three below
 npm run test:unit    # jsdom: parser on a saved X markup fixture, view model, badge/popover, mock
 npm run test:e2e     # headless Chromium with the extension loaded, demo feed in mock mode, screenshots in test/out/
 npm run test:live    # same, against a stub HTTP backend that follows API.md (also checks the backend-down case)
+npm run test:deep    # the Analyze button on the demo feed (mock): progress, the three sections, highlights
 ```
 
 The e2e tests use Playwright's Chromium from `~/.cache/ms-playwright`. To use another browser, set `CHROMIUM=/path/to/chrome`. They load the extension in Chrome's new headless mode (`--headless=new`).
 
 ## Privacy
 
-What is sent: the text of posts you scroll near on X and Facebook, with the post's id, link, author handle, display name, time and language (on Facebook also the group's name). It goes to the backend URL in the popup.
+What is sent: the text of posts you scroll near on X and Facebook, with the post's id, link, author handle, display name, time and language (on Facebook also the group's name). It goes to the backend URL in the popup. When you click **Analyze**, that post (with the quoted or shared original, and what the automatic check found) goes to the in-depth analysis URL, by default Veritas Lens on your own computer.
 
 What is not sent: no cookies, no X or Facebook account data, no browsing history, and nothing from other sites. In mock mode, nothing leaves the browser. Results are cached for the browser session only.
 

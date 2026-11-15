@@ -2,15 +2,19 @@
 // Batches items (16 or 400 ms), caches results by tweet id (memory +
 // chrome.storage.session), polls slow-path results every 2 s for up to 60 s,
 // and pushes results to the tabs that asked.
-import { MockBackend } from './mock.js';
+import { MockBackend, MockDeep } from './mock.js';
 
 export const DEFAULTS = Object.freeze({
   enabled: true,
   baseUrl: 'https://augustasrink--ppg-ext-web.us-east.modal.run',
+  // In-depth analysis ("Analyze" button: patterns, truth check, trace) needs the local Gemma,
+  // so it goes to the Veritas Lens backend on this computer.
+  deepUrl: 'http://127.0.0.1:8000',
   showAll: false,
   sensitivity: 'normal',
   mock: false,
 });
+const DEEP_TIMEOUT_MS = 15000;
 const CLIENT = 'ext/0.1';
 const BATCH_MAX = 16;
 const BATCH_MS = 400;
@@ -295,6 +299,53 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
+// ---------------------------------------------------------------- in-depth analysis
+// Stateless pass-through: the content script starts the job and polls it (src/deep.js).
+let mockDeep = null;
+const DEEP_ITEM_KEYS = ['id', 'url', 'author', 'author_name', 'text', 'lang', 'time', 'kind', 'quoted_id', 'platform', 'group'];
+const DEEP_OLD = 'Veritas Lens on this computer is running an older version without the in-depth analysis. Restart it (launch.bat --stop, then launch.bat).';
+const DEEP_DOWN ='The in-depth analysis runs on your own computer, and Veritas Lens isn’t answering there. Start it with launch.bat (or launch.sh).';
+
+async function deepCall(msg, sender) {
+  const useMock = backendKey(sender.url || (sender.tab && sender.tab.url)) === 'mock';
+  if (useMock && !mockDeep) mockDeep = new MockDeep();
+  try {
+    if (msg.type === 'deep-start') {
+      const b = msg.body || {};
+      if (!b.item || !validItem(b.item)) return { ok: false, error: 'This post can’t be analyzed.' };
+      const body = {
+        item: Object.fromEntries(DEEP_ITEM_KEYS.filter((k) => k in b.item).map((k) => [k, b.item[k]])),
+        shared: b.shared || null,
+        context: b.context || {},
+      };
+      if (useMock) return { ok: true, data: await mockDeep.start(body) };
+      const res = await deepFetch('/api/ext/deep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      // A 404 here means the server is up but has no in-depth analysis: a Veritas Lens started
+      // before it was added (or another server at that address).
+      if (res.status === 404) return { ok: false, status: 404, error: DEEP_OLD };
+      return res;
+    }
+    const id = String(msg.id || '');
+    if (!/^[A-Za-z0-9]{1,64}$/.test(id)) return { ok: false, error: 'Unknown analysis.' };
+    if (useMock) { const j = await mockDeep.get(id); return j ? { ok: true, data: j } : { ok: false, status: 404, error: 'Unknown analysis.' }; }
+    return await deepFetch('/api/ext/deep/' + id, { method: 'GET' });
+  } catch (e) {
+    return { ok: false, status: 0, error: DEEP_DOWN };
+  }
+}
+
+async function deepFetch(path, init) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), DEEP_TIMEOUT_MS);
+  try {
+    const res = await fetch(trimBase(settings.deepUrl || DEFAULTS.deepUrl) + path, { ...init, signal: ctl.signal, credentials: 'omit', cache: 'no-store' });
+    let data = null;
+    try { data = await res.json(); } catch (e) { /* not JSON */ }
+    if (!res.ok) return { ok: false, status: res.status, error: (data && data.detail) || ('The analysis server answered with error ' + res.status + '.') };
+    return { ok: true, data };
+  } finally { clearTimeout(t); }
+}
+
 function validItem(it) {
   return it && typeof it.id === 'string' && /^[A-Za-z0-9]{1,40}$/.test(it.id) && typeof it.text === 'string';
 }
@@ -310,6 +361,13 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       const body = { tweet_id: String(b.tweet_id || ''), verdict_shown: String(b.verdict_shown || ''), user_says: b.user_says === 'right' ? 'right' : 'wrong' };
       if (b.note) body.note = String(b.note).slice(0, 500);
       try { reply(await t.feedback(body)); } catch (e) { reply({ ok: false }); }
+    })();
+    return true;
+  }
+  if (msg.type === 'deep-start' || msg.type === 'deep-get') {
+    (async () => {
+      await settingsReady;
+      reply(await deepCall(msg, sender));
     })();
     return true;
   }

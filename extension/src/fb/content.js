@@ -14,7 +14,7 @@
 // "ppg", same pipeline and backend API), results come back, the badge and popover
 // (src/ui.js, src/view.js) show them.
 /* global chrome, PPG_isLongEnough, PPG_viewModel, PPG_Badge, PPG_Popover, PPG_setTheme,
-          PPG_fbParseJson, PPG_fbExtract, PPG_fbTextKey */
+          PPG_fbParseJson, PPG_fbExtract, PPG_fbTextKey, PPG_Deep, PPG_highlight, PPG_DeepButton */
 (function () {
   'use strict';
   if (window.__ppgFbLoaded) return;
@@ -85,7 +85,8 @@
   function enqueue(item) {
     if (sent.has(item.id)) return;
     sent.add(item.id);
-    queue.push(item);
+    var copy = {}; for (var k in item) if (k !== 'shared') copy[k] = item[k]; // "shared" is for the in-depth analysis only
+    queue.push(copy);
     if (!queueTimer) queueTimer = setTimeout(function () { queueTimer = 0; var l = queue; queue = []; if (l.length) post(l); }, 50);
   }
   function onWorkerMessage(msg) {
@@ -101,12 +102,31 @@
   // ------------------------------------------------------------ badges
   function ctxFor(v) {
     var r = results.get(v.item.id);
-    return { item: v.item, quoted: null, result: r, quotedResult: undefined, vm: PPG_viewModel(r, settings, undefined) };
+    return { item: v.item, quoted: null, result: r, quotedResult: undefined, vm: PPG_viewModel(r, settings, undefined),
+             deepStart: function () { startDeep(v); } };
   }
+
+  // ------------------------------------------------------------ in-depth analysis (src/deep.js)
+  function startDeep(v) { PPG_Deep.start(v.item, function () { return results.get(v.item.id); }, v.item.shared || null); }
+  function renderDeep(v) {
+    if (!v.deep) return;
+    var s = PPG_Deep.state(v.item.id);
+    v.deep.render(s);
+    var items = s.job && s.job.patterns && s.job.patterns.items;
+    if (items && items.length && PPG_highlight.stale(v.item.id)) PPG_highlight.apply(v.item.id, v.msg, items);
+  }
+  PPG_Deep.onChange(function (id) {
+    var v = views.get(id);
+    if (!v) return;
+    renderDeep(v);
+    if (popover.isOpen() && popover.ctx && popover.ctx.item.id === id) popover.update(ctxFor(v));
+  });
+
   function renderView(v) {
     if (!v.badge) return;
     var ctx = ctxFor(v);
     v.badge.render(ctx.vm, settings.showAll);
+    renderDeep(v);
     if (popover.isOpen() && popover.ctx && popover.ctx.item.id === v.item.id) popover.update(ctx);
   }
   function mount(v) {
@@ -115,10 +135,17 @@
         if (popover.isOpen() && popover.ctx && popover.ctx.item.id === v.item.id) { popover.close(); return; }
         popover.open(btn, ctxFor(v));
       });
+      v.deep = new PPG_DeepButton(function (btn) {
+        var s = PPG_Deep.state(v.item.id);
+        if (s.status === 'idle' || s.status === 'error') startDeep(v);
+        if (popover.isOpen() && popover.ctx && popover.ctx.item.id === v.item.id && popover.returnFocus === btn) { popover.close(); return; }
+        popover.open(btn, ctxFor(v));
+      });
       v.row = document.createElement('div');
       v.row.setAttribute('data-ppg', 'fb-row');
       v.row.style.cssText = 'display:flex;align-items:center;min-height:20px;margin:6px 16px 2px;';
       v.row.appendChild(v.badge.host);
+      v.row.appendChild(v.deep.host);
     }
     if (v.row.isConnected && v.row.previousElementSibling === v.msg) return;
     v.msg.insertAdjacentElement('afterend', v.row);
@@ -210,7 +237,7 @@
     running = false;
     mo.disconnect();
     popover.close(false);
-    views.forEach(function (v) { if (v.row) v.row.remove(); io.unobserve(v.msg); });
+    views.forEach(function (v, id) { if (v.row) v.row.remove(); PPG_highlight.clear(id); io.unobserve(v.msg); });
     views.clear();
     bound = new WeakMap();
   }

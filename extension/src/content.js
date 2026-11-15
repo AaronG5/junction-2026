@@ -1,6 +1,7 @@
 // Content script: finds posts as X renders them, sends near-viewport ones to
 // the service worker, and draws badges. No network calls here.
-/* global chrome, PPG_SEL, PPG_parseTweet, PPG_isLongEnough, PPG_viewModel, PPG_Badge, PPG_Popover, PPG_setTheme */
+/* global chrome, PPG_SEL, PPG_parseTweet, PPG_isLongEnough, PPG_viewModel, PPG_Badge, PPG_Popover, PPG_setTheme,
+          PPG_Deep, PPG_highlight, PPG_DeepButton */
 (function () {
   'use strict';
   if (window.__ppgLoaded) return; // guard against double injection
@@ -100,13 +101,40 @@
   function ctxFor(v) {
     var r = results.get(v.item.id);
     var q = v.quoted ? results.get(v.quoted.id) : undefined;
-    return { item: v.item, quoted: v.quoted, result: r, quotedResult: q, vm: PPG_viewModel(r, settings, q) };
+    return { item: v.item, quoted: v.quoted, result: r, quotedResult: q, vm: PPG_viewModel(r, settings, q),
+             deepStart: function () { startDeep(v); } };
   }
+
+  // ------------------------------------------------------------ in-depth analysis (src/deep.js)
+  function startDeep(v) {
+    var q = v.quoted;
+    var shared = q ? { author: q.author, author_name: q.author_name, url: q.url, time: q.time, text: q.text, platform: 'x' } : null;
+    PPG_Deep.start(v.item, function () { return results.get(v.item.id); }, shared);
+  }
+  function mainText(article) {
+    var ts = article.querySelectorAll(PPG_SEL.tweetText);
+    for (var i = 0; i < ts.length; i++) if (!ts[i].closest(PPG_SEL.quoteCard)) return ts[i];
+    return null;
+  }
+  function renderDeep(v) {
+    if (!v.deep) return;
+    var s = PPG_Deep.state(v.item.id);
+    v.deep.render(s);
+    var items = s.job && s.job.patterns && s.job.patterns.items;
+    if (items && items.length && PPG_highlight.stale(v.item.id)) PPG_highlight.apply(v.item.id, mainText(v.article), items);
+  }
+  PPG_Deep.onChange(function (id) {
+    var v = views.get(id);
+    if (!v) return;
+    renderDeep(v);
+    if (popover.isOpen() && popover.ctx && popover.ctx.item.id === id) popover.update(ctxFor(v));
+  });
 
   function renderView(v) {
     if (!v.badge) return;
     var ctx = ctxFor(v);
     v.badge.render(ctx.vm, settings.showAll);
+    renderDeep(v);
     if (popover.isOpen() && popover.ctx && popover.ctx.item.id === v.item.id) popover.update(ctx);
   }
 
@@ -117,6 +145,15 @@
         popover.open(btn, ctxFor(v));
       });
     }
+    if (!v.deep) {
+      v.deep = new PPG_DeepButton(function (btn) {
+        var s = PPG_Deep.state(v.item.id);
+        if (s.status === 'idle' || s.status === 'error') startDeep(v);
+        if (popover.isOpen() && popover.ctx && popover.ctx.item.id === v.item.id && popover.returnFocus === btn) { popover.close(); return; }
+        popover.open(btn, ctxFor(v));
+      });
+    }
+    placeDeep(v);
     var host = v.badge.host;
     if (host.isConnected && v.article.contains(host)) return;
     // Right after the timestamp link, inside the same flex row.
@@ -126,6 +163,20 @@
     } else {
       v.article.appendChild(host);
     }
+  }
+
+  // The Analyze button goes at the end of the action row (reply / repost / like): the header
+  // row is full with the name, handle, time and chips. No action row: after the badge.
+  function placeDeep(v) {
+    var rows = v.article.querySelectorAll(PPG_SEL.actionRow);
+    var row = null;
+    for (var i = rows.length - 1; i >= 0; i--) if (!rows[i].closest(PPG_SEL.quoteCard)) { row = rows[i]; break; }
+    if (row) {
+      if (v.deep.host.parentNode !== row) row.appendChild(v.deep.host);
+      return;
+    }
+    var host = v.badge.host;
+    if (host.parentNode && host.nextSibling !== v.deep.host) host.parentNode.insertBefore(v.deep.host, host.nextSibling);
   }
 
   // ------------------------------------------------------------ discovery
@@ -159,7 +210,8 @@
       var known = tracked.get(a);
       if (known && sigs.get(a) === sig) {
         var kv = views.get(known);
-        if (kv && kv.badge && kv.badge.host.isConnected && a.contains(kv.badge.host)) continue;
+        if (kv && kv.badge && kv.badge.host.isConnected && a.contains(kv.badge.host) &&
+            kv.deep && kv.deep.host.isConnected && a.contains(kv.deep.host)) continue;
       }
       sigs.set(a, sig);
       var parsed;
@@ -205,6 +257,8 @@
     var v = id && views.get(id);
     if (v && v.article === a) {
       if (v.badge) v.badge.host.remove();
+      if (v.deep) v.deep.host.remove();
+      PPG_highlight.clear(id);
       views.delete(id);
     }
   }
@@ -250,7 +304,12 @@
     mo.disconnect();
     themeMo.disconnect();
     popover.close(false);
-    views.forEach(function (v) { if (v.badge) v.badge.host.remove(); io.unobserve(v.article); });
+    views.forEach(function (v, id) {
+      if (v.badge) v.badge.host.remove();
+      if (v.deep) v.deep.host.remove();
+      PPG_highlight.clear(id);
+      io.unobserve(v.article);
+    });
     views.clear();
     tracked = new WeakMap();
   }

@@ -1,7 +1,7 @@
 // Badge and popover. Both live in Shadow DOM so X's CSS cannot
 // reach them, and both are built with textContent only (no innerHTML from
 // server data). Colors are the team's Baltic tokens (frontend/src/styles/tokens.css).
-/* global PPG_viewModel, PPG_ariaLabel, PPG_LABELS */
+/* global PPG_viewModel, PPG_ariaLabel, PPG_LABELS, PPG_deepSection, PPG_Deep */
 /* exported PPG_Badge, PPG_Popover, PPG_setTheme */
 
 var PPG_TOKENS =
@@ -360,12 +360,18 @@ PPG_Popover.prototype._fill = function (pop, ctx) {
   close.addEventListener('click', function () { self.close(); });
 
   var vm = ctx.vm;
+  // Opened for the in-depth analysis (src/deep.js) on a post the automatic check didn't flag:
+  // "Nothing found" as the heading would contradict what the analysis finds below.
+  var deepOn = typeof PPG_Deep !== 'undefined' && ctx.item && PPG_Deep.state(ctx.item.id).status !== 'idle';
   var h = el('h2');
   h.id = 'ppg-h';
   h.textContent = vm.state === 'flagged' ? 'Why this post is marked' :
-    vm.state === 'unavailable' ? PPG_LABELS.unavailable : PPG_LABELS.clean;
+    vm.state === 'unavailable' ? PPG_LABELS.unavailable :
+    deepOn ? 'Analysis of this post' : PPG_LABELS.clean;
   pop.appendChild(h);
   pop.appendChild(close);
+  if (deepOn && vm.state === 'clean') pop.appendChild(el('p', 'meta', 'The automatic check found no known narrative, source post or coordination.'));
+  if (deepOn && vm.state === 'checking') pop.appendChild(el('p', 'meta', 'The automatic check is still running.'));
 
   var labs = el('div', 'labels');
   vm.labels.forEach(function (c) { labs.appendChild(el('span', 'lab ' + c.kind, c.text)); });
@@ -397,6 +403,9 @@ PPG_Popover.prototype._fill = function (pop, ctx) {
   if (r.status === 'timeout') {
     pop.appendChild(el('p', 'meta', 'The full text check did not finish within 60 s.'));
   }
+
+  // In-depth analysis on request (src/deep.js): patterns, fact check, where it came from.
+  if (typeof PPG_deepSection === 'function') PPG_deepSection(pop, ctx);
 
   var f = el('footer');
   f.appendChild(el('div', null, 'Automated assessment, may be wrong. Not a claim about who is behind this account.'));

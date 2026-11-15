@@ -124,6 +124,52 @@ While polling, the client ignores a per-item `status: "error"` and keeps polling
 - `user_says` is `wrong` ("Report a mistake") or `right` ("Looks right").
 - The response is `{ "ok": true }`.
 
+## POST /api/ext/deep, GET /api/ext/deep/{id} (in-depth analysis)
+
+Started only when the user clicks **Analyze**. It goes to the **in-depth analysis URL** (popup setting
+`deepUrl`, default `http://127.0.0.1:8000`: Veritas Lens on the user's computer, because it needs the
+local Gemma). Implemented in `backend/veritas/deep.py`; `src/mock.js` (`MockDeep`) follows the same shape.
+
+```json
+{
+  "item": { "id": "...", "url": "...", "author": "...", "author_name": "...", "text": "...", "lang": "en",
+            "time": "...", "kind": "post", "quoted_id": null, "platform": "facebook", "group": "..." },
+  "shared": { "author": "...", "author_name": "...", "url": "...", "time": "...", "text": "...", "platform": "x" },
+  "context": { "narrative": {...}, "state_media_echo": [...], "source_match": {...} }
+}
+```
+
+- `shared`: the quoted (X) or shared (Facebook) original, or `null`.
+- `context`: what the fast check (`/api/ext/batch`) already returned for the post, so the trace can use it.
+  The client waits up to 10 s for that result before starting.
+- The answer is the job; the same post asked for again gets the same job. Errors: 400 no text, 503 the local
+  AI isn't running, 404 (GET) unknown job.
+
+The client polls `GET /api/ext/deep/{id}` every 1.5 s (for up to 5 minutes) until `status` is `done` or `error`:
+
+```json
+{
+  "id": "9f2c…", "post_id": "fb3674…", "status": "running", "step": 1, "error": null,
+  "steps": ["Finding propaganda patterns", "Checking the claims", "Tracing where it came from"],
+  "patterns": { "items": [ { "quote": "a CIA operation", "technique": "Conspiracy framing", "tier": "clear", "why": "…" } ],
+                "overall": "…", "model": "gemma-4-E2B-it", "prompt": "patterns.v1" },
+  "truth": { "items": [ { "claim": "…", "quote": "…", "verdict": "unverifiable", "confidence": 70, "explanation": "…" } ],
+             "basis": "The model's own knowledge. No sources were checked, …", "model": "…", "prompt": "truth.v1" },
+  "trace": { "summary": "The earliest trace found is @two_majors (…)…",
+             "nodes": [ { "kind": "telegram", "title": "Telegram post", "who": "@two_majors", "where": "…", "time": "2026-11-13T18:49:44Z",
+                          "url": "https://t.me/…", "sim": 0.97, "text": "…", "note": "…" } ] }
+}
+```
+
+- `step`: 0–2 while running (index into `steps`), 3 when done. Each part appears as soon as it is ready.
+- `patterns.items[].tier`: `clear`, `likely` or `possible`, clearest first. Every `quote` is the post's own words
+  (Gemma's quotes that aren't in the post are dropped); the client highlights them.
+- `truth.items[].verdict`: `true`, `false`, `misleading` or `unverifiable`; `confidence` 0–100. A `quote` not in
+  the post is `""`.
+- `trace.nodes[].kind`: `narrative` (undated background, first), `state_media`, `telegram`, `similar` (earlier posts
+  in the Veritas Lens database), `original` (the shared or quoted post), `this` (this post, with how it reached the
+  feed). Oldest first; nodes after `this` appeared later. Only `https:` links are kept.
+
 ## Client behaviour the backend can rely on
 
 - Results are cached by id in the worker's memory and in `chrome.storage.session`. The cache is per backend URL, and mock results never mix with real ones.

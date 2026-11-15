@@ -3,6 +3,7 @@
 const DEFAULTS = {
   enabled: true,
   baseUrl: 'https://augustasrink--ppg-ext-web.us-east.modal.run',
+  deepUrl: 'http://127.0.0.1:8000',
   showAll: false,
   sensitivity: 'normal',
   mock: false,
@@ -16,6 +17,7 @@ async function load() {
   $('showAll').checked = s.showAll;
   $('mock').checked = s.mock;
   $('baseUrl').value = s.baseUrl;
+  $('deepUrl').value = s.deepUrl;
   document.querySelector(`input[name=sensitivity][value=${s.sensitivity === 'strict' ? 'strict' : 'normal'}]`).checked = true;
   document.body.classList.toggle('off', !s.enabled);
   if (s.mock) status('Mock mode: no requests leave your browser.');
@@ -63,6 +65,26 @@ async function save() {
     status(r && r.ok ? 'Saved. Server answered.' : 'Saved, but the server did not answer (' + ((r && r.error) || 'no reply') + ').', r && r.ok ? 'ok' : 'err');
   });
 }
+// The in-depth analysis address (Veritas Lens with the local Gemma).
+async function saveDeep() {
+  const out = (t, cls) => { const s = $('deepStatus'); s.textContent = t; s.className = 'status ' + (cls || ''); };
+  let url;
+  try {
+    url = new URL($('deepUrl').value.trim());
+    if (!/^https?:$/.test(url.protocol)) throw new Error();
+  } catch (e) { out('Enter a full URL, like http://127.0.0.1:8000', 'err'); return; }
+  const base = url.origin + url.pathname.replace(/\/+$/, '');
+  const pattern = url.origin + '/*';
+  if (!(await chrome.permissions.contains({ origins: [pattern] }))) {
+    const ok = await chrome.permissions.request({ origins: [pattern] }).catch(() => false);
+    if (!ok) { out('Permission to reach that server was not granted.', 'err'); return; }
+  }
+  await chrome.storage.sync.set({ deepUrl: base });
+  $('deepUrl').value = base;
+  out('Saved.', 'ok');
+}
+$('saveDeep').addEventListener('click', saveDeep);
+$('deepUrl').addEventListener('keydown', (e) => { if (e.key === 'Enter') saveDeep(); });
 $('save').addEventListener('click', save);
 $('baseUrl').addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
 

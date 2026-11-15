@@ -5,7 +5,9 @@ POST /api/ext/batch     {"client", "items": [{id, url, author, author_name, text
                         judge runs
 GET  /api/ext/result?ids=a,b   -> {"results": [...]} (poll pending ids)
 POST /api/ext/feedback  {tweet_id, verdict_shown, user_says, note?} -> {"ok": true}
-The engine lives in veritas/narrative.py. Labels are "potentially propaganda" at most, never an attribution.
+POST /api/ext/deep      {"item", "shared"?, "context"?} -> the in-depth analysis job (patterns, truth check, trace)
+GET  /api/ext/deep/{id} -> the job (poll until status is "done" or "error")
+The engine lives in veritas/narrative.py; the in-depth analysis in veritas/deep.py. Labels are "potentially propaganda" at most, never an attribution.
 """
 from __future__ import annotations
 
@@ -37,6 +39,26 @@ class Item(BaseModel):
     time: str | None = Field(default=None, max_length=40)
     kind: str | None = Field(default=None, max_length=20)
     quoted_id: str | None = Field(default=None, max_length=40)
+    platform: str | None = Field(default=None, max_length=20)     # "facebook" on Facebook items
+    group: str | None = Field(default=None, max_length=300)       # the Facebook group it was posted in
+
+
+class SharedPost(BaseModel):
+    """The original of a shared (Facebook) or quoted (X) post."""
+    author: str | None = Field(default=None, max_length=100)
+    author_name: str | None = Field(default=None, max_length=200)
+    url: str | None = Field(default=None, max_length=500)
+    time: str | None = Field(default=None, max_length=40)
+    text: str | None = Field(default=None, max_length=10000)
+    platform: str | None = Field(default=None, max_length=20)
+
+
+class DeepRequest(BaseModel):
+    """POST /api/ext/deep: the post, plus what the fast check already found about it (the result's
+    content.narrative, content.state_media_echo and source_match) so the trace can use it."""
+    item: Item
+    shared: SharedPost | None = None
+    context: dict = Field(default_factory=dict)
 
 
 class Batch(BaseModel):
@@ -91,3 +113,57 @@ def feedback(request: Request, body: Feedback):
     _limit(request)
     _engine(request).feedback(body.model_dump())
     return {"ok": True}
+
+
+# --------------------------------------------------------------------------- in-depth analysis (veritas/deep.py)
+
+NO_TEXT = "This post has no text to analyze."
+NO_JOB = "That analysis isn't available any more. Start it again."
+
+
+def _context(raw: dict) -> dict:
+    """Only the fast-check fields the trace uses, size-limited (they come from the client)."""
+    out: dict = {}
+    if isinstance(raw.get("narrative"), dict):
+        out["narrative"] = {k: raw["narrative"].get(k) for k in ("text", "source", "sim")}
+    if isinstance(raw.get("state_media_echo"), list):
+        out["state_media_echo"] = [{k: e.get(k) for k in ("text", "source", "n_aired", "first", "last", "sim")}
+                                   for e in raw["state_media_echo"][:3] if isinstance(e, dict)]
+    sm = raw.get("source_match")
+    if isinstance(sm, dict) and isinstance(sm.get("telegram"), list):
+        out["source_match"] = {"strong": bool(sm.get("strong")), "telegram": [
+            {k: t.get(k) for k in ("channel", "url", "date", "sim", "text")} for t in sm["telegram"][:3] if isinstance(t, dict)]}
+    for v in out.get("state_media_echo", []) + out.get("source_match", {}).get("telegram", []) + [out.get("narrative") or {}]:
+        for k, x in v.items():
+            if isinstance(x, str):
+                v[k] = x[:1000]
+    return out
+
+
+@router.post("/deep")
+def deep_start(request: Request, body: DeepRequest):
+    """Start (or reuse) the in-depth analysis of one post: patterns, truth check, trace."""
+    from .. import deep
+    from ..ai import AiUnavailable
+
+    _limit(request)
+    item = body.item.model_dump()
+    if not (item.get("text") or "").strip():
+        raise HTTPException(400, NO_TEXT)
+    if body.shared:
+        item["shared"] = body.shared.model_dump()
+    try:
+        return deep.get_jobs(request.app.state.settings).start(item, _context(body.context))
+    except AiUnavailable as exc:
+        raise HTTPException(503, str(exc)) from None
+
+
+@router.get("/deep/{job_id}")
+def deep_get(request: Request, job_id: str):
+    from .. import deep
+
+    _limit(request)
+    job = deep.get_jobs(request.app.state.settings).get(job_id)
+    if job is None:
+        raise HTTPException(404, NO_JOB)
+    return job

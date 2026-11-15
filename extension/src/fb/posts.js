@@ -72,7 +72,7 @@ var PPG_fbExtract = (function () {
     var group = (story.to && story.to.__typename === 'Group' && story.to) ||
       findInStory(story, function (o) { return o.__typename === 'Group' && typeof o.name === 'string' && o.name; });
     var actor = story.actors[0] || {};
-    return {
+    var item = {
       id: 'fb' + String(story.post_id).replace(/[^A-Za-z0-9]/g, '').slice(0, 38),
       url: story.permalink_url || story.url,
       author: handleOf(actor),
@@ -84,6 +84,27 @@ var PPG_fbExtract = (function () {
       quoted_id: null,
       platform: 'facebook',
       group: group ? group.name : null,
+    };
+    var shared = sharedOf(story.attached_story);
+    if (shared) item.shared = shared; // for the source trace (src/deep.js); not sent with the fast check
+    return item;
+  }
+
+  // The original of a shared post (attached_story), when Facebook sends it along.
+  function sharedOf(s) {
+    if (!s || typeof s !== 'object') return null;
+    var actor = (Array.isArray(s.actors) && s.actors[0]) || {};
+    var url = s.permalink_url || s.url || null;
+    var text = get(s, ['comet_sections', 'message', 'story', 'message', 'text']) || get(s, ['message', 'text']) || '';
+    var t = s.creation_time || get(s, ['comet_sections', 'timestamp', 'story', 'creation_time']);
+    if (!url && !text) return null;
+    return {
+      author: actor.url ? handleOf(actor) : (actor.id ? String(actor.id) : null),
+      author_name: actor.name || null,
+      url: typeof url === 'string' ? url : null,
+      time: typeof t === 'number' ? new Date(t * 1000).toISOString() : null,
+      text: String(text).trim().slice(0, 2000),
+      platform: 'facebook',
     };
   }
 

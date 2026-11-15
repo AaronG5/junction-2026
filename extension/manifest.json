@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Decode the Noise: potentially propaganda on X and Facebook",
   "short_name": "Decode the Noise",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Marks X and Facebook posts that are potentially propaganda or show coordinated posting. Automated assessment, may be wrong.",
   "minimum_chrome_version": "116",
   "permissions": ["storage"],
@@ -24,7 +24,7 @@
         "http://localhost/*feed.html*",
         "http://127.0.0.1/*feed.html*"
       ],
-      "js": ["src/selectors.js", "src/parse.js", "src/view.js", "src/ui.js", "src/content.js"],
+      "js": ["src/selectors.js", "src/parse.js", "src/view.js", "src/ui.js", "src/deep.js", "src/content.js"],
       "run_at": "document_idle"
     },
     {
@@ -35,7 +35,7 @@
     },
     {
       "matches": ["https://www.facebook.com/*", "https://web.facebook.com/*"],
-      "js": ["src/parse.js", "src/view.js", "src/ui.js", "src/fb/posts.js", "src/fb/content.js"],
+      "js": ["src/parse.js", "src/view.js", "src/ui.js", "src/deep.js", "src/fb/posts.js", "src/fb/content.js"],
       "run_at": "document_start"
     }
   ],

@@ -170,3 +170,122 @@ export class MockBackend {
 }
 
 export const _test = { pickScenario, build };
+
+// ---------------------------------------------------------------- in-depth analysis (POST/GET /api/ext/deep)
+// Same job shape as backend/veritas/deep.py. Patterns come from the scenario's judge
+// techniques (plus a few loaded words found in the text), the truth check from the
+// scenario, the trace from the fast-check context the extension sends along.
+
+export const MOCK_DEEP_STEP_MS = 700;
+const DEEP_STEPS = ['Finding propaganda patterns', 'Checking the claims', 'Tracing where it came from'];
+const BASIS = 'The model’s own knowledge. No sources were checked, and it may be wrong or out of date.';
+
+const LOADED = [
+  ['regime', 'Name-calling', 'likely', 'Labels a government as illegitimate.'],
+  ['puppet', 'Name-calling', 'clear', 'Says a country has no will of its own.'],
+  ['operation', 'Conspiracy framing', 'likely', 'Frames events as a secret plot.'],
+  ['purging', 'Loaded language', 'likely', 'Uses a charged word for ordinary staff changes.'],
+  ['everyone knows', 'Bandwagon', 'clear', 'Claims agreement instead of giving evidence.'],
+  ['wake up', 'Appeal to fear', 'possible', 'Urges alarm without saying why.'],
+];
+
+const MOCK_CLAIMS = {
+  nvidia: [{ claim: 'The Nvidia scandal was staged by the CIA.', quote: 'a CIA operation', verdict: 'unverifiable', confidence: 70,
+    explanation: 'No evidence for a CIA role is known; the post gives none.' }],
+  puppet: [{ claim: 'Ukraine’s government is controlled by the United States.', quote: 'puppet', verdict: 'false', confidence: 85,
+    explanation: 'Ukraine has its own elected government and makes its own decisions; this is a documented disinformation narrative.' }],
+  patriot: [{ claim: 'Patriot paperwork agreed in October is stuck in the Pentagon.', quote: '', verdict: 'unverifiable', confidence: 60,
+    explanation: 'Recent internal paperwork can’t be checked from general knowledge.' }],
+};
+
+function findIn(text, phrase) {
+  if (!phrase) return null;
+  const i = text.toLowerCase().indexOf(phrase.toLowerCase());
+  return i < 0 ? null : text.slice(i, i + phrase.length);
+}
+
+function mockTrace(item, context, shared) {
+  const nodes = [];
+  const n = context.narrative;
+  if (n && n.text) {
+    nodes.push({ kind: 'narrative', title: 'Known disinformation narrative', who: n.source === 'euvsdisinfo' ? 'EUvsDisinfo' : (n.source || 'a fact-checking database'),
+      where: 'Documented narrative', time: null, url: null, sim: n.sim ?? null, text: n.text, note: 'This post matches a documented narrative.' });
+  }
+  for (const e of (context.state_media_echo || []).slice(0, 2)) {
+    const src = String(e.source || '').toUpperCase();
+    nodes.push({ kind: 'state_media', title: 'State media: ' + src, who: src, where: 'State media', time: e.first ? e.first + 'T00:00:00Z' : null,
+      url: null, sim: e.sim ?? null, text: e.text, note: `The same narrative aired ${e.n_aired || 'several'} times.` });
+  }
+  for (const t of ((context.source_match || {}).telegram || []).filter((x) => (x.sim || 0) >= 0.85).slice(0, 3)) {
+    nodes.push({ kind: 'telegram', title: 'Telegram post', who: '@' + t.channel, where: 'Pro-Kremlin Telegram channel', time: t.date, url: t.url,
+      sim: t.sim, text: t.text, note: t.sim >= 0.95 ? 'Same text (or a translation of it).' : 'Very similar text.' });
+  }
+  if (shared && (shared.text || shared.url)) {
+    nodes.push({ kind: 'original', title: 'Original post (shared or quoted here)', who: shared.author_name || shared.author || 'Unknown author',
+      where: shared.platform === 'facebook' ? 'Facebook' : 'X', time: shared.time || null, url: shared.url || null, sim: null, text: shared.text, note: 'This post passes it on.' });
+  }
+  nodes.push({ kind: 'this', title: 'This post', who: item.author_name || item.author || 'Unknown author',
+    where: item.platform === 'facebook' ? 'Facebook' + (item.group ? ` group “${item.group}”` : '') : 'X', time: item.time || null, url: item.url || null,
+    sim: null, text: null, note: item.kind === 'repost' ? 'Reposted into your feed.' : 'How it reached your feed: posted by this account.' });
+  const bg = nodes.filter((x) => !x.time && x.kind !== 'this' && x.kind !== 'original');
+  const dated = nodes.filter((x) => x.time && x.kind !== 'this').sort((a, b) => String(a.time).localeCompare(String(b.time)));
+  const tail = nodes.filter((x) => !x.time && x.kind === 'original').concat(nodes.filter((x) => x.kind === 'this'));
+  const earlier = dated.filter((x) => item.time && x.time < item.time);
+  const summary = earlier.length
+    ? `The earliest trace found is ${earlier[0].who} (${earlier[0].where}). ${earlier.length} earlier appearance${earlier.length === 1 ? '' : 's'} found.`
+    : 'No earlier trace found: in what we know, this post is the first appearance of this text.';
+  return { nodes: bg.concat(dated, tail), summary };
+}
+
+export class MockDeep {
+  constructor({ stepMs = MOCK_DEEP_STEP_MS, now = () => Date.now() } = {}) {
+    this.stepMs = stepMs;
+    this.now = now;
+    this.jobs = new Map(); // job id -> {t0, item, context, shared}
+    this.byPost = new Map();
+  }
+
+  async start(body) {
+    await sleep(60);
+    const item = (body && body.item) || {};
+    const known = this.byPost.get(item.id);
+    if (known) return this.get(known);
+    const id = 'mock' + hashId(item.id + ':' + this.now()).toString(36);
+    this.jobs.set(id, { t0: this.now(), item, context: body.context || {}, shared: body.shared || null });
+    this.byPost.set(item.id, id);
+    return this.get(id);
+  }
+
+  async get(id) {
+    const j = this.jobs.get(id);
+    if (!j) return null;
+    const step = Math.min(3, Math.floor((this.now() - j.t0) / this.stepMs));
+    const job = { id, post_id: j.item.id, status: step >= 3 ? 'done' : 'running', step, steps: DEEP_STEPS.slice(),
+      patterns: null, truth: null, trace: null, error: null };
+    const text = j.item.text || '';
+    const scen = pickScenario(j.item);
+    if (step >= 1) {
+      const items = [];
+      const seen = new Set();
+      const add = (quote, technique, tier, why) => {
+        const q = findIn(text, quote);
+        if (q && !seen.has(q.toLowerCase())) { seen.add(q.toLowerCase()); items.push({ quote: q, technique, tier, why }); }
+      };
+      if (scen) {
+        for (const t of SCENARIOS[scen](j.item).judge.techniques || []) {
+          add(t.quote, t.name.charAt(0).toUpperCase() + t.name.slice(1), 'clear', 'Flagged by the judge as ' + t.name + '.');
+        }
+      }
+      for (const [w, tech, tier, why] of LOADED) add(w, tech, tier, why);
+      const order = { clear: 0, likely: 1, possible: 2 };
+      items.sort((a, b) => order[a.tier] - order[b.tier]);
+      job.patterns = { items, model: 'mock', prompt: 'patterns.v1',
+        overall: items.length ? 'Uses charged labels and framing to steer how readers see the story. (Mock answer.)' : 'No persuasion techniques stand out. (Mock answer.)' };
+    }
+    if (step >= 2) {
+      job.truth = { items: (MOCK_CLAIMS[scen] || []).map((c) => ({ ...c, quote: findIn(text, c.quote) || '' })), model: 'mock', prompt: 'truth.v1', basis: BASIS };
+    }
+    if (step >= 3) job.trace = mockTrace(j.item, j.context, j.shared);
+    return job;
+  }
+}
