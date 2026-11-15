@@ -366,3 +366,34 @@ th[aria-sort="ascending"] .th-sort, th[aria-sort="descending"] .th-sort { color:
   .landing-head, .landing-foot, .hero, .landing-section, .tour { padding-left: 16px; padding-right: 16px; }
   .band { padding: 22px; }
 }
+
+/* ------------------------------------------------------- narrative check */
+.field-text { min-height: 120px; padding: 12px 14px; line-height: 1.5; resize: vertical; width: 100%; }
+.hero-form .field-text { min-height: 110px; font-size: 15px; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.hero-actions .btn { min-height: 48px; min-width: 140px; font-size: 15px; }
+.field-text[aria-invalid="true"] { border-color: var(--err); }
+.ncheck { gap: 16px; }
+.ncheck-body { display: flex; flex-direction: column; gap: 16px; }
+.ncheck-verdict { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.pill-big { font-size: 16px; padding: 5px 14px 5px 5px; white-space: normal; }
+.pill-big .vdot { width: 22px; height: 22px; }
+.ncheck-reason { font-size: 15px; max-width: 72ch; }
+.ncheck-copy { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); border-left: 3px solid var(--verdict-false); }
+.chip-warn { align-self: flex-start; background: var(--surface); color: var(--text); border: 1px solid var(--verdict-false); }
+.tags { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.ncheck-text { font-size: 15.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ncheck-tgrow { display: flex; flex-direction: column; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.ncheck-tg { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ncheck-more { border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+.ncheck-more > summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--accent); }
+.ncheck-more[open] > summary { margin-bottom: 10px; }
+.ncheck-foot { font-size: 12.5px; margin: 0; }
+.spinner-sm { width: 12px; height: 12px; margin-left: 6px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.facts b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; }
+.chip-btn { border: 0; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600; min-height: 28px; }
+.chip-btn:hover { background: var(--accent); color: var(--on-accent); }
+.chip-btn:disabled { opacity: .6; cursor: default; }
+.method-steps { list-style: none; margin: 0; padding: 0; }
+.method-steps li { display: flex; flex-direction: column; gap: 6px; }

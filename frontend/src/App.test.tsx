@@ -8,9 +8,9 @@ beforeEach(() => resetSettingsForTests());
 
 describe("routing", () => {
   it.each([
-    ["/", /every post has a story behind it/i],
+    ["/", /paste a post\. see whether it repeats known propaganda/i],
     ["/dashboard/narratives", /^narratives$/i],
-    ["/dashboard/analyze", /analyze a link/i],
+    ["/dashboard/analyze", /analyze a post/i],
     ["/dashboard/claims", /^claims$/i],
     ["/dashboard/sources", /^sources$/i],
     ["/dashboard/sources/kanalas_b", /channel report/i],
@@ -45,7 +45,7 @@ describe("dashboard sidebar", () => {
     renderApp("/dashboard/claims");
     const nav = screen.getByRole("navigation", { name: "Main" });
     const links = within(nav).getAllByRole("link");
-    expect(links.map((l) => l.textContent)).toEqual(["Narratives", "Analyze a link", "Claims", "Sources", "System"]);
+    expect(links.map((l) => l.textContent)).toEqual(["Narratives", "Analyze a post", "Claims", "Sources", "System"]);
     expect(within(nav).getByRole("link", { name: "Claims" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getByRole("link", { name: "Narratives" })).not.toHaveAttribute("aria-current");
   });

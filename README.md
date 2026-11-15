@@ -67,6 +67,7 @@ npm run build      # production build into frontend/dist
 npm run test:build # proves demo data never ships in a normal build
 ```
 
+- The text box on the start page and on Analyze runs the narrative check: free text goes to `POST /api/ext/batch` (then `GET /api/ext/result` is polled until the Gemma judge answers, up to a minute); a Telegram or Facebook link keeps the link analysis. The result view is `frontend/src/components/NarrativeCheck.tsx`; `GET /api/ext/status` feeds the System page. In demo mode, texts that mention e.g. "puppet" or "Kyiv regime" show the flagged example, anything else the clean one.
 - The contract with the backend is `frontend/src/api/types.ts`. The demo data in `frontend/src/demo/` uses the same types and doubles as test fixtures for the backend.
 - Colors come from `frontend/src/styles/tokens.css` (the Baltic palette, see `docs/design/palette.html`).
 - The build plan and test plan are in `docs/implementation-plan.md`.

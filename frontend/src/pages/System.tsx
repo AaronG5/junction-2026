@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { api } from "../api/client";
+import { HowWellItWorks, MethodSteps } from "../components/Method";
 import { ErrorState, Loading } from "../components/States";
+import type { NarrativeCheckStatus } from "../api/types";
 import { isDemoMode } from "../api/client";
 import { DATA_MODES, DataMode, updateSettings, useSettings, useSettingsSync } from "../lib/settings";
 import { useApi } from "../lib/useApi";
@@ -14,6 +16,7 @@ export function System() {
   const settings = useSettings();
   const sync = useSettingsSync();
   const status = useApi(() => api.system(), []);
+  const check = useApi(() => api.narrativeStatus(), []);
   const [showHow, setShowHow] = useState(false);
   const isLocal = settings.dataMode === "local";
 
@@ -123,14 +126,65 @@ export function System() {
           </section>
         </>
       )}
+
+      {check.error ? (
+        <ErrorState error={check.error} onRetry={check.reload} />
+      ) : !check.data ? (
+        <Loading label="Checking the narrative check" />
+      ) : (
+        <NarrativeCheckCard s={check.data} />
+      )}
+      <HowWellItWorks headingId="well-h" />
     </div>
   );
 }
 
-function RunState({ running }: { running: boolean }) {
+const n = (x: number) => x.toLocaleString("en-US");
+
+function NarrativeCheckCard({ s }: { s: NarrativeCheckStatus }) {
+  const t = s.thresholds;
+  return (
+    <section className="card" aria-labelledby="nc-h" style={{ gap: 16 }}>
+      <div className="row-between">
+        <h2 id="nc-h" className="h2" style={{ fontSize: 18 }}>Narrative check</h2>
+        <RunState running={s.available} label={s.available ? "Ready" : "Not available"} />
+      </div>
+      {!s.available ? (
+        <span className="muted">{s.reason ?? "The narrative check can't run on this server."}</span>
+      ) : (
+        <>
+          {s.claims === 0 && s.telegramPosts === 0 && (
+            <span className="ferror">
+              The narrative bank isn't downloaded. Run <code className="mono">uv run python backend/fetch_narrative_bank.py</code>, then restart.
+            </span>
+          )}
+          <div className="split" style={{ gap: 16 }}>
+            <Fact label="Narrative claims" value={n(s.claims)} note="EUvsDisinfo, Overload and Antibot4Navalny. These decide the verdict." />
+            <Fact label="State-media narratives" value={n(s.echoClaims)} note="RT and RIA Novosti. Shown as context only." />
+            <Fact label="Telegram source posts" value={n(s.telegramPosts)} note="Public posts from pro-Kremlin channels, for the copy match." />
+          </div>
+          <div className="split" style={{ gap: 16 }}>
+            <Fact label="Judge" value={s.judge ? "On" : "Off"}
+              note={s.judge ? "The fine-tuned Gemma 4 E2B judge decides whether a post asserts a claim." : "No judge verdicts: only copies of Telegram posts are flagged."} />
+            <Fact label="Fingerprints" value={s.embeddingModel ?? "EmbeddingGemma"} note={s.dim ? `${s.dim} numbers per text.` : "Same model as the rest of Veritas Lens."} mono />
+            <Fact label="Thresholds" mono
+              value={["copy_strong", "candidate_gate", "echo_min"].filter((k) => k in t).map((k) => `${k} ${t[k]}`).join(" · ") || "defaults"}
+              note="Copy match, judge gate and state-media echo, as similarity (0 to 1)." />
+          </div>
+        </>
+      )}
+      <details className="ncheck-more">
+        <summary>How it works</summary>
+        <MethodSteps />
+      </details>
+    </section>
+  );
+}
+
+function RunState({ running, label }: { running: boolean; label?: string }) {
   return (
     <span className="runstate" data-running={running}>
-      <i aria-hidden="true" />{running ? "Running" : "Stopped"}
+      <i aria-hidden="true" />{label ?? (running ? "Running" : "Stopped")}
     </span>
   );
 }

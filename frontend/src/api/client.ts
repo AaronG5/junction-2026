@@ -5,8 +5,8 @@
  */
 import { filtersToParams } from "../lib/filters";
 import type {
-  AnalysisJob, AppSettings, ChannelReport, ClusteringState, ClaimsResponse, Filters, NarrativesResponse, PostReport,
-  SourcesResponse, SourceFilter, Story, SystemStatus, TrendingResponse,
+  AnalysisJob, AppSettings, ChannelReport, ClusteringState, ClaimsResponse, Filters, NarrativeCheckStatus, NarrativeResult,
+  NarrativesResponse, PostReport, SourcesResponse, SourceFilter, Story, SystemStatus, TrendingResponse,
 } from "./types";
 
 /** The backend can't be reached, isn't running yet, or answered with something that isn't our API. */
@@ -41,6 +41,12 @@ export interface Api {
   clusteringState(): Promise<ClusteringState>;
   /** Start grouping the posts of the last `days` days; resolves at once with the running state. */
   startClustering(days: number): Promise<ClusteringState>;
+  /**
+   * Run the narrative check on any text. Resolves with the final result; onUpdate
+   * gets each answer as it arrives (first the fast-path fields, status "pending").
+   */
+  checkText(text: string, onUpdate?: (r: NarrativeResult) => void): Promise<NarrativeResult>;
+  narrativeStatus(): Promise<NarrativeCheckStatus>;
 }
 
 /** Read at call time so tests can switch it; Vite still replaces it with a constant in builds. */
@@ -102,6 +108,75 @@ async function analyzeOverHttp(url: string, onStep?: (stepIndex: number) => void
   }
 }
 
+/** How often a pending narrative check is polled, and for how long at most. Tests shorten these. */
+export const narrativePolling = { intervalMs: 1500, maxWaitMs: 60 * 1000 };
+
+/** Longest text sent (the backend's limit per item). */
+export const MAX_CHECK_TEXT = 10000;
+
+export const NARRATIVE_UNAVAILABLE = "The narrative check isn't available on this server right now.";
+export const NARRATIVE_TIMEOUT = "The check didn't finish within a minute. The results so far are shown. Try again later for the full verdict.";
+
+/** A stable id for a text, as the extension API wants it ([A-Za-z0-9]{1,40}): the same text always gets the same id. */
+export function textId(text: string): string {
+  // cyrb53-style: two 32-bit FNV/murmur mixes, written as hex.
+  let h1 = 0xdeadbeef ^ text.length, h2 = 0x41c6ce57 ^ text.length;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return "dash" + (h1 >>> 0).toString(16).padStart(8, "0") + (h2 >>> 0).toString(16).padStart(8, "0");
+}
+
+/** /api/ext/* errors in plain words: 404 = the module isn't deployed, 503 = it can't run (e.g. numpy missing). */
+async function extRequest<T>(path: string, params: Record<string, string> = {}, init?: RequestInit): Promise<T> {
+  try {
+    return await request<T>(`/ext${path}`, params, init);
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.status === 503)) throw new ApiError(err.status, NARRATIVE_UNAVAILABLE);
+    throw err;
+  }
+}
+
+function itemResult(results: NarrativeResult[] | undefined, id: string): NarrativeResult {
+  const r = results?.find((x) => x.id === id);
+  if (!r) throw new ApiError(502, "The narrative check sent an answer that could not be read.");
+  if (r.status === "error") throw new ApiError(503, r.error ? `The check failed: ${r.error}` : NARRATIVE_UNAVAILABLE);
+  return r;
+}
+
+/** Thrown when polling gives up; carries the last (pending) answer so the fast-path fields can stay on screen. */
+export class CheckTimeout extends ApiError {
+  constructor(public partial: NarrativeResult) {
+    super(504, NARRATIVE_TIMEOUT);
+    this.name = "CheckTimeout";
+  }
+}
+
+async function checkTextOverHttp(text: string, onUpdate?: (r: NarrativeResult) => void): Promise<NarrativeResult> {
+  const body = text.slice(0, MAX_CHECK_TEXT);
+  const id = textId(body);
+  const first = await extRequest<{ results: NarrativeResult[] }>("/batch", {}, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ client: "dashboard", items: [{ id, author: "", text: body }] }),
+  });
+  let r = itemResult(first.results, id);
+  const started = Date.now();
+  while (r.status === "pending") {
+    onUpdate?.(r);
+    if (Date.now() - started >= narrativePolling.maxWaitMs) throw new CheckTimeout(r);
+    await sleep(narrativePolling.intervalMs);
+    const next = await extRequest<{ results: NarrativeResult[] }>("/result", { ids: id });
+    r = itemResult(next.results, id);
+  }
+  onUpdate?.(r);
+  return r;
+}
+
 export const httpApi: Api = {
   narratives: (f) => request("/narratives", filtersToParams(f)),
   claims: (f) => request("/claims", { ...filtersToParams(f), ...(f.query ? { q: f.query } : {}) }),
@@ -124,6 +199,8 @@ export const httpApi: Api = {
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ days }),
   }),
+  checkText: checkTextOverHttp,
+  narrativeStatus: () => extRequest("/status"),
 };
 
 let demoApi: Promise<Api> | null = null;
@@ -164,6 +241,8 @@ export const api: Api = {
   saveAppSettings: (s) => pick().then((a) => a.saveAppSettings(s)),
   clusteringState: () => pick().then((a) => a.clusteringState()),
   startClustering: (days) => pick().then((a) => a.startClustering(days)),
+  checkText: (text, onUpdate) => pick().then((a) => a.checkText(text, onUpdate)),
+  narrativeStatus: () => pick().then((a) => a.narrativeStatus()),
 };
 
 /** Telegram or Facebook link to a post, channel, group or page. */

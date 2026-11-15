@@ -150,3 +150,20 @@ def test_missing_bank_still_answers(settings, tmp_path):
         assert res[0]["status"] == "done" and res[0]["source_match"] is None
     finally:
         narrative.set_engine(None)
+
+
+def test_status_reports_bank_thresholds_and_judge(settings, engine):
+    s = make_client(settings).get("/api/ext/status").json()
+    assert s["available"] is True and s["reason"] is None
+    assert (s["claims"], s["echoClaims"], s["telegramPosts"]) == (1, 1, 1)
+    assert s["thresholds"]["copy_strong"] == 0.95 and "candidate_gate" in s["thresholds"]
+    assert s["judge"] is True
+
+
+def test_status_without_judge_or_bank(settings, tmp_path):
+    narrative.set_engine(narrative.Engine(narrative.Bank.load(tmp_path / "nope"), fake_embed, None))
+    try:
+        s = make_client(settings).get("/api/ext/status").json()
+        assert s["available"] is True and s["judge"] is False and s["telegramPosts"] == 0 and s["embeddingModel"] is None
+    finally:
+        narrative.set_engine(None)

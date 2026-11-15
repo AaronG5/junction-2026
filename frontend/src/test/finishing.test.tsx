@@ -77,7 +77,7 @@ describe("browser tab titles", () => {
   it.each([
     ["/", "Veritas Lens"],
     ["/dashboard/narratives", "Narratives · Veritas Lens"],
-    ["/dashboard/analyze", "Analyze a link · Veritas Lens"],
+    ["/dashboard/analyze", "Analyze a post · Veritas Lens"],
     ["/dashboard/claims", "Claims · Veritas Lens"],
     ["/dashboard/sources", "Sources · Veritas Lens"],
     ["/dashboard/system", "System · Veritas Lens"],

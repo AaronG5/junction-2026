@@ -35,7 +35,10 @@ export function Narratives() {
           </p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-          <Link to="/dashboard/analyze" className="btn">Analyze a link</Link>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <UpdateClusters days={windowDays(filters)} onFinished={reload} />
+            <Link to="/dashboard/analyze" className="btn">Analyze a post</Link>
+          </div>
           {data && data.run.clusters > 0 && (
             <span className="mono muted" style={{ fontSize: 12.5 }}>
               Latest run {shortDate(data.run.date)} · {data.run.posts.toLocaleString("en-US")} posts · {data.run.clusters} clusters
