@@ -21,14 +21,14 @@ const stepHeading = () => screen.getByRole("heading", { level: 1 });
 const stepButton = (name: RegExp) => within(screen.getByRole("navigation", { name: /walk-through steps/i })).getByRole("button", { name });
 
 describe("landing page", () => {
-  it("has the pitch, the link box and 'Open the dashboard' in the header, the hero and the dashboard band", async () => {
+  it("has the pitch, the link box, 'Open the dashboard' in the masthead and in the band", async () => {
     renderApp("/");
-    expect(screen.getByRole("heading", { level: 1, name: /paste a post\. see whether it repeats known propaganda/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: /every lie has a first author/i })).toBeInTheDocument();
     expect(linkInput()).toBeInTheDocument();
     const dashboardLinks = screen.getAllByRole("link", { name: /open the dashboard/i });
-    expect(dashboardLinks).toHaveLength(3);
+    expect(dashboardLinks).toHaveLength(2);
     dashboardLinks.forEach((l) => expect(l).toHaveAttribute("href", "/dashboard/narratives"));
-    expect(await screen.findByText("narratives this week")).toBeInTheDocument();
+    expect(await screen.findByText("18,420")).toBeInTheDocument(); // the posts-read figure in the sovereignty band
   });
 
   it("rejects a link that isn't Telegram or Facebook", async () => {
@@ -54,11 +54,11 @@ describe("landing page", () => {
   it("lists trending stories with their status", async () => {
     renderApp("/");
     await waitFor(() => expect(storyCards()).toHaveLength(3));
-    expect(storyCards()[2]).toHaveTextContent("Main claim: misleading");
+    expect(storyCards()[2]).toHaveTextContent("Misleading");
     expect(storyCards()[0]).toHaveAttribute("href", "/story/nato-border");
   });
 
-  it("trending filters narrow the stories; no match shows an empty state with Clear filters", async () => {
+  it("the platform filter narrows the stories, and All brings them back", async () => {
     const user = userEvent.setup();
     renderApp("/");
     await waitFor(() => expect(storyCards()).toHaveLength(3));
@@ -66,16 +66,15 @@ describe("landing page", () => {
     expect(within(platform).getByRole("button", { name: "All platforms" })).toHaveAttribute("aria-pressed", "true");
     await user.click(within(platform).getByRole("button", { name: "Facebook" }));
     await waitFor(() => expect(storyCards()).toHaveLength(1));
-    await user.click(within(screen.getByRole("group", { name: /status of the main claim/i })).getByRole("button", { name: /^true/i }));
-    expect(await screen.findByText(/no stories match/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /clear filters/i }));
+    await user.click(within(platform).getByRole("button", { name: "All platforms" }));
     await waitFor(() => expect(storyCards()).toHaveLength(3));
   });
 
-  it("the landing filters offer simple time choices, no custom dates", () => {
+  it("the start page offers one filter axis; date and status live in the dashboard", () => {
     renderApp("/");
-    const time = screen.getByRole("group", { name: "Time" });
-    expect(within(time).getAllByRole("button").map((b) => b.textContent)).toEqual(["This week", "This month", "3 months"]);
+    expect(screen.getByRole("group", { name: "Platform" })).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Time" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /status of the main claim/i })).not.toBeInTheDocument();
   });
 
   it("without a backend, tracing a link explains the problem and stays on the page", async () => {

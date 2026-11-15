@@ -1,52 +1,113 @@
-/* Baltic palette: warm greys, kelp purple accent.
-   Visual reference: docs/design/palette.html
-   Light by default; dark from the system setting or <html data-theme="dark">. */
+/* ============================================================================
+   VERITAS LENS — "RED THREAD"
+
+   Four colour roles, and they do not overlap:
+     PAPER   the ground (sand) and WOOD (the dark room)
+     INK     everything you read, in three tones
+     RED     the trace. Origin, thread, and the one action that starts one.
+             It is never a verdict and never a statistic.
+     VERDICT a separate, deliberately muted scale. Only ever inside a badge.
+
+   Light by default; dark ("darkroom") from the system setting or
+   <html data-theme="dark">. Every text colour here clears 4.5:1 on its ground.
+   ========================================================================= */
 :root {
-  --bg: #F6F6F4;               /* page background */
-  --surface: #FFFFFF;          /* cards, panels, inputs */
-  --border: #E4E1DA;           /* borders and dividers */
-  --text: #1A1814;             /* main text */
-  --text-muted: #625D55;       /* secondary text, labels */
-  --accent: #663B6A;           /* buttons, links, active tab, focus */
-  --accent-hover: #522E55;     /* hovered or pressed buttons */
-  --on-accent: #FFFFFF;        /* text on accent buttons */
-  --accent-soft: #F1E7F0;      /* chips, selected rows, focus halo */
-  --accent-soft-text: #522E55; /* text on soft accent */
+  /* ---- ground ---- */
+  --paper: #EDE3D1;        /* page ground, warm sand */
+  --paper-deep: #E2D5BD;   /* sunken areas, tracks, wells */
+  --card: #F7F1E4;         /* raised sheets, inputs */
+  --wood: #2A1D14;         /* the dark room: inverted sections */
+  --wood-2: #3A281B;       /* raised surface on wood */
+  --on-wood: #EFE5D3;      /* type on wood — light in both themes */
+  --on-wood-2: #A3917A;    /* quiet type on wood (5.6:1) */
+  --blueprint: rgba(201, 182, 152, .13); /* the grid drawn on wood */
 
-  /* Verdicts: always shown with an icon and a label, never color alone. */
-  --verdict-credible: #0CA30C;
-  --verdict-unverified: #8A8F98;
-  --verdict-misleading: #EC835A;
-  --verdict-false: #D03B3B;
+  /* ---- ink: three tones, so the secondary tier has a hierarchy ---- */
+  --ink: #17120E;          /* headlines, body */
+  --ink-2: #594A3A;        /* secondary text (6.7:1) */
+  --ink-3: #73624E;        /* quiet metadata (4.6:1) */
+  --ink-4: #A1907A;        /* non-text only: ghosts, disabled marks */
+  --rule: #C9B698;         /* hairlines */
+  --rule-soft: #DBCDB2;    /* faintest rules */
+  --edge: #17120E;         /* the hard border of a sheet */
 
-  /* Chart colors (clusters, categories), in this fixed order.
-     Cluster maps use at most 3 at once + grey for "no cluster". */
-  --chart-1: #2A78D6;
-  --chart-2: #EB6834;
-  --chart-3: #1BAF7A;
-  --chart-4: #EDA100;
-  --chart-5: #E87BA4;
-  --chart-6: #008300;
-  --chart-7: #6250D6;
-  --chart-8: #E34948;
+  /* ---- red: the trace ---- */
+  --red: #BE2E16;          /* 4.6:1 on paper — safe for small type too */
+  --red-wood: #FF6A4A;     /* the same role, on the dark plate (6:1 on wood) */
+  --red-wash: #F2D9CC;     /* selected rows */
+  --on-red: #FFF6EC;       /* type knocked out of a red fill (5.5:1) */
+
+  /* ---- verdicts: muted, never confusable with the trace ---- */
+  --verdict-false: #7C1D12;
+  --verdict-misleading: #7A5207;
+  --verdict-unverified: #5C5248;
+  --verdict-credible: #3A5C22;
+
+  /* ---- dashboard-only signal colour (meters, upgrade notices) ---- */
+  --amber: #7A5207;
+  --amber-wash: #F3E6C9;
+  --on-amber: #FFF8EA;
+
+  /* ---- chart colours, in this fixed order (max 3 at once + grey) ---- */
+  --chart-1: #BE2E16;
+  --chart-2: #2C6B7A;
+  --chart-3: #7A5207;
+  --chart-4: #3A5C22;
+  --chart-5: #6E4478;
+  --chart-6: #1F4E8C;
+  --chart-7: #8C4A1E;
+  --chart-8: #5C5A52;
+
+  /* ---- one shadow language: a hard offset, one distance, one alpha ---- */
+  --lift: 3px 3px 0 rgba(23, 18, 14, .16);
+
+  /* ---- paper texture ---- */
+  --grain: .07;
+  --grain-blend: multiply;
+
+  /* ---- legacy aliases: screens not yet redrawn still read these ---- */
+  --bg: var(--paper);
+  --surface: var(--card);
+  --border: var(--rule);
+  --text: var(--ink);
+  --text-muted: var(--ink-2);
+  --accent: var(--red);
+  --accent-hover: var(--red);
+  --on-accent: var(--on-red);
+  --accent-soft: var(--red-wash);
+  --accent-soft-text: #7C1D12;
+  --red-deep: var(--red);
 }
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121110; --surface: #1B1A18; --border: #312E29;
-    --text: #EFECE6; --text-muted: #A39D92;
-    --accent: #D2ADD3; --accent-hover: #E2C8E2; --on-accent: #121110;
-    --accent-soft: #2A1F2B; --accent-soft-text: #E2C8E2;
-    --chart-1: #3987E5; --chart-2: #D95926; --chart-3: #199E70; --chart-4: #C98500;
-    --chart-5: #D55181; --chart-6: #008300; --chart-7: #9085E9; --chart-8: #E66767;
+    --paper: #15110D; --paper-deep: #0D0A07; --card: #1F1912; --wood: #241A12; --wood-2: #33261A;
+    --blueprint: rgba(201, 182, 152, .11);
+    --ink: #F2E9DA; --ink-2: #B8A68F; --ink-3: #8C7B66; --ink-4: #6B5C4A;
+    --rule: #3B3024; --rule-soft: #2A2219; --edge: #4E3F2E;
+    --red: #FF6A4A; --red-wood: #FF6A4A; --red-wash: #331810; --on-red: #1B0C06;
+    --verdict-false: #E08270; --verdict-misleading: #CCA253; --verdict-unverified: #9C8F7E; --verdict-credible: #8FAE67;
+    --amber: #CCA253; --amber-wash: #2E2410; --on-amber: #1B1206;
+    --chart-1: #E08270; --chart-2: #5AA8BA; --chart-3: #CCA253; --chart-4: #8FAE67;
+    --chart-5: #BC8ACB; --chart-6: #6B9FE0; --chart-7: #D98B55; --chart-8: #9A978C;
+    --lift: 3px 3px 0 rgba(0, 0, 0, .55);
+    --grain: .05; --grain-blend: soft-light;
+    --accent-soft-text: #FF9E86;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #121110; --surface: #1B1A18; --border: #312E29;
-  --text: #EFECE6; --text-muted: #A39D92;
-  --accent: #D2ADD3; --accent-hover: #E2C8E2; --on-accent: #121110;
-  --accent-soft: #2A1F2B; --accent-soft-text: #E2C8E2;
-  --chart-1: #3987E5; --chart-2: #D95926; --chart-3: #199E70; --chart-4: #C98500;
-  --chart-5: #D55181; --chart-6: #008300; --chart-7: #9085E9; --chart-8: #E66767;
+  --paper: #15110D; --paper-deep: #0D0A07; --card: #1F1912; --wood: #241A12; --wood-2: #33261A;
+  --blueprint: rgba(201, 182, 152, .11);
+  --ink: #F2E9DA; --ink-2: #B8A68F; --ink-3: #8C7B66; --ink-4: #6B5C4A;
+  --rule: #3B3024; --rule-soft: #2A2219; --edge: #4E3F2E;
+  --red: #FF6A4A; --red-wood: #FF6A4A; --red-wash: #331810; --on-red: #1B0C06;
+  --verdict-false: #E08270; --verdict-misleading: #CCA253; --verdict-unverified: #9C8F7E; --verdict-credible: #8FAE67;
+  --amber: #CCA253; --amber-wash: #2E2410; --on-amber: #1B1206;
+  --chart-1: #E08270; --chart-2: #5AA8BA; --chart-3: #CCA253; --chart-4: #8FAE67;
+  --chart-5: #BC8ACB; --chart-6: #6B9FE0; --chart-7: #D98B55; --chart-8: #9A978C;
+  --lift: 3px 3px 0 rgba(0, 0, 0, .55);
+  --grain: .05; --grain-blend: soft-light;
+  --accent-soft-text: #FF9E86;
   color-scheme: dark;
 }

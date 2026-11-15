@@ -1,52 +1,101 @@
-/* Baltic palette: warm greys, kelp purple accent.
-   Visual reference: docs/design/palette.html
-   Light by default; dark from the system setting or <html data-theme="dark">. */
+/* ============================================================================
+   VERITAS LENS — "RED THREAD"
+   The palette of an investigation board: sand paper, walnut ink, red lead.
+   Tamer base (paper, wood, sand) carries the page; red and ochre are reserved
+   for evidence — never for decoration.
+   Light by default; dark ("darkroom") from the system setting or
+   <html data-theme="dark">.
+   ========================================================================= */
 :root {
-  --bg: #F6F6F4;               /* page background */
-  --surface: #FFFFFF;          /* cards, panels, inputs */
-  --border: #E4E1DA;           /* borders and dividers */
-  --text: #1A1814;             /* main text */
-  --text-muted: #625D55;       /* secondary text, labels */
-  --accent: #663B6A;           /* buttons, links, active tab, focus */
-  --accent-hover: #522E55;     /* hovered or pressed buttons */
-  --on-accent: #FFFFFF;        /* text on accent buttons */
-  --accent-soft: #F1E7F0;      /* chips, selected rows, focus halo */
-  --accent-soft-text: #522E55; /* text on soft accent */
+  /* ---- ground: paper and wood ---- */
+  --paper: #EDE3D1;        /* page ground, warm sand */
+  --paper-deep: #E2D5BD;   /* sunken areas, tracks, wells */
+  --card: #F7F1E4;         /* raised sheets, index cards, inputs */
+  --wood: #2A1D14;         /* inverted bands, the dark room */
+  --wood-2: #3A281B;       /* raised surface on wood */
 
-  /* Verdicts: always shown with an icon and a label, never color alone. */
-  --verdict-credible: #0CA30C;
-  --verdict-unverified: #8A8F98;
-  --verdict-misleading: #EC835A;
-  --verdict-false: #D03B3B;
+  /* ---- ink ---- */
+  --ink: #17120E;          /* headlines, body */
+  --ink-2: #6A5947;        /* secondary text, metadata (5.3:1 on paper) */
+  --ink-3: #9A8872;        /* ghost numerals, decorative only */
+  --rule: #C9B698;         /* hairlines, borders */
+  --rule-soft: #DBCDB2;    /* faintest grid */
 
-  /* Chart colors (clusters, categories), in this fixed order.
-     Cluster maps use at most 3 at once + grey for "no cluster". */
-  --chart-1: #2A78D6;
-  --chart-2: #EB6834;
-  --chart-3: #1BAF7A;
-  --chart-4: #EDA100;
-  --chart-5: #E87BA4;
-  --chart-6: #008300;
-  --chart-7: #6250D6;
-  --chart-8: #E34948;
+  /* ---- evidence: red lead and ochre ---- */
+  --red: #D3301A;          /* fills, threads, large display type */
+  --red-deep: #A5230F;     /* red for small text and links (5.8:1) */
+  --red-wash: #F4DCCF;     /* selected rows, soft highlights */
+  --amber: #E59A12;        /* second accent: marks, stamps, bars */
+  --amber-wash: #F6E6C2;
+  --on-red: #FFF6EC;       /* type on a red fill */
+  --on-amber: #231709;     /* type on an ochre fill */
+  --on-stamp: #FFF6EC;     /* type on a filled verdict stamp */
+  --on-wood: #EFE5D3;      /* type on the wood band - light in both themes */
+  --on-wood-2: #A3917A;    /* secondary type on wood */
+  --edge: #17120E;         /* the hard border of a card or sheet */
+
+  /* ---- verdicts: always shown with a word, never colour alone ---- */
+  --verdict-credible: #3F6424;   /* olive */
+  --verdict-unverified: #7E6F5C; /* slate-brown */
+  --verdict-misleading: #C27A05; /* ochre, darkened for type */
+  --verdict-false: #C52D18;
+
+  /* ---- chart colours, in this fixed order (max 3 at once + grey) ---- */
+  --chart-1: #C52D18;
+  --chart-2: #2C6B7A;
+  --chart-3: #C27A05;
+  --chart-4: #3F6424;
+  --chart-5: #7A4B86;
+  --chart-6: #1F4E8C;
+  --chart-7: #8C4A1E;
+  --chart-8: #5C5A52;
+
+  /* ---- paper texture ---- */
+  --grain: .07;
+  --grain-blend: multiply;
+  --lift: 4px 4px 0 rgba(23, 18, 14, .14);   /* hard offset shadow, print-like */
+  --lift-strong: 6px 6px 0 rgba(23, 18, 14, .20);
+
+  /* ---- legacy aliases: pages not yet redrawn still read these ---- */
+  --bg: var(--paper);
+  --surface: var(--card);
+  --border: var(--rule);
+  --text: var(--ink);
+  --text-muted: var(--ink-2);
+  --accent: var(--red-deep);
+  --accent-hover: var(--red);
+  --on-accent: var(--on-red);
+  --accent-soft: var(--red-wash);
+  --accent-soft-text: #7E1A0A;
 }
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121110; --surface: #1B1A18; --border: #312E29;
-    --text: #EFECE6; --text-muted: #A39D92;
-    --accent: #D2ADD3; --accent-hover: #E2C8E2; --on-accent: #121110;
-    --accent-soft: #2A1F2B; --accent-soft-text: #E2C8E2;
-    --chart-1: #3987E5; --chart-2: #D95926; --chart-3: #199E70; --chart-4: #C98500;
-    --chart-5: #D55181; --chart-6: #008300; --chart-7: #9085E9; --chart-8: #E66767;
+    --paper: #15110D; --paper-deep: #0D0A07; --card: #1F1912; --wood: #241A12; --wood-2: #33261A;
+    --ink: #F2E9DA; --ink-2: #AC9A83; --ink-3: #7A6B59; --rule: #392E22; --rule-soft: #272018;
+    --red: #FF5A3C; --red-deep: #FF7A5E; --red-wash: #30180F; --amber: #FFBD3D; --amber-wash: #2E2410;
+    --on-red: #1B0C06; --on-amber: #1B1206; --on-stamp: #140F0A;
+    --on-wood: #EFE5D3; --on-wood-2: #A3917A; --edge: #4E3F2E;
+    --verdict-credible: #8FBF5F; --verdict-unverified: #A2917B; --verdict-misleading: #FFBD3D; --verdict-false: #FF6A4C;
+    --chart-1: #FF6A4C; --chart-2: #5AA8BA; --chart-3: #FFBD3D; --chart-4: #8FBF5F;
+    --chart-5: #BC8ACB; --chart-6: #6B9FE0; --chart-7: #D98B55; --chart-8: #9A978C;
+    --grain: .05; --grain-blend: soft-light;
+    --lift: 4px 4px 0 rgba(0, 0, 0, .5); --lift-strong: 6px 6px 0 rgba(0, 0, 0, .55);
+    --accent-soft-text: #FF9E86;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #121110; --surface: #1B1A18; --border: #312E29;
-  --text: #EFECE6; --text-muted: #A39D92;
-  --accent: #D2ADD3; --accent-hover: #E2C8E2; --on-accent: #121110;
-  --accent-soft: #2A1F2B; --accent-soft-text: #E2C8E2;
-  --chart-1: #3987E5; --chart-2: #D95926; --chart-3: #199E70; --chart-4: #C98500;
-  --chart-5: #D55181; --chart-6: #008300; --chart-7: #9085E9; --chart-8: #E66767;
+  --paper: #15110D; --paper-deep: #0D0A07; --card: #1F1912; --wood: #241A12; --wood-2: #33261A;
+  --ink: #F2E9DA; --ink-2: #AC9A83; --ink-3: #7A6B59; --rule: #392E22; --rule-soft: #272018;
+  --red: #FF5A3C; --red-deep: #FF7A5E; --red-wash: #30180F; --amber: #FFBD3D; --amber-wash: #2E2410;
+  --on-red: #1B0C06; --on-amber: #1B1206; --on-stamp: #140F0A;
+  --on-wood: #EFE5D3; --on-wood-2: #A3917A; --edge: #4E3F2E;
+  --verdict-credible: #8FBF5F; --verdict-unverified: #A2917B; --verdict-misleading: #FFBD3D; --verdict-false: #FF6A4C;
+  --chart-1: #FF6A4C; --chart-2: #5AA8BA; --chart-3: #FFBD3D; --chart-4: #8FBF5F;
+  --chart-5: #BC8ACB; --chart-6: #6B9FE0; --chart-7: #D98B55; --chart-8: #9A978C;
+  --grain: .05; --grain-blend: soft-light;
+  --lift: 4px 4px 0 rgba(0, 0, 0, .5); --lift-strong: 6px 6px 0 rgba(0, 0, 0, .55);
+  --accent-soft-text: #FF9E86;
   color-scheme: dark;
 }
