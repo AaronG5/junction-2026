@@ -17,6 +17,8 @@ Needs the optional packages:                uv sync --extra clustering
 6. Everything the Narratives screen shows is stored: the run, the clusters (with their
    summary numbers), each post's place on the map, and the centres in Qdrant.
 Too few posts gives "no clusters" instead of nonsense groups.
+
+Updates that add new posts without recomputing the rest: veritas/clustering_update.py.
 """
 from __future__ import annotations
 
@@ -38,6 +40,7 @@ from .vectors import Point, Qdrant
 log = logging.getLogger("veritas.clustering")
 
 MIN_POSTS = 20            # fewer posts than this: no clustering
+MAX_MIN_CLUSTER = 50      # HDBSCAN's smallest group is n/40, but never more than this (long histories)
 SAME_NARRATIVE = 0.85     # cosine similarity of two centres to count as the same story
 MEMBER_MIN = 0.5          # a post less similar than this to its group's centre fits no group
 SEED = 42
@@ -87,7 +90,7 @@ def group(vectors: Sequence[Sequence[float]], seed: int = SEED, min_cluster_size
     neighbours = max(2, min(15, n - 1))
     reduced = umap.UMAP(n_components=min(5, n - 2), n_neighbors=neighbours, min_dist=0.0, metric="cosine",
                         random_state=seed, n_jobs=1, compatibility_layout=True).fit_transform(x)
-    size = min_cluster_size or max(5, n // 40)
+    size = min_cluster_size or max(5, min(n // 40, MAX_MIN_CLUSTER))
     labels = HDBSCAN(min_cluster_size=size, copy=True).fit(reduced).labels_.tolist()
 
     flat = umap.UMAP(n_components=2, n_neighbors=neighbours, min_dist=0.1, metric="cosine",
@@ -182,22 +185,31 @@ def _name(ai: LocalAI, texts: list[str]) -> tuple[str, str]:
     return answer.value.name.strip() or "Unnamed narrative", answer.value.summary.strip()
 
 
-def run_clustering(conn, qdrant: Qdrant, ai: LocalAI, *, since: datetime, until: datetime,
+_POST_ROWS = ("SELECT p.post_id, p.text, p.url, p.language, p.published_at, pl.code AS platform,"
+              " a.account_id, a.handle, a.display_name, a.account_type"
+              " FROM posts p JOIN platforms pl ON pl.platform_id = p.platform_id"
+              " LEFT JOIN accounts a ON a.account_id = COALESCE(p.container_account_id, p.account_id)")
+
+
+def _post_rows(conn, ids: Sequence[int]) -> dict[int, dict]:
+    out: dict[int, dict] = {}
+    for start in range(0, len(ids), 1000):
+        chunk = list(ids[start:start + 1000])
+        marks = ", ".join(["%s"] * len(chunk))
+        out.update({r["post_id"]: r for r in _rows(
+            conn, _POST_ROWS + f" WHERE p.post_id IN ({marks}) AND p.deleted_at IS NULL AND p.is_stub = FALSE", tuple(chunk))})
+    return out
+
+
+def run_clustering(conn, qdrant: Qdrant, ai: LocalAI, *, since: datetime | None = None, until: datetime | None = None,
                    now: datetime | None = None, min_posts: int = MIN_POSTS) -> dict:
-    """Cluster the posts published between since and until. Returns a short report."""
+    """Cluster the posts published between since and until (no since: every post). Returns a short report."""
     now = now or datetime.now(timezone.utc)
-    flt = {"must": [{"key": "published_at", "range": {"gte": _rfc3339(since), "lte": _rfc3339(until)}}]}
+    until = until or now
+    flt = ({"must": [{"key": "published_at", "range": {"gte": _rfc3339(since), "lte": _rfc3339(until)}}]}
+           if since is not None else None)
     points = [(pid, vec, payload) for pid, vec, payload in qdrant.vectors("posts", flt=flt) if isinstance(payload.get("post_id"), int)]
-    ids = [p[2]["post_id"] for p in points]
-    rows: dict[int, dict] = {}
-    if ids:
-        marks = ", ".join(["%s"] * len(ids))
-        rows = {r["post_id"]: r for r in _rows(
-            conn, "SELECT p.post_id, p.text, p.url, p.language, p.published_at, pl.code AS platform,"
-                  " a.account_id, a.handle, a.display_name, a.account_type"
-                  " FROM posts p JOIN platforms pl ON pl.platform_id = p.platform_id"
-                  " LEFT JOIN accounts a ON a.account_id = COALESCE(p.container_account_id, p.account_id)"
-                  f" WHERE p.post_id IN ({marks}) AND p.deleted_at IS NULL AND p.is_stub = FALSE", tuple(ids))}
+    rows = _post_rows(conn, [p[2]["post_id"] for p in points])
     points = sorted((p for p in points if p[2]["post_id"] in rows), key=lambda p: p[2]["post_id"])  # stable input order
     if len(points) < min_posts:
         return {"status": "too_few", "posts": len(points),
@@ -209,7 +221,8 @@ def run_clustering(conn, qdrant: Qdrant, ai: LocalAI, *, since: datetime, until:
     with conn.cursor() as cur:
         cur.execute("INSERT INTO clustering_runs (embedding_model_id, algorithm, params, window_start, window_end, status, started_at)"
                     " VALUES (1, 'umap+hdbscan', %s, %s, %s, 'running', %s)",
-                    (json.dumps(params), since.replace(tzinfo=None), until.replace(tzinfo=None), now.replace(tzinfo=None)))
+                    (json.dumps(params), since.replace(tzinfo=None) if since else None, until.replace(tzinfo=None),
+                     now.replace(tzinfo=None)))
         run_id = cur.lastrowid
     conn.commit()
     try:
@@ -276,7 +289,8 @@ def _cluster(conn, qdrant: Qdrant, ai: LocalAI, run_id: int, points, rows: dict[
             cur.execute("INSERT INTO clusters (run_id, label, summary, size, stats, centroid_uuid, narrative_id, main_claim_id,"
                         " change_pct, accounts, first_seen, last_seen) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                         (run_id, name, text, len(members),
-                         json.dumps({"platforms": platforms, "languages": languages, "typical": typical, "edge": edge}, ensure_ascii=False),
+                         json.dumps({"platforms": platforms, "languages": languages, "typical": typical, "edge": edge,
+                                     "previous_size": old["size"] if old else None}, ensure_ascii=False),
                          centre_id.bytes, narrative_id, claim[0]["claim_id"] if claim else None, change, accounts,
                          dates[0].date() if dates else None, dates[-1].date() if dates else None))
             cluster_ids[lab] = cur.lastrowid
@@ -300,7 +314,8 @@ def _cluster(conn, qdrant: Qdrant, ai: LocalAI, run_id: int, points, rows: dict[
                     (now.replace(tzinfo=None), len(post_ids), len(labels), unclustered, run_id))
     conn.commit()
     for lab, cid in cluster_ids.items():
-        qdrant.set_payload("posts", [points[i][0] for i, v in enumerate(grouping.labels) if v == lab], {"cluster_id": cid})
+        qdrant.set_payload("posts", [points[i][0] for i, v in enumerate(grouping.labels) if v == lab],
+                           {"cluster_id": cid, "clustered_run": run_id})
     noise = [points[i][0] for i, v in enumerate(grouping.labels) if v == -1]
-    qdrant.set_payload("posts", noise, {"cluster_id": None})
+    qdrant.set_payload("posts", noise, {"cluster_id": None, "clustered_run": run_id})
     return {"status": "done", "run_id": run_id, "posts": len(post_ids), "clusters": summary, "unclustered": unclustered}

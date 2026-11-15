@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import type { Cluster, ClusteringState, Filters, MapPoint } from "../api/types";
+import type { Cluster, ClusteringState, EdgePost, Filters, HighlightTier, MapPoint, PostRef } from "../api/types";
 import { FilterBar, FilterSummary } from "../components/FilterBar";
 import { LanguageBar } from "../components/LanguageBar";
 import { EmptyState, ErrorState, Loading } from "../components/States";
 import { StatusDot } from "../components/Verdict";
-import { VERDICT_LABEL, defaultFilters, shortDate, todayIso } from "../lib/filters";
+import { VERDICT_LABEL, defaultFilters, shortDate } from "../lib/filters";
 import { useApi } from "../lib/useApi";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 
@@ -35,10 +35,7 @@ export function Narratives() {
           </p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <UpdateClusters days={windowDays(filters)} onFinished={reload} />
-            <Link to="/dashboard/analyze" className="btn">Analyze a post</Link>
-          </div>
+          <Link to="/dashboard/analyze" className="btn">Analyze a post</Link>
           {data && data.run.clusters > 0 && (
             <span className="mono muted" style={{ fontSize: 12.5 }}>
               Latest run {shortDate(data.run.date)} · {data.run.posts.toLocaleString("en-US")} posts · {data.run.clusters} clusters
@@ -57,7 +54,7 @@ export function Narratives() {
         <>
           <div className="summary-row">
             <FilterSummary shown={clusters.length} total={data.total} noun="large clusters" value={filters} defaults={defaults} onClear={clear} />
-            <UpdateClusters days={windowDays(filters)} onFinished={reload} />
+            <UpdateClusters onFinished={reload} />
           </div>
 
           <div className="split" aria-busy={loading}>
@@ -104,23 +101,16 @@ export function Narratives() {
   );
 }
 
-/** How many days back the clustering run looks: the filter's range (custom: from its start to today). */
-export function windowDays(f: Filters, today: string = todayIso()): number {
-  const days = f.range === "custom"
-    ? Math.round((Date.parse(today) - Date.parse(f.from || today)) / 86_400_000)
-    : Number(f.range);
-  return Math.min(365, Math.max(1, Number.isFinite(days) ? days : 7));
-}
-
 /** How often a running clustering is checked. Tests shorten it. */
 export const clusteringPolling = { intervalMs: 2000 };
 
 /**
- * "Update clusters": groups the posts of the chosen period again (backend/veritas/clustering_job.py).
- * Runs in the background on the server; this polls it and reloads the screen when it's done.
- * A run started earlier (another tab, before a page reload) is picked up and followed too.
+ * "Update clusters": adds the posts that aren't clustered yet, without recomputing the rest, then
+ * reads the typical posts of the clusters that changed (backend/veritas/clustering_job.py).
+ * Runs in the background on the server; this polls it, shows what it is doing, and reloads the
+ * screen when it's done. A run started earlier (another tab, before a reload) is followed too.
  */
-function UpdateClusters({ days, onFinished }: { days: number; onFinished: () => void }) {
+function UpdateClusters({ onFinished }: { onFinished: () => void }) {
   const [state, setState] = useState<ClusteringState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const finished = useRef(onFinished);
@@ -138,7 +128,7 @@ function UpdateClusters({ days, onFinished }: { days: number; onFinished: () => 
     let alive = true;
     const timer = setInterval(() => {
       api.clusteringState().then((s) => {
-        if (!alive || s.status === "running") return;
+        if (!alive) return;
         setState(s);
         if (s.status === "done") finished.current();
       }, () => {});
@@ -148,14 +138,13 @@ function UpdateClusters({ days, onFinished }: { days: number; onFinished: () => 
 
   const start = () => {
     setError(null);
-    api.startClustering(days).then((s) => {
+    api.startClustering().then((s) => {
       setState(s);
       if (s.status === "done") finished.current();
     }, (err: unknown) => setError(err instanceof Error ? err.message : "Clustering couldn't be started."));
   };
 
-  const note = error ?? (running ? `Grouping the posts of the last ${state?.days ?? days} days. This can take a few minutes.`
-    : state && state.status !== "idle" ? state.message : null);
+  const note = error ?? (running ? state?.message ?? "Starting…" : state && state.status !== "idle" ? state.message : null);
   return (
     <div className="cluster-update">
       <span aria-live="polite" data-testid="clustering-note" title={note ?? undefined}
@@ -163,7 +152,7 @@ function UpdateClusters({ days, onFinished }: { days: number; onFinished: () => 
         {note}
       </span>
       <button type="button" className="btn btn-plain" onClick={start} disabled={running} aria-busy={running}
-        title={`Group the posts of the last ${days} days into narratives again`}>
+        title="Add the new posts to the clusters and read their typical posts">
         <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" className={running ? "spin" : undefined}>
           <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" fill="none" stroke="currentColor" strokeWidth="1.6"
             strokeLinecap="round" strokeLinejoin="round" />
@@ -171,6 +160,49 @@ function UpdateClusters({ days, onFinished }: { days: number; onFinished: () => 
         {running ? "Updating clusters…" : "Update clusters"}
       </button>
     </div>
+  );
+}
+
+const TIER_LABEL: Record<HighlightTier, string> = { clear: "clear", likely: "likely", possible: "possible" };
+
+/** A typical or edge post: its text with the highlighted phrases, how many per tier, and a link to it. */
+export function PostCard({ post, edge }: { post: PostRef | EdgePost; edge?: boolean }) {
+  const counts = post.highlights;
+  const total = counts ? counts.clear + counts.likely + counts.possible : 0;
+  return (
+    <article className={`postcard${edge ? " postcard-edge" : ""}`}>
+      <p className="postcard-text">
+        {post.segments
+          ? post.segments.map((s, i) => s.tier ? (
+            <mark key={i} className={`hl hl-${s.tier}`} title={`${s.technique} (${TIER_LABEL[s.tier]}): ${s.why}`}>
+              {s.text}<span className="visually-hidden"> ({s.technique}, {TIER_LABEL[s.tier]})</span>
+            </mark>
+          ) : <span key={i}>{s.text}</span>)
+          : post.text}
+      </p>
+      {counts && (
+        <span className="hl-counts" data-testid="highlight-counts">
+          {total === 0 ? "No manipulation techniques found" : (
+            <>
+              <strong>{total} {total === 1 ? "highlight" : "highlights"}</strong>
+              {(["clear", "likely", "possible"] as const).filter((t) => counts[t] > 0).map((t) => (
+                <span key={t} className="hl-count"><i className={`hl-swatch hl-${t}`} aria-hidden="true" />{counts[t]} {t}</span>
+              ))}
+            </>
+          )}
+        </span>
+      )}
+      <span className="postcard-foot">
+        <span className="muted" style={{ fontSize: 12 }}>{post.author} · {post.where}</span>
+        {post.url && (
+          <a className="btn btn-plain btn-small" href={post.url} target="_blank" rel="noopener noreferrer"
+            aria-label={`Open the post by ${post.author}`}>
+            Open post <span aria-hidden="true">↗</span>
+          </a>
+        )}
+      </span>
+      {"note" in post && <span style={{ fontSize: 12.5, color: "var(--accent-soft-text)" }}>{post.note}</span>}
+    </article>
   );
 }
 
@@ -247,25 +279,14 @@ function ClusterDetail({ cluster: c }: { cluster: Cluster }) {
             <h3 style={{ fontSize: 15 }}>Most typical posts</h3>
             <span className="muted" style={{ fontSize: 12.5 }}>Closest to the cluster's centre. Read these to know what it's about.</span>
           </div>
-          {c.typical.map((p) => (
-            <article key={p.id} className="postcard">
-              <span style={{ fontWeight: 500 }}>{p.text}</span>
-              <span className="muted" style={{ fontSize: 12 }}>{p.author} · {p.where}</span>
-            </article>
-          ))}
+          {c.typical.map((p) => <PostCard key={p.id} post={p} />)}
         </div>
         <div className="post-col">
           <div>
             <h3 style={{ fontSize: 15 }}>Edge cases</h3>
             <span className="muted" style={{ fontSize: 12.5 }}>Farthest from the centre but still inside. Often where a story is being reframed.</span>
           </div>
-          {c.edge.map((p) => (
-            <article key={p.id} className="postcard postcard-edge">
-              <span style={{ fontWeight: 500 }}>{p.text}</span>
-              <span className="muted" style={{ fontSize: 12 }}>{p.author} · {p.where}</span>
-              <span style={{ fontSize: 12.5, color: "var(--accent-soft-text)" }}>{p.note}</span>
-            </article>
-          ))}
+          {c.edge.map((p) => <PostCard key={p.id} post={p} edge />)}
         </div>
       </div>
     </section>

@@ -284,19 +284,25 @@ def test_cli_explains_missing_packages(monkeypatch, capsys):
 
     from contextlib import nullcontext
     monkeypatch.setattr(clustering, "_libs", missing)
-    monkeypatch.setattr(cluster_cli, "connection", lambda settings: nullcontext())  # no real services needed
+    monkeypatch.setattr(cluster_cli, "connection", lambda settings, **k: nullcontext())  # no real services needed
     monkeypatch.setattr(cluster_cli.Qdrant, "from_settings", classmethod(lambda cls, s, **k: nullcontext()))
     monkeypatch.setattr(cluster_cli.LocalAI, "from_settings", classmethod(lambda cls, s, **k: nullcontext()))
-    monkeypatch.setattr(cluster_cli, "run_clustering", lambda *a, **k: clustering.group([[1.0] * D] * 3))
-    assert cluster_cli.main(["--days", "7"]) == 1
+    from veritas import clustering_job
+    monkeypatch.setattr(clustering_job, "run_clustering", lambda *a, **k: clustering.group([[1.0] * D] * 3))
+    assert cluster_cli.main(["--rebuild", "--days", "7"]) == 1
     err = capsys.readouterr().err
     assert "uv sync --extra clustering" in err and "Traceback" not in err
 
 
 @pytest.mark.parametrize("days", ["0", "400"])
 def test_cli_checks_days(days, capsys):
-    assert cluster_cli.main(["--days", days]) == 1
+    assert cluster_cli.main(["--rebuild", "--days", days]) == 1
     assert "--days must be between 1 and 365" in capsys.readouterr().err
+
+
+def test_cli_days_only_with_rebuild(capsys):
+    assert cluster_cli.main(["--days", "7"]) == 1
+    assert "--days only applies with --rebuild" in capsys.readouterr().err
 
 
 @pytest.mark.llm

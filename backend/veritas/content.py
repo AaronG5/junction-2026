@@ -49,7 +49,10 @@ def post_payload(conn: pymysql.connections.Connection, post_id: int) -> tuple[st
             " p.published_at, p.origin, pl.code AS platform,"
             " (SELECT pc.cluster_id FROM post_clusters pc JOIN clustering_runs r ON r.run_id = pc.run_id"
             "   WHERE pc.post_id = p.post_id AND r.status = 'done' ORDER BY r.finished_at DESC, r.run_id DESC LIMIT 1)"
-            "   AS cluster_id"
+            "   AS cluster_id,"
+            " (SELECT pc.run_id FROM post_clusters pc JOIN clustering_runs r ON r.run_id = pc.run_id"
+            "   WHERE pc.post_id = p.post_id AND r.status = 'done' ORDER BY r.finished_at DESC, r.run_id DESC LIMIT 1)"
+            "   AS clustered_run"
             " FROM posts p JOIN platforms pl ON pl.platform_id = p.platform_id WHERE p.post_id = %s",
             (post_id,),
         )
@@ -60,6 +63,7 @@ def post_payload(conn: pymysql.connections.Connection, post_id: int) -> tuple[st
         "post_id": row["post_id"], "account_id": row["account_id"], "container_account_id": row["container_account_id"],
         "platform": row["platform"], "language": row["language"], "post_type": row["post_type"],
         "published_at": _rfc3339(row["published_at"]), "cluster_id": row["cluster_id"], "origin": row["origin"],
+        "clustered_run": row["clustered_run"],  # posts without it are new to clustering (clustering.update_clustering)
     }
     return str(uuid.UUID(bytes=row["uuid"])), {k: v for k, v in payload.items() if v is not None}
 

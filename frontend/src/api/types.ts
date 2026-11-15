@@ -39,6 +39,17 @@ export interface Language {
   share: number;  // percent, 0..100
 }
 
+/** How clearly a highlighted phrase uses its technique. */
+export type HighlightTier = "clear" | "likely" | "possible";
+
+/** A piece of a post's text; highlighted pieces say which technique, how clearly, and why. */
+export interface Highlight {
+  text: string;
+  technique?: string;
+  tier?: HighlightTier;
+  why?: string;
+}
+
 export interface PostRef {
   id: string;
   /** Link to the post on its platform, when known. */
@@ -47,6 +58,10 @@ export interface PostRef {
   author: string;
   /** e.g. "Telegram channel · Lithuanian" */
   where: string;
+  /** The text with Gemma's highlights, once it has read the post (missing before that). */
+  segments?: Highlight[];
+  /** How many highlights per tier. */
+  highlights?: Record<HighlightTier, number>;
 }
 
 export interface EdgePost extends PostRef {
@@ -261,9 +276,12 @@ export interface TrendingResponse {
 /** GET/PUT /api/settings: shared by every browser using this install. */
 /** GET/POST /api/clustering: the "Update clusters" run started from the dashboard. */
 export interface ClusteringState {
-  /** idle = not run since the backend started; too_few = not enough posts with vectors in the window. */
-  status: "idle" | "running" | "done" | "too_few" | "failed";
+  /** idle = not run since the backend started; up_to_date = no new posts; too_few = not enough posts with vectors. */
+  status: "idle" | "running" | "done" | "up_to_date" | "too_few" | "failed";
+  /** While running: what it is doing. After: the outcome, in plain words. */
   message: string | null;
+  /** update = add the new posts (the button); rebuild = everything again from scratch. */
+  mode: "update" | "rebuild" | null;
   days: number | null;
   startedAt: string | null;
   finishedAt: string | null;

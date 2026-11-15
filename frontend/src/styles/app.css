@@ -194,6 +194,22 @@ a:hover { color: var(--accent-hover); }
 .post-col { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .postcard { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
 .postcard-edge { border-style: dashed; border-color: var(--other); }
+.postcard-text { margin: 0; font-weight: 500; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; max-height: 14em; overflow-y: auto; }
+.postcard-foot { display: flex; justify-content: space-between; align-items: center; gap: 6px 10px; flex-wrap: wrap; margin-top: 2px; }
+.btn-small { min-height: 30px; padding: 0 10px; font-size: 12.5px; gap: 6px; }
+/* Highlighted phrases (veritas/cluster_insight.py). The tier is in the line style too, never colour alone. */
+.hl { color: inherit; background: var(--accent-soft); border-radius: 3px; padding: 0 2px;
+      text-decoration-line: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; cursor: help; }
+.hl-clear { text-decoration-style: solid; text-decoration-thickness: 2px; }
+.hl-likely { text-decoration-style: dashed; text-decoration-thickness: 1.5px; }
+.hl-possible { text-decoration-style: dotted; text-decoration-thickness: 1.5px; background: transparent; }
+.hl-counts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 12.5px; color: var(--text-muted); }
+.hl-counts strong { color: var(--text); font-weight: 600; }
+.hl-count { display: inline-flex; align-items: center; gap: 5px; }
+.hl-swatch { display: inline-block; width: 16px; height: 8px; border-bottom: 2px solid var(--accent); }
+.hl-swatch.hl-clear { background: var(--accent-soft); }
+.hl-swatch.hl-likely { border-bottom-style: dashed; background: var(--accent-soft); }
+.hl-swatch.hl-possible { border-bottom-style: dotted; background: transparent; }
 
 /* ---- analyze ---- */
 .analyze-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }

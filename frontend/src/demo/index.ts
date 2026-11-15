@@ -184,11 +184,11 @@ export const demoApi: Api = {
     return clone(demoClustering);
   },
 
-  async startClustering(days) {
+  async startClustering() {
     await wait();
     // The example clusters are fixed; a run "finishes" at once and changes nothing.
     const now = new Date().toISOString().slice(0, 19) + "Z";
-    demoClustering = { status: "done", message: DEMO_CLUSTERING, days, startedAt: now, finishedAt: now };
+    demoClustering = { status: "done", message: DEMO_CLUSTERING, mode: "update", days: null, startedAt: now, finishedAt: now };
     return clone(demoClustering);
   },
 
@@ -220,7 +220,7 @@ function demoNarrativeFor(text: string) {
 }
 
 export const DEMO_CLUSTERING = "Demo mode: the example clusters stay as they are.";
-let demoClustering: ClusteringState = { status: "idle", message: null, days: null, startedAt: null, finishedAt: null };
+let demoClustering: ClusteringState = { status: "idle", message: null, mode: null, days: null, startedAt: null, finishedAt: null };
 
 /** The backend's rule and message (backend/veritas/app_settings.py). */
 export const SHARING_WHILE_LOCAL = "Sharing can't be turned on while Veritas Lens works only on this computer. Choose Hybrid or Central server first.";
@@ -228,5 +228,5 @@ let demoSettings: AppSettings = { dataMode: "hybrid", shareAnalyses: false };
 /** Test helper. */
 export function resetDemoSettings() {
   demoSettings = { dataMode: "hybrid", shareAnalyses: false };
-  demoClustering = { status: "idle", message: null, days: null, startedAt: null, finishedAt: null };
+  demoClustering = { status: "idle", message: null, mode: null, days: null, startedAt: null, finishedAt: null };
 }

@@ -1,8 +1,14 @@
 """Clustering started from the dashboard (the "Update clusters" button on Narratives).
 
-The same work as `uv run python backend/cluster.py`, run in one background thread.
-Only one run at a time: pressing the button again while it runs just reports the
-running one. The state lives in memory; the finished run itself is in MySQL.
+Runs in one background thread, one run at a time: pressing the button again while it
+runs just reports the running one. The state lives in memory; the results are in MySQL.
+  update   (the button) adds the posts that aren't clustered yet, without recomputing the
+           rest (veritas/clustering_update.py); the very first run groups every post.
+  rebuild  groups everything again from scratch (all posts, or the last N days), like
+           `uv run python backend/cluster.py --rebuild`.
+Either way, the typical and edge posts of every cluster that changed then get their
+highlights and claims (veritas/cluster_insight.py). While it runs, the message says
+what it is doing.
 """
 from __future__ import annotations
 
@@ -10,17 +16,20 @@ import logging
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Callable
+from typing import Callable, Literal
 
 from .ai import AiError, AiUnavailable, LocalAI
+from .cluster_insight import enrich_clusters, unread_clusters
 from .clustering import ClusteringUnavailable, _libs, run_clustering
+from .clustering_update import update_clustering
 from .config import Settings
 from .db import DatabaseUnavailable, connect
 from .vectors import Qdrant, VectorStoreError, VectorStoreUnavailable
 
 log = logging.getLogger("veritas")
 
-MIN_DAYS, MAX_DAYS, DEFAULT_DAYS = 1, 365, 7
+MIN_DAYS, MAX_DAYS = 1, 365
+Mode = Literal["update", "rebuild"]
 SERVER_ERROR = "Clustering failed because of a problem on the server. Details are in the backend log."
 PLAIN_ERRORS = (ClusteringUnavailable, DatabaseUnavailable, VectorStoreUnavailable, VectorStoreError,
                 AiUnavailable, AiError)
@@ -34,13 +43,27 @@ def _iso(t: datetime | None) -> str | None:
     return t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") if t else None
 
 
+def summary(result: dict) -> tuple[str, str]:
+    """(status, message) for a finished run's report."""
+    insight = result.get("insight") or {}
+    read = f" Read {insight['posts']} typical posts." if insight.get("posts") else ""
+    if result.get("status") in ("too_few", "up_to_date"):
+        return result["status"], (result.get("message") or "") + read
+    if result.get("mode") == "update":
+        new = result.get("new_clusters", 0)
+        return "done", (f"Added {result.get('posts', 0):,} new posts: {result.get('joined', 0):,} joined existing clusters"
+                        f"{f', {new} new narratives' if new else ''}.{read}")
+    return "done", f"{len(result.get('clusters', []))} clusters from {result.get('posts', 0):,} posts.{read}"
+
+
 @dataclass
 class ClusteringJob:
-    """status: idle (never run since the backend started), running, done, too_few, failed."""
+    """status: idle (never run since the backend started), running, done, up_to_date, too_few, failed."""
     settings: Settings
-    run: Callable[[int], dict] | None = None   # tests swap the real work
+    run: Callable[[str, int | None, Callable[[str], None]], dict] | None = None   # tests swap the real work
     status: str = "idle"
     message: str | None = None
+    mode: str | None = None
     days: int | None = None
     started_at: datetime | None = None
     finished_at: datetime | None = None
@@ -48,12 +71,12 @@ class ClusteringJob:
 
     def state(self) -> dict:
         with self._lock:
-            return {"status": self.status, "message": self.message, "days": self.days,
+            return {"status": self.status, "message": self.message, "mode": self.mode, "days": self.days,
                     "startedAt": _iso(self.started_at), "finishedAt": _iso(self.finished_at)}
 
-    def start(self, days: int = DEFAULT_DAYS) -> tuple[dict, bool]:
-        """Start a run unless one is running. Returns (state, started)."""
-        if not MIN_DAYS <= days <= MAX_DAYS:
+    def start(self, mode: Mode = "update", days: int | None = None) -> tuple[dict, bool]:
+        """Start a run unless one is running. Returns (state, started). days: rebuild only (None = all posts)."""
+        if days is not None and not MIN_DAYS <= days <= MAX_DAYS:
             raise ValueError(f"days must be between {MIN_DAYS} and {MAX_DAYS}.")
         if self.run is None:
             _libs()  # missing packages: say so now, not after a minute of waiting
@@ -61,18 +84,20 @@ class ClusteringJob:
             if self.status == "running":
                 started = False
             else:
-                self.status, self.message, self.days = "running", None, days
+                self.status, self.message, self.mode, self.days = "running", None, mode, days
                 self.started_at, self.finished_at = _now(), None
-                threading.Thread(target=self._work, args=(days,), name="clustering", daemon=True).start()
+                threading.Thread(target=self._work, args=(mode, days), name="clustering", daemon=True).start()
                 started = True
         return self.state(), started
 
-    def _work(self, days: int) -> None:
+    def _say(self, message: str) -> None:
+        with self._lock:
+            if self.status == "running":
+                self.message = message
+
+    def _work(self, mode: str, days: int | None) -> None:
         try:
-            result = (self.run or self._real_run)(days)
-            status = "done" if result.get("status") == "done" else "too_few"
-            message = result.get("message") if status == "too_few" else (
-                f"{len(result.get('clusters', []))} clusters from {result.get('posts', 0):,} posts.")
+            status, message = summary((self.run or self._real_run)(mode, days, self._say))
         except PLAIN_ERRORS as exc:
             status, message = "failed", str(exc)
         except Exception:
@@ -81,11 +106,27 @@ class ClusteringJob:
         with self._lock:
             self.status, self.message, self.finished_at = status, message, _now()
 
-    def _real_run(self, days: int) -> dict:
-        until = _now()
+    def _real_run(self, mode: str, days: int | None, say: Callable[[str], None]) -> dict:
         conn = connect(self.settings, read_timeout=3600)
         try:
             with Qdrant.from_settings(self.settings) as qdrant, LocalAI.from_settings(self.settings, timeout=300) as ai:
-                return run_clustering(conn, qdrant, ai, since=until - timedelta(days=days), until=until)
+                return cluster_and_read(conn, qdrant, ai, mode=mode, days=days, say=say)
         finally:
             conn.close()
+
+
+def cluster_and_read(conn, qdrant: Qdrant, ai: LocalAI, *, mode: str = "update", days: int | None = None,
+                     say: Callable[[str], None] = lambda m: None, read: bool = True) -> dict:
+    """One clustering run (update or rebuild), then highlights and claims for the clusters it touched."""
+    if mode == "rebuild":
+        say("Grouping all posts again from scratch. This can take a few minutes.")
+        until = _now()
+        result = run_clustering(conn, qdrant, ai, since=until - timedelta(days=days) if days else None, until=until)
+    else:
+        result = update_clustering(conn, qdrant, ai, progress=say)
+    if read and result.get("run_id") and result.get("status") in ("done", "up_to_date"):
+        # the clusters this run changed, and any whose typical posts weren't read before
+        ids = {c["cluster_id"] for c in result.get("clusters", [])} | set(unread_clusters(conn, result["run_id"]))
+        if ids:
+            result["insight"] = enrich_clusters(conn, ai, qdrant, ids, progress=say)
+    return result

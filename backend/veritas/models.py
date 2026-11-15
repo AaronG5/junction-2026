@@ -101,16 +101,35 @@ class Language(Contract):
 
 # ----------------------------------------------------------------------- narratives
 
+class Highlight(Contract):
+    """A piece of a post's text. Highlighted pieces say which technique, how clearly, and why."""
+    omit_if_none = frozenset({"technique", "tier", "why"})
+    text: str
+    technique: str | None = None
+    tier: Literal["clear", "likely", "possible"] | None = None
+    why: str | None = None
+
+
+class HighlightCounts(Contract):
+    clear: int = Field(ge=0)
+    likely: int = Field(ge=0)
+    possible: int = Field(ge=0)
+
+
 class PostRef(Contract):
-    omit_if_none = frozenset({"url"})
+    omit_if_none = frozenset({"url", "segments", "highlights"})
     id: str
     url: str | None = None
     text: str
     author: str
     where: str
+    # Filled once Gemma has read the post (veritas/cluster_insight.py); missing before that.
+    segments: list[Highlight] | None = None
+    highlights: HighlightCounts | None = None
 
 
 class EdgePost(PostRef):
+    omit_if_none = PostRef.omit_if_none
     note: str
 
 

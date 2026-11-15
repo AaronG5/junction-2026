@@ -39,8 +39,8 @@ export interface Api {
   appSettings(): Promise<AppSettings>;
   saveAppSettings(s: AppSettings): Promise<AppSettings>;
   clusteringState(): Promise<ClusteringState>;
-  /** Start grouping the posts of the last `days` days; resolves at once with the running state. */
-  startClustering(days: number): Promise<ClusteringState>;
+  /** Add the posts that aren't clustered yet; resolves at once with the running state. */
+  startClustering(): Promise<ClusteringState>;
   /**
    * Run the narrative check on any text. Resolves with the final result; onUpdate
    * gets each answer as it arrives (first the fast-path fields, status "pending").
@@ -194,10 +194,10 @@ export const httpApi: Api = {
     body: JSON.stringify(s),
   }),
   clusteringState: () => request("/clustering"),
-  startClustering: (days) => request("/clustering", {}, {
+  startClustering: () => request("/clustering", {}, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ days }),
+    body: JSON.stringify({}),
   }),
   checkText: checkTextOverHttp,
   narrativeStatus: () => extRequest("/status"),
@@ -240,7 +240,7 @@ export const api: Api = {
   appSettings: () => pick().then((a) => a.appSettings()),
   saveAppSettings: (s) => pick().then((a) => a.saveAppSettings(s)),
   clusteringState: () => pick().then((a) => a.clusteringState()),
-  startClustering: (days) => pick().then((a) => a.startClustering(days)),
+  startClustering: () => pick().then((a) => a.startClustering()),
   checkText: (text, onUpdate) => pick().then((a) => a.checkText(text, onUpdate)),
   narrativeStatus: () => pick().then((a) => a.narrativeStatus()),
 };
