@@ -101,6 +101,21 @@ img, svg { display: block; max-width: 100%; }
 .lede { font-size: clamp(1rem, 1.25vw, 1.15rem); color: var(--ink-2); max-width: 46ch; line-height: 1.5; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
+/* ---------------------------------------------------------------- the mark */
+
+/* The eye (components/Mark.tsx). It is sized by the type it stands next to —
+   em, so one drawing serves every lockup — and inked by it, so it reddens with
+   the word on hover. Bitten by the same plate as the display faces. */
+.mark { height: .84em; width: auto; aspect-ratio: 16 / 11; flex: none; filter: url(#bite-s); --trace: var(--red); }
+.mark-lens { fill: none; stroke: currentColor; stroke-width: 5.6; stroke-linejoin: miter; }
+/* The trace is the one thing the mark does not borrow: the pupil is the origin
+   dot, overprinted — the plate laid down twice and a hair out of register, the
+   same impression the hero's knocked-out word carries. */
+.mark-trace { fill: var(--trace); }
+.mark-trace-off { fill: color-mix(in srgb, var(--trace) 74%, #1A0A05); }
+/* On the dark plate the trace is the brighter red, as it is everywhere else. */
+.sidebar .mark { --trace: var(--red-wood); }
+
 /* ---------------------------------------------------------------- surfaces */
 
 .card {
@@ -262,14 +277,18 @@ a.chip:hover { background: var(--ink); color: var(--paper); border-color: var(--
 .sidebar .muted { color: var(--on-wood-2); }
 .sidebar a { color: var(--on-wood); }
 
-.brand { display: flex; flex-direction: column; gap: 1px; text-decoration: none; color: inherit; }
+/* Mark, then the word over its line of business. The font-size sits on the
+   link so the mark can be set in em against the word it belongs to. */
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; font-size: 27px; }
+.brand-words { display: flex; flex-direction: column; gap: 1px; }
 .brand b {
   font-family: var(--font-display); font-weight: 900; font-stretch: 68%;
-  font-size: 27px; line-height: .86; letter-spacing: 0; text-transform: uppercase;
+  font-size: 1em; line-height: .86; letter-spacing: 0; text-transform: uppercase;
   filter: url(#bite-s);
 }
-.brand span { font-family: var(--font-data); font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--on-wood-2); }
-.brand:hover b { color: var(--red); }
+.brand-words span { font-family: var(--font-data); font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--on-wood-2); }
+/* The whole lockup reddens, mark included — in the wood's red, not the paper's. */
+.brand:hover { color: var(--red-wood); }
 
 .nav { display: flex; flex-direction: column; }
 .nav a {
@@ -332,6 +351,11 @@ a.chip:hover { background: var(--ink); color: var(--paper); border-color: var(--
 
 @media (min-width: 880px) {
   .sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; align-self: flex-start; }
+  /* The column is only 236px wide. The mark takes its own line there, so the
+     word and its line of business keep the full measure — and the mark gets to
+     be read rather than glanced at. In the phone bar it goes back beside them. */
+  .brand { flex-direction: column; align-items: flex-start; gap: 9px; }
+  .brand .mark { height: 1.15em; }
 }
 @media (max-width: 879px) {
   .layout { flex-direction: column; flex-wrap: nowrap; }
@@ -341,7 +365,7 @@ a.chip:hover { background: var(--ink); color: var(--paper); border-color: var(--
   .sidebar[data-open="true"] .side-menu { display: flex; }
   .side-bottom { margin-top: 0; }
   .main { flex: 1 1 auto; }
-  .brand b { font-size: 22px; }
+  .brand { font-size: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }

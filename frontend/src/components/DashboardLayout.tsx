@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { DATA_MODES, useSettings } from "../lib/settings";
+import { ProvidenceMark } from "./Mark";
 import { ThemeSwitch } from "./ThemeSwitch";
 
 const NAV = [
@@ -29,8 +30,11 @@ export function DashboardLayout() {
       <aside className="sidebar" data-open={menuOpen}>
         <div className="sidebar-top">
           <Link to="/" className="brand">
-            <b>Providence</b>
-            <span>Disinformation analysis</span>
+            <ProvidenceMark />
+            <span className="brand-words">
+              <b>Providence</b>
+              <span>Disinformation analysis</span>
+            </span>
           </Link>
           <button type="button" className="btn btn-plain menu-btn" aria-expanded={menuOpen} aria-controls="side-menu"
             onClick={() => setMenuOpen(!menuOpen)}>

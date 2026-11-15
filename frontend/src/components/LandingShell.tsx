@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { ProvidenceMark } from "./Mark";
 
 /**
  * Masthead and footer shared by the landing page and the guided walk-through.
- * The wordmark is printed in two plates, deliberately out of register.
+ * The mark and the word are one lockup, and one link: see Mark.tsx.
  */
 export function LandingShell({ children }: { children: ReactNode }) {
   return (
@@ -12,6 +13,7 @@ export function LandingShell({ children }: { children: ReactNode }) {
       <header className="masthead">
         <div className="shell masthead-in">
           <Link to="/" className="wordmark" aria-label="Providence, home">
+            <ProvidenceMark />
             <b>Providence</b>
           </Link>
           {/* Short in the masthead, but still "Open the dashboard" to a screen reader. */}

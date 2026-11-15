@@ -1,0 +1,20 @@
+<!--
+  The mark, re-cut for 16px: the same lens and the same trace, opened up to
+  1.45:1 so it fills a square frame, and printed on its own chip of paper so it
+  reads on any tab colour. No overprint at this size — it would only be mud.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Providence">
+  <style>
+    .paper { fill: #EDE3D1 }
+    .ink   { fill: none; stroke: #17120E; stroke-width: 3; stroke-linejoin: miter }
+    .trace { fill: #BE2E16 }
+    @media (prefers-color-scheme: dark) {
+      .paper { fill: #15110D }
+      .ink   { stroke: #F2E9DA }
+      .trace { fill: #FF6A4A }
+    }
+  </style>
+  <rect class="paper" width="32" height="32" />
+  <path class="ink" d="M2.6 16.4C8.2 4.4 23.8 4.4 29.4 16.4C23.8 27.3 8.2 27.3 2.6 16.4Z" />
+  <circle class="trace" cx="16" cy="16.4" r="4.3" />
+</svg>

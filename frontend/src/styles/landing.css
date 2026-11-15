@@ -25,17 +25,20 @@
 .masthead-in { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 76px; }
 
 /*
-  The wordmark is one mark, not two words: both lines are width-matched on the
-  Archivo width axis (VERITAS at 62%, LENS opened up to fill the same measure)
-  and set on near-solid leading.
+  The lockup: the eye, then the word set at the narrowest the display axis goes
+  — a dense block rather than a line of running text. The size is declared on
+  the link, so the mark can be set in em against the word it belongs to, and
+  both take their ink from the link: they redden together on hover.
 */
-/* One word, set at the narrowest the display axis goes: a dense block rather
-   than a line of running text. */
-.wordmark { display: block; text-decoration: none; color: var(--ink); line-height: .82; }
+.wordmark {
+  display: inline-flex; align-items: center; gap: .3em;
+  text-decoration: none; color: var(--ink); line-height: .82;
+  font-size: clamp(26px, 2.9vw, 34px);
+}
 .wordmark b {
   display: block;
   font-family: var(--font-display); font-weight: 900; font-stretch: 62%;
-  font-size: clamp(26px, 2.9vw, 34px); letter-spacing: 0.005em; text-transform: uppercase;
+  font-size: 1em; letter-spacing: 0.005em; text-transform: uppercase;
 }
 .wordmark:hover { color: var(--red); }
 
