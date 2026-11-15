@@ -15,8 +15,8 @@ import tempfile
 import urllib.request
 from pathlib import Path
 
-URL = "https://github.com/AaronG5/junction-2026/releases/download/narrative-bank-768-v1/narrative_bank_768.tar.gz"
-SHA256 = "0cd410f2ac2200102dddb463850cbeccdfc6504ad76632500ebd07bd05dfc126"
+URL = "https://github.com/AaronG5/junction-2026/releases/download/narrative-bank-768-v2/narrative_bank_768_v2.tar.gz"
+SHA256 = "d9b13d32b06be3ab9b308ec226d0d03ca1c6a68b1d3760667140a22ce4f714a8"
 DEST = Path(__file__).resolve().parents[1] / "data" / "narrative_bank"
 
 
