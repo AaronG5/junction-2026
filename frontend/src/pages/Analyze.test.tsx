@@ -14,7 +14,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const input = () => screen.getByLabelText(/telegram or facebook link/i);
+const input = () => screen.getByLabelText(/text of a post, or a telegram or facebook link/i);
 const analyzeButton = () => within(screen.getByRole("main")).getByRole("button", { name: /^analyz/i });
 const reportLoaded = () => screen.findByRole("heading", { name: "How it spread" });
 
@@ -24,7 +24,7 @@ describe("Analyze a link (demo data)", () => {
   it("starts empty with examples, and no report", () => {
     renderApp("/dashboard/analyze");
     expect(input()).toHaveValue("");
-    expect(screen.getByRole("link", { name: "Telegram post" })).toHaveAttribute("href", expect.stringContaining("/dashboard/analyze?url="));
+    expect(screen.getByRole("link", { name: "Telegram link" })).toHaveAttribute("href", expect.stringContaining("/dashboard/analyze?url="));
     expect(screen.queryByRole("heading", { name: "How it spread" })).not.toBeInTheDocument();
   });
 
@@ -33,7 +33,7 @@ describe("Analyze a link (demo data)", () => {
     renderApp("/dashboard/analyze");
     await user.type(input(), "https://example.com/news/1");
     await user.click(analyzeButton());
-    expect(screen.getByRole("alert")).toHaveTextContent(/doesn't look like a telegram or facebook link/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/we can only open telegram and facebook links/i);
     expect(input()).toHaveAttribute("aria-invalid", "true");
     expect(screen.queryByText("Analyzing")).not.toBeInTheDocument();
     // Typing again clears the error.
@@ -134,7 +134,7 @@ describe("Analyze a link (demo data)", () => {
   it("an example link fills the field and runs", async () => {
     const user = userEvent.setup();
     renderApp("/dashboard/analyze");
-    await user.click(screen.getByRole("link", { name: "Facebook post" }));
+    await user.click(screen.getByRole("link", { name: "Facebook link" }));
     await reportLoaded();
     expect(input()).toHaveValue("https://www.facebook.com/tiesabecenzuros/posts/1188");
   });

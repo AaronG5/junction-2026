@@ -114,6 +114,7 @@ class Bank:
     echo_emb: np.ndarray | None = None
     tg: list[dict] = field(default_factory=list)
     tg_emb: np.ndarray | None = None
+    manifest: dict = field(default_factory=dict)
 
     @classmethod
     def load(cls, root: Path) -> "Bank":
@@ -123,6 +124,7 @@ class Bank:
                         "Download it with: uv run python backend/fetch_narrative_bank.py", root)
             return b
         man = json.loads((root / "manifest.json").read_text()) if (root / "manifest.json").is_file() else {}
+        b.manifest = man
         b.thresholds.update(man.get("thresholds", {}))
         verdict = set(man.get("verdict_shards", ["euvsdisinfo", "a4n", "overload"]))
         echo = set(man.get("echo_shards", ["rt", "ria"]))
@@ -337,6 +339,15 @@ class Engine:
     def get(self, ids: list[str]) -> list[dict]:
         with self.lock:
             return [copy.deepcopy(self.results.get(i)) or {"id": i, "status": "error", "error": "unknown id"} for i in ids]
+
+    def status(self) -> dict:
+        """What the dashboard's System page shows: bank sizes, thresholds, judge on/off, embedding model."""
+        b = self.bank
+        return {"available": True, "reason": None,
+                "claims": len(b.claims), "echoClaims": len(b.echo), "telegramPosts": len(b.tg),
+                "thresholds": {k: self.t[k] for k in ("copy_strong", "candidate_gate", "echo_min") if k in self.t},
+                "judge": self.judge is not None,
+                "embeddingModel": b.manifest.get("embedding_model"), "dim": b.manifest.get("dim")}
 
     def feedback(self, row: dict) -> None:
         if not self.feedback_path:

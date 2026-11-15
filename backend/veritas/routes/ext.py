@@ -4,6 +4,7 @@ POST /api/ext/batch     {"client", "items": [{id, url, author, author_name, text
                         -> {"results": [...]} one per item; fast-path fields at once, status "pending" while the
                         judge runs
 GET  /api/ext/result?ids=a,b   -> {"results": [...]} (poll pending ids)
+GET  /api/ext/status    -> the narrative check's bank sizes, thresholds, judge on/off (dashboard System page)
 POST /api/ext/feedback  {tweet_id, verdict_shown, user_says, note?} -> {"ok": true}
 POST /api/ext/save      {"client", "items"} -> {"queued": n}: only store the posts (no check)
                         Posts from /batch and /save are kept in MySQL + Qdrant (veritas/ext_store.py).
@@ -129,6 +130,17 @@ def result(request: Request, ids: Annotated[str, Query(max_length=40 * 41)]):
     _limit(request)
     wanted = [i for i in ids.split(",") if i][:40]
     return {"results": _engine(request).get(wanted)}
+
+
+@router.get("/status")
+def status(request: Request):
+    """The narrative check at a glance, for the dashboard. Answers even when numpy is missing (available: false)."""
+    try:
+        engine = _engine(request)
+    except HTTPException as exc:
+        return {"available": False, "reason": exc.detail, "claims": 0, "echoClaims": 0, "telegramPosts": 0,
+                "thresholds": {}, "judge": False, "embeddingModel": None, "dim": None}
+    return engine.status()
 
 
 @router.post("/feedback")

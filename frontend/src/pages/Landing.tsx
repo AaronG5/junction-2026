@@ -1,9 +1,11 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ApiError, api, isSupportedLink } from "../api/client";
+import { ApiError, MAX_CHECK_TEXT, api } from "../api/client";
 import type { Filters, Story } from "../api/types";
 import { FilterBar } from "../components/FilterBar";
 import { LandingShell } from "../components/LandingShell";
+import { HowWellItWorks, MethodSteps } from "../components/Method";
+import { INPUT_PROBLEM, NarrativeReport, TEXT_EXAMPLES, inputKind, useNarrativeCheck } from "../components/NarrativeCheck";
 import { EmptyState, ErrorState, Loading } from "../components/States";
 import { StatusDot } from "../components/Verdict";
 import { VERDICT_LABEL, defaultFilters } from "../lib/filters";
@@ -16,7 +18,7 @@ const LANDING_RANGES = [
   { value: "90" as const, label: "3 months" },
 ];
 
-/** Start page: paste a link, or pick a story that's spreading now. */
+/** Start page: paste a post (or a link), or pick a story that's spreading now. */
 export function Landing() {
   useDocumentTitle();
   return (
@@ -31,20 +33,33 @@ export function Landing() {
 
 function Hero() {
   const navigate = useNavigate();
-  const [link, setLink] = useState("");
+  const [value, setValue] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { run, start } = useNarrativeCheck();
+  const resultRef = useRef<HTMLDivElement>(null);
 
-  const trace = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!isSupportedLink(link)) {
-      setProblem("That doesn't look like a Telegram or Facebook link. Try something like https://t.me/channel/1234.");
+  const check = (text: string) => {
+    start(text);
+    // Move to the answer (it appears under the hero), for keyboard and screen-reader users too.
+    requestAnimationFrame(() => resultRef.current?.focus());
+  };
+
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
+    const kind = inputKind(value);
+    if (kind !== "link" && kind !== "text") {
+      setProblem(INPUT_PROBLEM[kind] ?? null);
+      return;
+    }
+    setProblem(null);
+    if (kind === "text") {
+      check(value);
       return;
     }
     setBusy(true);
-    setProblem(null);
     try {
-      const story = await api.traceLink(link.trim());
+      const story = await api.traceLink(value.trim());
       navigate(`/story/${encodeURIComponent(story.id)}?via=link`);
     } catch (err) {
       setBusy(false);
@@ -52,32 +67,53 @@ function Hero() {
     }
   };
 
+  const checking = run.state === "running";
+
   return (
-    <section className="hero">
-      <div className="hero-copy">
-        <span className="lbl">Telegram · Facebook · news sites · any language</span>
-        <h1 className="hero-title">Every post has a story behind it. See where it started.</h1>
-        <p className="hero-lede">
-          Paste a link. In about a minute you'll know whether it holds up, who said it first, and how it travelled from one language to the next.
-        </p>
-        <form onSubmit={trace} className="hero-form" noValidate>
-          <label htmlFor="trace-link" style={{ fontSize: 14, fontWeight: 600 }}>Link to a post, channel, group or page</label>
-          <div className="hero-row">
-            <input id="trace-link" className="field mono" value={link} placeholder="https://t.me/channel/1234"
+    <>
+      <section className="hero">
+        <div className="hero-copy">
+          <span className="lbl">Any language · X · Telegram · Facebook · news sites</span>
+          <h1 className="hero-title">Paste a post. See whether it repeats known propaganda.</h1>
+          <p className="hero-lede">
+            We compare it with 18,600 documented pro-Kremlin narratives and 42,700 posts from pro-Kremlin Telegram channels.
+            A fine-tuned Gemma model then checks whether the post actually asserts one, not just mentions it.
+          </p>
+          <form onSubmit={submit} className="hero-form" noValidate>
+            <label htmlFor="trace-link" style={{ fontSize: 14, fontWeight: 600 }}>Text of a post, or a link to one</label>
+            <textarea id="trace-link" className="field field-text" value={value} rows={4} maxLength={MAX_CHECK_TEXT}
+              placeholder="Paste a post here, in any language. Or a Telegram or Facebook link, to trace where it came from."
               aria-invalid={Boolean(problem)} aria-describedby="trace-msg"
-              onChange={(e) => { setLink(e.target.value); setProblem(null); }} />
-            <button type="submit" className="btn" disabled={busy}>{busy ? "Tracing…" : "Trace it"}</button>
-          </div>
-          <span id="trace-msg" className={problem ? "ferror" : "muted"} style={{ fontSize: 13.5 }} role={problem ? "alert" : undefined}>
-            {problem ?? "Works with public Telegram channels and groups, and Facebook pages and groups."}
-          </span>
-        </form>
-        <p className="muted" style={{ fontSize: 15 }}>
-          Rather look around first? <Link to="/dashboard/narratives" style={{ fontWeight: 600 }}>Open the dashboard</Link> and see every narrative we track.
-        </p>
-      </div>
-      <TraceIllustration />
-    </section>
+              onChange={(e) => { setValue(e.target.value); setProblem(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void submit(); }} />
+            <div className="hero-actions">
+              <button type="submit" className="btn" disabled={busy || checking}>
+                {busy ? "Tracing…" : checking ? "Checking…" : "Check it"}
+              </button>
+              <span className="examples">
+                <span>Try an example:</span>
+                {TEXT_EXAMPLES.map((ex) => (
+                  <button key={ex.label} type="button" className="chip chip-btn" disabled={checking}
+                    onClick={() => { setValue(ex.text); setProblem(null); check(ex.text); }}>{ex.label}</button>
+                ))}
+              </span>
+            </div>
+            <span id="trace-msg" className={problem ? "ferror" : "muted"} style={{ fontSize: 13.5 }} role={problem ? "alert" : undefined}>
+              {problem ?? "Text is checked against known narratives. Public Telegram and Facebook links open the full trace."}
+            </span>
+          </form>
+          <p className="muted" style={{ fontSize: 15 }}>
+            Rather look around first? <Link to="/dashboard/narratives" style={{ fontWeight: 600 }}>Open the dashboard</Link> and see every narrative we track.
+          </p>
+        </div>
+        <TraceIllustration />
+      </section>
+      {run.state !== "idle" && (
+        <div ref={resultRef} tabIndex={-1} className="landing-section" aria-label="Result of the check" style={{ outline: "none" }}>
+          <NarrativeReport run={run} onRetry={() => check(run.text)} />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -160,23 +196,14 @@ function StoryCard({ story: s }: { story: Story }) {
 }
 
 function FindOut() {
-  const points = [
-    { title: "Whether it holds up", text: "Each claim is checked against sources, and you see the evidence, not just a verdict." },
-    { title: "Who said it first", text: "We follow copies, forwards and translations back to the earliest source we can find." },
-    { title: "What it's part of", text: "Most posts belong to a bigger storyline. See how big it is and whether it's growing." },
-    { title: "On your own computer, if you like", text: "Open source. Run the whole system yourself, offline, and nothing leaves your machine." },
-  ];
   return (
     <section className="landing-section" aria-labelledby="how-h">
-      <h2 id="how-h" className="section-title">What you'll find out</h2>
-      <div className="findout">
-        {points.map((p) => (
-          <div key={p.title}>
-            <b>{p.title}</b>
-            <span className="muted">{p.text}</span>
-          </div>
-        ))}
-      </div>
+      <h2 id="how-h" className="section-title">How the check works</h2>
+      <MethodSteps />
+      <p className="muted" style={{ maxWidth: "72ch" }}>
+        Open source. You can run Veritas Lens on your own computer. By default the Gemma judge runs on a hosted server.
+      </p>
+      <HowWellItWorks headingId="well-h" />
     </section>
   );
 }

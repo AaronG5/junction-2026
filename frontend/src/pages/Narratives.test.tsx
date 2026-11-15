@@ -123,7 +123,7 @@ describe("Narratives (demo data)", () => {
 
   it("links to Analyze a link and to the claims", async () => {
     await openDemo();
-    expect(within(screen.getByRole("main")).getByRole("link", { name: "Analyze a link" })).toHaveAttribute("href", "/dashboard/analyze");
+    expect(within(screen.getByRole("main")).getByRole("link", { name: "Analyze a post" })).toHaveAttribute("href", "/dashboard/analyze");
     expect(screen.getByRole("link", { name: /see its claims/i })).toHaveAttribute("href", "/dashboard/claims");
   });
 });

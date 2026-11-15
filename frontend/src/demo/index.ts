@@ -2,12 +2,15 @@
  * Demo implementation of the API: answers from data.ts with the same
  * filtering rules the backend must follow. Loaded only in demo mode.
  */
-import { ApiError, isSupportedLink, linkKey, type Api } from "../api/client";
+import { CLEAN_EXAMPLE } from "../components/NarrativeCheck";
+import { ApiError, isSupportedLink, linkKey, textId, type Api } from "../api/client";
 import {
   ANALYZE_STEPS, type AppSettings, type Claim, type ClusteringState, type Cluster, type MapPoint, type Source, type StatusCounts, type Story, type Verdict,
 } from "../api/types";
 import { matchesPlatform, matchesQuery, matchesStatus, overlaps, resolveRange } from "../lib/filters";
-import { channelReports, claims, clusters, postReport, run, sources, stories, systemStatus } from "./data";
+import {
+  channelReports, claims, clusters, narrativeClean, narrativeFlagged, narrativeStatus, postReport, run, sources, stories, systemStatus,
+} from "./data";
 
 export { DEMO_DATA_MARKER } from "./data";
 
@@ -188,7 +191,33 @@ export const demoApi: Api = {
     demoClustering = { status: "done", message: DEMO_CLUSTERING, days, startedAt: now, finishedAt: now };
     return clone(demoClustering);
   },
+
+  async checkText(text, onUpdate) {
+    await wait();
+    const done = { ...clone(demoNarrativeFor(text)), id: textId(text) };
+    if (done.content?.label === "potentially_propaganda") {
+      // Like the backend: the fast-path fields first, the judge's verdict later.
+      onUpdate?.({ ...done, status: "pending", content: { ...done.content, label: "none", score: 0, techniques: [], reason: "" } });
+      await wait(delayMs * 4);
+    }
+    onUpdate?.(clone(done));
+    return done;
+  },
+
+  async narrativeStatus() {
+    await wait();
+    return clone(narrativeStatus);
+  },
 };
+
+/**
+ * Demo only: texts that sound like the flagged example get its result, everything else the clean one.
+ * The highlighted quotes only line up with the example text itself.
+ */
+export const DEMO_FLAG_WORDS = /puppet|kyiv regime|nato'?s war|biolab|nazi|марионет|киевск/i;
+function demoNarrativeFor(text: string) {
+  return text !== CLEAN_EXAMPLE && DEMO_FLAG_WORDS.test(text) ? narrativeFlagged : narrativeClean;
+}
 
 export const DEMO_CLUSTERING = "Demo mode: the example clusters stay as they are.";
 let demoClustering: ClusteringState = { status: "idle", message: null, days: null, startedAt: null, finishedAt: null };

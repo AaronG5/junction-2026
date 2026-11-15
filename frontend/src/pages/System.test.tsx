@@ -162,3 +162,32 @@ describe("demo mode settings", () => {
     expect(await demoApi.appSettings()).toEqual({ dataMode: "central", shareAnalyses: true });
   });
 });
+
+describe("System: narrative check", () => {
+  it("shows the bank sizes, the judge, the thresholds and how well it works", async () => {
+    renderApp("/dashboard/system");
+    const card = (await screen.findByRole("heading", { name: "Narrative check" })).closest("section")!;
+    await waitFor(() => expect(card).toHaveTextContent("18,601"));
+    expect(card).toHaveTextContent("86,023");
+    expect(card).toHaveTextContent("42,675");
+    expect(card).toHaveTextContent("Ready");
+    expect(card).toHaveTextContent("copy_strong 0.815");
+    expect(within(card).getByText("On")).toBeInTheDocument();
+    const well = screen.getByRole("region", { name: "How well it works" });
+    expect(well).toHaveTextContent("31 of 45");
+    expect(well).toHaveTextContent("0 of 2,703");
+  });
+
+  it("explains a server where the check can't run", async () => {
+    vi.unstubAllEnvs();
+    vi.stubGlobal("fetch", vi.fn(async (u: RequestInfo | URL) => String(u) === "/api/ext/status"
+      ? new Response(JSON.stringify({ available: false, reason: "The narrative check isn't installed on this server (numpy is missing).",
+        claims: 0, echoClaims: 0, telegramPosts: 0, thresholds: {}, judge: false, embeddingModel: null, dim: null }),
+        { status: 200, headers: { "content-type": "application/json" } })
+      : new Response("no", { status: 502 })));
+    renderApp("/dashboard/system");
+    const card = (await screen.findByRole("heading", { name: "Narrative check" })).closest("section")!;
+    expect(card).toHaveTextContent("Not available");
+    expect(card).toHaveTextContent(/numpy is missing/);
+  });
+});

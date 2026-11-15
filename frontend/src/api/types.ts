@@ -291,3 +291,85 @@ export interface SystemStatus {
   };
   services: { name: string; role: string; address: string; running: boolean }[];
 }
+
+/* ------------------------------------------------------- narrative check */
+
+/**
+ * The narrative check: the backend's extension API (backend/veritas/narrative.py,
+ * contract in extension/API.md). POST /api/ext/batch answers at once with the
+ * fast-path fields; GET /api/ext/result?ids= is polled while status is "pending"
+ * (the fine-tuned Gemma judge is still reading the post).
+ */
+export type NarrativeStatus = "pending" | "done" | "error";
+
+/** A narrative claim from the bank. source: "euvsdisinfo", "a4n", "overload", "rt", "ria", ... */
+export interface NarrativeClaim {
+  text: string;
+  source: string | null;
+  /** Cosine similarity to the post, 0..1. */
+  sim: number;
+}
+
+export interface Technique {
+  /** "LL", "NC", ... */
+  code: string;
+  name: string;
+  /** The post's own words. */
+  quote: string;
+}
+
+/** The same narrative on Russian state media. Context only: it never decides the verdict. */
+export interface StateMediaEcho {
+  text: string;
+  source: string | null;
+  /** How many times it aired (RT transcripts); null when unknown. */
+  n_aired: number | null;
+  first: string | null;
+  last: string | null;
+  sim: number;
+}
+
+export interface TelegramMatch {
+  channel: string | null;
+  url: string | null;
+  date: string | null;
+  sim: number;
+  text: string;
+}
+
+export interface NarrativeContent {
+  /** Set by the judge only; "none" while pending. */
+  label: "potentially_propaganda" | "none";
+  score: number;
+  narrative: NarrativeClaim | null;
+  techniques: Technique[];
+  reason: string;
+  state_media_echo: StateMediaEcho[];
+}
+
+export interface NarrativeResult {
+  id: string;
+  status: NarrativeStatus;
+  /** Only when status is "error". */
+  error?: string;
+  /** Missing when status is "error". */
+  content?: NarrativeContent;
+  /** null: no Telegram bank or too short. strong = the post copies (or translates) a bank post. */
+  source_match?: { strong: boolean; telegram: TelegramMatch[] } | null;
+  coordination?: { label: "coordinated" | "none"; reasons: string[]; n_similar_accounts: number } | null;
+}
+
+/** GET /api/ext/status: the narrative check at a glance (System page). */
+export interface NarrativeCheckStatus {
+  /** false: the module can't run on this server (reason says why). */
+  available: boolean;
+  reason: string | null;
+  claims: number;
+  echoClaims: number;
+  telegramPosts: number;
+  thresholds: Record<string, number>;
+  /** Whether the fine-tuned Gemma judge is switched on. */
+  judge: boolean;
+  embeddingModel: string | null;
+  dim: number | null;
+}

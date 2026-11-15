@@ -15,7 +15,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const linkInput = () => screen.getByLabelText(/link to a post, channel, group or page/i);
+const linkInput = () => screen.getByLabelText(/text of a post, or a link to one/i);
 const storyCards = () => Array.from(document.querySelectorAll<HTMLAnchorElement>("a.pick"));
 const stepHeading = () => screen.getByRole("heading", { level: 1 });
 const stepButton = (name: RegExp) => within(screen.getByRole("navigation", { name: /walk-through steps/i })).getByRole("button", { name });
@@ -23,7 +23,7 @@ const stepButton = (name: RegExp) => within(screen.getByRole("navigation", { nam
 describe("landing page", () => {
   it("has the pitch, the link box and 'Open the dashboard' in the header, the hero and the dashboard band", async () => {
     renderApp("/");
-    expect(screen.getByRole("heading", { level: 1, name: /every post has a story behind it/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: /paste a post\. see whether it repeats known propaganda/i })).toBeInTheDocument();
     expect(linkInput()).toBeInTheDocument();
     const dashboardLinks = screen.getAllByRole("link", { name: /open the dashboard/i });
     expect(dashboardLinks).toHaveLength(3);
@@ -35,8 +35,8 @@ describe("landing page", () => {
     const user = userEvent.setup();
     const { currentPath } = renderApp("/");
     await user.type(linkInput(), "https://example.com/x");
-    await user.click(screen.getByRole("button", { name: "Trace it" }));
-    expect(screen.getByRole("alert")).toHaveTextContent(/doesn't look like a telegram or facebook link/i);
+    await user.click(screen.getByRole("button", { name: "Check it" }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/we can only open telegram and facebook links/i);
     expect(linkInput()).toHaveAttribute("aria-invalid", "true");
     expect(currentPath()).toBe("/");
   });
@@ -45,7 +45,7 @@ describe("landing page", () => {
     const user = userEvent.setup();
     const { currentPath } = renderApp("/");
     await user.type(linkInput(), "https://t.me/someone/42");
-    await user.click(screen.getByRole("button", { name: "Trace it" }));
+    await user.click(screen.getByRole("button", { name: "Check it" }));
     await waitFor(() => expect(currentPath()).toBe("/story/nato-border"));
     expect(await screen.findByRole("heading", { level: 1, name: /here's the post/i })).toBeInTheDocument();
     expect(screen.getByText(/demo mode: any link shows this example story/i)).toBeInTheDocument();
@@ -84,10 +84,10 @@ describe("landing page", () => {
     const user = userEvent.setup();
     const { currentPath } = renderApp("/");
     await user.type(linkInput(), "https://t.me/someone/42");
-    await user.click(screen.getByRole("button", { name: "Trace it" }));
+    await user.click(screen.getByRole("button", { name: "Check it" }));
     await waitFor(() => expect(within(screen.getByRole("main")).getAllByRole("alert").some((a) => /couldn't reach veritas lens/i.test(a.textContent!))).toBe(true));
     expect(currentPath()).toBe("/");
-    expect(screen.getByRole("button", { name: "Trace it" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Check it" })).toBeEnabled();
   });
 });
 

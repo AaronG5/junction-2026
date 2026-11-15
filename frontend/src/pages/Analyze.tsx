@@ -1,15 +1,16 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { api, isSupportedLink } from "../api/client";
+import { MAX_CHECK_TEXT, api, isSupportedLink } from "../api/client";
 import { ANALYZE_STEPS, type PostReport, type TextSegment } from "../api/types";
 import { LanguageBar } from "../components/LanguageBar";
+import { INPUT_PROBLEM, NarrativeReport, TEXT_EXAMPLES, inputKind, useNarrativeCheck } from "../components/NarrativeCheck";
 import { ErrorState } from "../components/States";
 import { VerdictPill } from "../components/Verdict";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 const EXAMPLES = [
-  { label: "Telegram post", url: "https://t.me/kanalas_b/4521" },
-  { label: "Facebook post", url: "https://www.facebook.com/tiesabecenzuros/posts/1188" },
+  { label: "Telegram link", url: "https://t.me/kanalas_b/4521" },
+  { label: "Facebook link", url: "https://www.facebook.com/tiesabecenzuros/posts/1188" },
 ];
 
 type Run =
@@ -18,21 +19,26 @@ type Run =
   | { state: "done"; report: PostReport }
   | { state: "failed"; error: unknown };
 
-/** Analyze a link: paste a Telegram/Facebook link, watch the steps, read the report. */
+/**
+ * Analyze a post: paste its text to run the narrative check, or a Telegram/Facebook
+ * link to watch the link analysis steps and read the full report.
+ */
 export function Analyze() {
-  useDocumentTitle("Analyze a link");
+  useDocumentTitle("Analyze a post");
   const [params, setParams] = useSearchParams();
   const [url, setUrl] = useState(params.get("url") ?? "");
-  const [invalid, setInvalid] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
   const [run, setRun] = useState<Run>({ state: "idle" });
   const latest = useRef(0);
+  const check = useNarrativeCheck();
 
   const start = useCallback((link: string) => {
     if (!isSupportedLink(link)) {
-      setInvalid(true);
+      setProblem(INPUT_PROBLEM.otherLink!);
       return;
     }
-    setInvalid(false);
+    setProblem(null);
+    check.reset();
     const id = ++latest.current;
     setRun({ state: "running", step: 0 });
     api.analyze(link.trim(), (step) => {
@@ -41,7 +47,7 @@ export function Analyze() {
       (report) => { if (id === latest.current) setRun({ state: "done", report }); },
       (error) => { if (id === latest.current) setRun({ state: "failed", error }); },
     );
-  }, []);
+  }, [check.reset]);
 
   // A link in the address (?url=...) is analyzed right away.
   const fromAddress = params.get("url");
@@ -53,41 +59,56 @@ export function Analyze() {
   }, [fromAddress, start]);
   useEffect(() => () => { latest.current += 1; }, []);
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (isSupportedLink(url) && url.trim() !== fromAddress) setParams({ url: url.trim() }, { replace: true });
+  const checkText = (text: string) => {
+    latest.current += 1;
+    setRun({ state: "idle" });
+    setProblem(null);
+    if (fromAddress) setParams({}, { replace: true });
+    check.start(text);
+  };
+
+  const submit = (e?: FormEvent) => {
+    e?.preventDefault();
+    const kind = inputKind(url);
+    if (kind === "text") checkText(url);
+    else if (kind !== "link") setProblem(INPUT_PROBLEM[kind] ?? null);
+    else if (url.trim() !== fromAddress) setParams({ url: url.trim() }, { replace: true });
     else start(url);
   };
 
-  const running = run.state === "running";
+  const running = run.state === "running" || check.run.state === "running";
 
   return (
     <div className="page">
       <header style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <h1 className="page-title">Analyze a link</h1>
+        <h1 className="page-title">Analyze a post</h1>
         <form onSubmit={submit} className="analyze-form" noValidate>
           <div className="analyze-field">
             <label htmlFor="link" style={{ fontSize: 13, fontWeight: 600 }}>
-              Telegram or Facebook link to a post
+              Text of a post, or a Telegram or Facebook link
             </label>
-            <input
-              id="link" className="field mono" value={url} placeholder="https://t.me/channel/1234"
-              aria-invalid={invalid} aria-describedby="link-msg"
-              onChange={(e) => { setUrl(e.target.value); setInvalid(false); }}
+            <textarea
+              id="link" className="field field-text" value={url} rows={4} maxLength={MAX_CHECK_TEXT}
+              placeholder="Paste a post in any language, or a link like https://t.me/channel/1234"
+              aria-invalid={Boolean(problem)} aria-describedby="link-msg"
+              onChange={(e) => { setUrl(e.target.value); setProblem(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) submit(); }}
             />
-            <span id="link-msg" className={invalid ? "ferror" : "muted"} style={{ fontSize: 13 }} role={invalid ? "alert" : undefined}>
-              {invalid
-                ? "That doesn't look like a Telegram or Facebook link. Try something like https://t.me/channel/1234."
-                : "A post in a public Telegram channel or group, or on a Facebook page or group."}
+            <span id="link-msg" className={problem ? "ferror" : "muted"} style={{ fontSize: 13 }} role={problem ? "alert" : undefined}>
+              {problem ?? "Text gets the narrative check. A post link from a public Telegram channel or group, or a Facebook page or group, gets the full report."}
             </span>
           </div>
           <button type="submit" className="btn" disabled={running} style={{ minWidth: 120 }}>
             {running ? "Analyzing…" : "Analyze"}
           </button>
         </form>
-        {run.state !== "done" && (
+        {run.state !== "done" && check.run.state === "idle" && (
           <div className="examples">
             <span>Try an example:</span>
+            {TEXT_EXAMPLES.map((ex) => (
+              <button key={ex.label} type="button" className="chip chip-btn" disabled={running}
+                onClick={() => { setUrl(ex.text); checkText(ex.text); }}>{ex.label}</button>
+            ))}
             {EXAMPLES.map((ex) => (
               <Link key={ex.url} className="chip" to={`/dashboard/analyze?url=${encodeURIComponent(ex.url)}`}>{ex.label}</Link>
             ))}
@@ -95,6 +116,7 @@ export function Analyze() {
         )}
       </header>
 
+      {check.run.state !== "idle" && <NarrativeReport run={check.run} onRetry={() => check.start(check.run.state === "idle" ? "" : check.run.text)} />}
       {run.state === "running" && <Progress step={run.step} />}
       {run.state === "failed" && <ErrorState error={run.error} onRetry={() => start(url)} />}
       {run.state === "done" && <Report report={run.report} />}

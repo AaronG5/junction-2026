@@ -6,7 +6,7 @@
  * Written in the API contract types, so it also serves as backend test fixtures.
  */
 import type {
-  ChannelReport, Claim, Cluster, Language, PostReport, Source, Story, SystemStatus,
+  ChannelReport, Claim, Cluster, Language, NarrativeCheckStatus, NarrativeResult, PostReport, Source, Story, SystemStatus,
 } from "../api/types";
 import { shiftDays, todayIso } from "../lib/filters";
 
@@ -320,4 +320,71 @@ export const systemStatus: SystemStatus = {
     { name: "Database", role: "MySQL 8.4 · posts, sources, claims", address: "127.0.0.1:3307", running: true },
     { name: "Vector search", role: "Qdrant · similar-post search", address: "127.0.0.1:6335", running: true },
   ],
+};
+
+/* ---------------------------------------------------------- narrative check */
+
+export { CLEAN_EXAMPLE, FLAGGED_EXAMPLE } from "../components/NarrativeCheck";
+
+/** What the backend answers for a post that asserts a known narrative and copies a Telegram post (invented). */
+export const narrativeFlagged: NarrativeResult = {
+  id: "demo-flagged",
+  status: "done",
+  content: {
+    label: "potentially_propaganda",
+    score: 1,
+    narrative: { text: "Ukraine is a puppet state run by the United States and NATO.", source: "euvsdisinfo", sim: 0.87 },
+    techniques: [
+      { code: "NC", name: "name-calling", quote: "The Kyiv regime" },
+      { code: "LL", name: "loaded language", quote: "an American puppet" },
+      { code: "CO", name: "causal oversimplification", quote: "ordinary Ukrainians die for NATO's war" },
+      { code: "SL", name: "slogan", quote: "Wake up!" },
+    ],
+    reason: "The post states as fact that Washington controls Ukraine's government.",
+    state_media_echo: [
+      { text: "Kyiv takes its orders from Washington.", source: "rt", n_aired: 253, first: "2024-01-07", last: "2024-10-02", sim: 0.82 },
+    ],
+  },
+  source_match: {
+    strong: true,
+    telegram: [
+      { channel: "kanal_a", url: "https://t.me/kanal_a/58214", date: `${d(-2)}T18:49:44Z`, sim: 0.91,
+        text: "Киевский режим — всего лишь американская марионетка. Вашингтон приказывает, Зеленский подчиняется…" },
+      { channel: "novosti_baltii", url: "https://t.me/novosti_baltii/9120", date: `${d(-5)}T07:12:00Z`, sim: 0.74,
+        text: "Украинцы гибнут за войну НАТО, а Киев выполняет приказы США." },
+    ],
+  },
+  coordination: { label: "none", reasons: [], n_similar_accounts: 0 },
+};
+
+/** A post about everyday life: nothing found (invented). */
+export const narrativeClean: NarrativeResult = {
+  id: "demo-clean",
+  status: "done",
+  content: {
+    label: "none",
+    score: 0,
+    narrative: { text: "Western food sanctions have emptied Baltic shops.", source: "euvsdisinfo", sim: 0.43 },
+    techniques: [],
+    reason: "",
+    state_media_echo: [],
+  },
+  source_match: {
+    strong: false,
+    telegram: [{ channel: "kanalas_b", url: "https://t.me/kanalas_b/4410", date: `${d(-9)}T10:00:00Z`, sim: 0.38, text: "Turgaus kainos vėl kyla…" }],
+  },
+  coordination: { label: "none", reasons: [], n_similar_accounts: 0 },
+};
+
+/** GET /api/ext/status in demo mode: the real bank's sizes and thresholds. */
+export const narrativeStatus: NarrativeCheckStatus = {
+  available: true,
+  reason: null,
+  claims: 18601,
+  echoClaims: 86023,
+  telegramPosts: 42675,
+  thresholds: { copy_strong: 0.815, candidate_gate: 0.6, echo_min: 0.65 },
+  judge: true,
+  embeddingModel: "embeddinggemma-300M (768-d, llama.cpp)",
+  dim: 768,
 };
