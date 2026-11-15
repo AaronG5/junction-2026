@@ -173,6 +173,7 @@ var POP_CSS = PPG_TOKENS +
   'section{border-top:1px solid var(--border);padding:8px 0}' +
   'h3{margin:0 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);font-weight:600}' +
   'p{margin:0 0 4px}' +
+  '.stat{margin:0;font-size:15px;font-weight:600;color:var(--text)}' +
   '.meta{color:var(--text-muted);font-size:12px}' +
   'blockquote{margin:4px 0;padding:6px 8px;border-left:3px solid var(--border);background:var(--bg);border-radius:4px;' +
   'font-size:12.5px;color:var(--text);overflow-wrap:anywhere}' +
@@ -481,13 +482,10 @@ PPG_Popover.prototype._details = function (pop, r, prefix) {
   }
 
   if (c.state_media_echo && c.state_media_echo.length) {
-    var e = el('section');
-    e.appendChild(el('h3', null, prefix + 'State media mentions'));
     var aired = 0;
     c.state_media_echo.forEach(function (x) { if (x.n_aired > 0) aired += x.n_aired; });
-    e.appendChild(el('p', null, aired > 0
-      ? 'This narrative appeared on Russian state media ' + aired + (aired === 1 ? ' time' : ' times') + ' during 2024.'
-      : 'This narrative appeared on Russian state media.'));
+    var e = el('section');
+    e.appendChild(el('p', 'stat', prefix + 'State Media Mentions: ' + (aired > 0 ? aired : c.state_media_echo.length)));
     pop.appendChild(e);
   }
 

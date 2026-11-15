@@ -188,7 +188,7 @@ await test('popover: content, focus, Esc, feedback; server text is not parsed as
   const text = root.querySelector('.pop').textContent;
   assert.doesNotMatch(text, /EUvsDisinfo · 93% similar/);
   assert.match(text, /Narratives/);
-  assert.match(text, /This narrative appeared on Russian state media 253 times during 2024\./);
+  assert.match(text, /State Media Mentions: 253/);
   assert.match(text, /@two_majors · 2026-11-13 · 97% similar/);
   assert.match(text, /same text posted by 6 other accounts/);
   assert.match(text, /Not a claim about who is behind this account/);

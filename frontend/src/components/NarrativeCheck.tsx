@@ -77,12 +77,10 @@ const SOURCE_NAMES: Record<string, string> = {
 };
 export const sourceName = (s: string | null | undefined) => (s ? SOURCE_NAMES[s.toLowerCase()] ?? s : "an unnamed source");
 
-/** One line for all state-media matches: how many times it aired on Russian state media in 2024 (RT transcripts). */
-export function echoSummary(echo: StateMediaEcho[]): string {
+/** Total airings on Russian state media (RT, 2024) across the matching narratives; falls back to the number of matches. */
+export function echoCount(echo: StateMediaEcho[]): number {
   const n = echo.reduce((sum, e) => sum + (e.n_aired && e.n_aired > 0 ? e.n_aired : 0), 0);
-  return n > 0
-    ? `This narrative appeared on Russian state media ${n.toLocaleString("en-US")} ${n === 1 ? "time" : "times"} during 2024.`
-    : "This narrative appeared on Russian state media.";
+  return n > 0 ? n : echo.length;
 }
 
 const pct = (sim: number) => sim.toFixed(2);
@@ -205,10 +203,7 @@ function ResultBody({ text, r, judging }: { text: string; r: NarrativeResult; ju
       )}
 
       {echo.length > 0 && (
-        <div className="kv">
-          <span className="lbl">State media mentions</span>
-          <span>{echoSummary(echo)}</span>
-        </div>
+        <p className="ncheck-stat">State Media Mentions: <span className="num">{echoCount(echo).toLocaleString("en-US")}</span></p>
       )}
 
       <div className="kv">

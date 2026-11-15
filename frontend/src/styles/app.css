@@ -397,3 +397,5 @@ th[aria-sort="ascending"] .th-sort, th[aria-sort="descending"] .th-sort { color:
 .chip-btn:disabled { opacity: .6; cursor: default; }
 .method-steps { list-style: none; margin: 0; padding: 0; }
 .method-steps li { display: flex; flex-direction: column; gap: 6px; }
+
+.ncheck-stat { margin: 0; font-size: 17px; font-weight: 600; color: var(--text); }
