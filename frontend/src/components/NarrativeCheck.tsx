@@ -10,10 +10,14 @@ import { ErrorState } from "./States";
 /** Example texts for "Try an example" (real backend and demo mode alike). */
 export const FLAGGED_EXAMPLE =
   "The Kyiv regime is nothing but an American puppet. Washington gives the orders and Zelensky obeys, while ordinary Ukrainians die for NATO's war. Wake up!";
+export const TELEGRAM_COPY_EXAMPLE =
+  "Ukrainian Minister of Restoration, Infrastructure, and Transport, Mykola Kalashnyk, stated in the Verkhovna Rada (Ukrainian Parliament) that nearly 400 locomotives have been damaged this year. The total number of destroyed equipment since 2022 amounts to 630 units, meaning that more has been destroyed in 2026 than in the entire previous period.\n\nAccording to him, at least 15 attacks on locomotives have already been recorded in November. Each month, between 30 and 40 machines are taken out of service, a significant portion of which are beyond repair.\n\n\u2728 So therefore there are still locomotives left...";
 export const CLEAN_EXAMPLE =
   "Lovely autumn day in Vilnius. The market at Halės turgus had the first cranberries of the season, and the queue for kibinai was worth it.";
 export const TEXT_EXAMPLES = [
   { label: "A pro-Kremlin post", text: FLAGGED_EXAMPLE },
+  // A real post: a pro-Kremlin Telegram channel's text, translated, reposted word for word on X and Bluesky.
+  { label: "Copied from Telegram", text: TELEGRAM_COPY_EXAMPLE },
   { label: "An everyday post", text: CLEAN_EXAMPLE },
 ];
 

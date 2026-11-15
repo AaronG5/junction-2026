@@ -376,3 +376,16 @@
 /* Micro-copy on the red field needs the extra weight. */
 .method .findout .muted { opacity: .92; }
 .method .method-steps li::before { opacity: .9; }
+
+/* Example buttons on the hero: big, obvious targets (the submission is judged without a live pitch). */
+.intake-try { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.ex-lead { font-weight: 600; color: var(--ink-2); }
+.ex-btn {
+  font: inherit; font-size: 16px; font-weight: 700; line-height: 1.2; cursor: pointer;
+  padding: 10px 16px; color: var(--ink); background: var(--card);
+  border: 2px solid var(--edge); box-shadow: 3px 3px 0 var(--edge);
+}
+.ex-btn:hover:not(:disabled) { background: var(--red-wash); }
+.ex-btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--edge); }
+.ex-btn:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+.ex-btn:disabled { opacity: .55; cursor: progress; }

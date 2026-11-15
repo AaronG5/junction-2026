@@ -357,6 +357,31 @@ export const narrativeFlagged: NarrativeResult = {
   coordination: { label: "none", reasons: [], n_similar_accounts: 0 },
 };
 
+/** A real copy: the live check on this text (15 Nov 2026) found the Russian original on Kirill Fyodorov's channel
+ *  at 0.874 cosine, across languages; Two Majors posted the English version at 21:39 UTC and Bluesky persona
+ *  accounts and an X account reposted it word for word. */
+export const narrativeTelegramCopy: NarrativeResult = {
+  id: "demo-telegram-copy",
+  status: "done",
+  content: {
+    label: "none",
+    score: 0,
+    narrative: null,
+    techniques: [{ code: "EM", name: "exaggeration/minimisation", quote: "So therefore there are still locomotives left" }],
+    reason: "Relays a pro-Kremlin Telegram channel's war report word for word, translated into English.",
+    state_media_echo: [],
+  },
+  source_match: {
+    strong: true,
+    telegram: [
+      { channel: "Кирилл Фёдоров / Война История Оружие", url: "https://t.me/warhistoryalconafter/290986", date: "2026-11-13T17:07:56Z", sim: 0.874,
+        text: "🇺🇦 Локомотивы под ударом. Министр восстановления, инфраструктуры и транспорта Украины Николай Калашник заявил в Раде, что в этом году было поражено почти 400 локомотивов…" },
+      { channel: "Поддубный (Evgeny Poddubny)", url: null, date: null, sim: 0.811, text: "" },
+    ],
+  },
+  coordination: { label: "none", reasons: [], n_similar_accounts: 0 },
+};
+
 /** A post about everyday life: nothing found (invented). */
 export const narrativeClean: NarrativeResult = {
   id: "demo-clean",

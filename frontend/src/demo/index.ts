@@ -9,7 +9,7 @@ import {
 } from "../api/types";
 import { matchesPlatform, matchesQuery, matchesStatus, overlaps, resolveRange } from "../lib/filters";
 import {
-  channelReports, claims, clusters, narrativeClean, narrativeFlagged, narrativeStatus, postReport, run, sources, stories, systemStatus,
+  channelReports, claims, clusters, narrativeClean, narrativeFlagged, narrativeTelegramCopy, narrativeStatus, postReport, run, sources, stories, systemStatus,
 } from "./data";
 
 export { DEMO_DATA_MARKER } from "./data";
@@ -216,6 +216,7 @@ export const demoApi: Api = {
  */
 export const DEMO_FLAG_WORDS = /puppet|kyiv regime|nato'?s war|biolab|nazi|марионет|киевск/i;
 function demoNarrativeFor(text: string) {
+  if (/locomotiv/i.test(text)) return narrativeTelegramCopy;
   return text !== CLEAN_EXAMPLE && DEMO_FLAG_WORDS.test(text) ? narrativeFlagged : narrativeClean;
 }
 

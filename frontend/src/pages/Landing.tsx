@@ -93,12 +93,13 @@ function Hero() {
               onChange={(e) => { setValue(e.target.value); setProblem(null); }}
               onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void submit(); }} />
             <div className="intake-foot">
-              <button type="submit" className="btn" disabled={busy || checking}>
+              <button type="submit" className="btn btn-big" disabled={busy || checking}>
                 {busy ? "Tracing…" : checking ? "Checking…" : "Check it"}
               </button>
               <span className="intake-try">
+                <span className="ex-lead">Try a real example:</span>
                 {TEXT_EXAMPLES.map((ex) => (
-                  <button key={ex.label} type="button" className="chip chip-btn" disabled={checking}
+                  <button key={ex.label} type="button" className="ex-btn" disabled={checking}
                     onClick={() => { setValue(ex.text); setProblem(null); check(ex.text); }}>{ex.label}</button>
                 ))}
               </span>
