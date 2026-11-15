@@ -54,7 +54,10 @@ DEFAULT_THRESHOLDS = {
                              # the manifest overrides it with the value calibrated for the 768-d model)
     "candidate_gate": 0.80,  # send to the judge only if the best candidate claim is at least this close ...
     "echo_min": 0.80,        # show a state-media echo only above this
-    "author_repeat": 3,      # an author with this many strong source matches gets a coordination reason
+    "author_repeat": 3,      # an author needs at least this many strong source matches ...
+    "author_share": 0.2,     # ... and they must be at least this share of the author's posts we have seen. Share is
+                             # the main test: high-volume news accounts and officials post the same events as
+                             # Telegram channels a few times, a relay bot does it constantly (10k-post sweep).
     "copy_accounts": 3,      # this many other accounts posting the same text -> coordinated
 }
 TECHNIQUES = {"LL": "loaded language", "NC": "name-calling", "DO": "doubt", "QR": "questioning reputation",
@@ -183,6 +186,7 @@ class Engine:
         self.pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="judge") if judge else None
         self.recent = RecentPosts()
         self.author_hits: dict[str, int] = defaultdict(int)
+        self.author_seen: dict[str, int] = defaultdict(int)
         self.feedback_path = feedback_path
 
     # ---------------------------------------------------------------- fast path
@@ -281,14 +285,15 @@ class Engine:
         reasons, others = [], set()
         if author:
             others = self.recent.add_and_match(pid, author, v, t["copy_strong"], now)
-            if strong:
-                with self.lock:
+            with self.lock:
+                self.author_seen[author] += 1
+                if strong:
                     self.author_hits[author] += 1
-            n_rep = self.author_hits.get(author, 0)
+            n_rep, n_seen = self.author_hits.get(author, 0), self.author_seen.get(author, 0)
             if len(others) >= t["copy_accounts"]:
                 reasons.append(f"Same text posted by {len(others)} other accounts in the last hour.")
-            if n_rep >= t["author_repeat"]:
-                reasons.append(f"This account has posted {n_rep} copies of pro-Kremlin Telegram posts that we have seen.")
+            if n_rep >= t["author_repeat"] and n_rep / n_seen >= t["author_share"]:
+                reasons.append(f"{n_rep} of this account's {n_seen} posts we have seen copy pro-Kremlin Telegram posts.")
         coordination = {"label": "coordinated" if reasons else "none", "reasons": reasons,
                         "n_similar_accounts": len(others)}
         best = cands[0] if cands else None
