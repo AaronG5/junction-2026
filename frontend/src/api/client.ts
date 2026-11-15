@@ -5,7 +5,7 @@
  */
 import { filtersToParams } from "../lib/filters";
 import type {
-  AnalysisJob, AppSettings, ChannelReport, ClaimsResponse, Filters, NarrativesResponse, PostReport,
+  AnalysisJob, AppSettings, ChannelReport, ClusteringState, ClaimsResponse, Filters, NarrativesResponse, PostReport,
   SourcesResponse, SourceFilter, Story, SystemStatus, TrendingResponse,
 } from "./types";
 
@@ -38,6 +38,9 @@ export interface Api {
   system(): Promise<SystemStatus>;
   appSettings(): Promise<AppSettings>;
   saveAppSettings(s: AppSettings): Promise<AppSettings>;
+  clusteringState(): Promise<ClusteringState>;
+  /** Start grouping the posts of the last `days` days; resolves at once with the running state. */
+  startClustering(days: number): Promise<ClusteringState>;
 }
 
 /** Read at call time so tests can switch it; Vite still replaces it with a constant in builds. */
@@ -115,6 +118,12 @@ export const httpApi: Api = {
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify(s),
   }),
+  clusteringState: () => request("/clustering"),
+  startClustering: (days) => request("/clustering", {}, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ days }),
+  }),
 };
 
 let demoApi: Promise<Api> | null = null;
@@ -153,6 +162,8 @@ export const api: Api = {
   system: () => pick().then((a) => a.system()),
   appSettings: () => pick().then((a) => a.appSettings()),
   saveAppSettings: (s) => pick().then((a) => a.saveAppSettings(s)),
+  clusteringState: () => pick().then((a) => a.clusteringState()),
+  startClustering: (days) => pick().then((a) => a.startClustering(days)),
 };
 
 /** Telegram or Facebook link to a post, channel, group or page. */

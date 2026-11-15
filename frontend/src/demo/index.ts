@@ -4,7 +4,7 @@
  */
 import { ApiError, isSupportedLink, linkKey, type Api } from "../api/client";
 import {
-  ANALYZE_STEPS, type AppSettings, type Claim, type Cluster, type MapPoint, type Source, type StatusCounts, type Story, type Verdict,
+  ANALYZE_STEPS, type AppSettings, type Claim, type ClusteringState, type Cluster, type MapPoint, type Source, type StatusCounts, type Story, type Verdict,
 } from "../api/types";
 import { matchesPlatform, matchesQuery, matchesStatus, overlaps, resolveRange } from "../lib/filters";
 import { channelReports, claims, clusters, postReport, run, sources, stories, systemStatus } from "./data";
@@ -175,7 +175,23 @@ export const demoApi: Api = {
     demoSettings = clone(s);
     return clone(demoSettings);
   },
+
+  async clusteringState() {
+    await wait();
+    return clone(demoClustering);
+  },
+
+  async startClustering(days) {
+    await wait();
+    // The example clusters are fixed; a run "finishes" at once and changes nothing.
+    const now = new Date().toISOString().slice(0, 19) + "Z";
+    demoClustering = { status: "done", message: DEMO_CLUSTERING, days, startedAt: now, finishedAt: now };
+    return clone(demoClustering);
+  },
 };
+
+export const DEMO_CLUSTERING = "Demo mode: the example clusters stay as they are.";
+let demoClustering: ClusteringState = { status: "idle", message: null, days: null, startedAt: null, finishedAt: null };
 
 /** The backend's rule and message (backend/veritas/app_settings.py). */
 export const SHARING_WHILE_LOCAL = "Sharing can't be turned on while Veritas Lens works only on this computer. Choose Hybrid or Central server first.";
@@ -183,4 +199,5 @@ let demoSettings: AppSettings = { dataMode: "hybrid", shareAnalyses: false };
 /** Test helper. */
 export function resetDemoSettings() {
   demoSettings = { dataMode: "hybrid", shareAnalyses: false };
+  demoClustering = { status: "idle", message: null, days: null, startedAt: null, finishedAt: null };
 }

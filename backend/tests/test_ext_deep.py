@@ -1,7 +1,8 @@
 """In-depth analysis for the browser extension (veritas/deep.py, POST/GET /api/ext/deep).
 
 - Patterns: phrases not in the post are dropped, duplicates too; clearest tier first.
-- Truth check: verdicts as given, a quote not in the post is cleared, the basis is stated.
+- Truth check: claims + queries, the search tool's sources (never the post, never propaganda),
+  a verdict per claim that must cite them; basic general knowledge is labelled.
 - Trace: oldest first, background (undated narrative) on top, weak Telegram matches left out,
   only https links, the original of a shared post, this post with how it reached the feed.
 - API: start, poll, the same post reuses its job, empty text 400, AI down 503, unknown job 404.
@@ -17,6 +18,7 @@ from conftest import make_client
 from test_b6_analyze import FakeAI
 from veritas import deep
 from veritas.deep import DeepJobs, DeepServices, build_trace, check_truth, find_patterns
+from veritas.evidence import Source
 
 TEXT = ("Kyiv regime is nothing but an American puppet. Everyone knows the media lies about it. "
         "Ukraine received 60 billion dollars from the US in 2024.")
@@ -28,19 +30,56 @@ PATTERNS = {"patterns": [
     {"quote": "everyone KNOWS the   media lies", "technique": "Bandwagon", "tier": "possible", "why": "Duplicate phrase."},
 ], "overall": "Uses labels and distrust of media to make readers reject Ukraine."}
 
-TRUTH = {"claims": [
+CLAIMS = {"claims": [
     {"claim": "Ukraine received 60 billion dollars from the US in 2024.", "quote": "Ukraine received 60 billion dollars",
-     "verdict": "misleading", "confidence": 60, "explanation": "Aid was approved, but much of it went to US industry."},
-    {"claim": "Kyiv is controlled by the US.", "quote": "words that are not there", "verdict": "false", "confidence": 85,
-     "explanation": "Ukraine is a sovereign state."},
+     "queries": ["Ukraine US aid 2024 60 billion", "Ukraina 60 milijardų JAV"]},
+    {"claim": "Kyiv is controlled by the US.", "quote": "words that are not there", "queries": ["Kyiv puppet United States"]},
+    {"claim": "Vilnius is the capital of Latvia.", "quote": "", "queries": ["capital of Latvia"]},
+    {"claim": "Pensioners in Lithuania live in poverty.", "quote": "", "queries": ["Lithuania pensions poverty"]},
 ]}
+# One verdict per claim, in order (SeqAI below).
+VERDICTS = [
+    {"verdict": "misleading", "sources": [1, 7], "basis": "sources", "explanation": "Approved in April 2024; much is spent in the US."},
+    {"verdict": "refuted", "sources": [], "basis": "sources", "explanation": "It just isn't so."},     # cites nothing
+    {"verdict": "refuted", "sources": [], "basis": "general_knowledge", "explanation": "Riga is the capital of Latvia."},
+]
+
+
+class SeqAI(FakeAI):
+    """FakeAI, but the "verdict" prompt gets the next answer from a list (one per claim)."""
+
+    def __init__(self, verdicts):
+        super().__init__()
+        self.verdicts = list(verdicts)
+
+    def __call__(self, request):
+        import json as _json
+        if request.url.path.endswith("/chat/completions"):
+            body = _json.loads(request.content)
+            if body["response_format"]["json_schema"]["name"] == "verdict":
+                self.answers["verdict"] = self.verdicts.pop(0)
+        return super().__call__(request)
+
+
+class Found:
+    """A search tool stand-in: sources for three claims (plus one from a propaganda channel for the
+    aid claim), none for the pensioners claim."""
+
+    def search(self, claim, queries, limit=4):
+        if "Kyiv" in claim or "capital" in claim:
+            return [Source(title="Background", text="Background text.", source="Encyclopedia", url="https://en.wikipedia.org/x")]
+        if "60 billion" not in claim:
+            return []
+        return [Source(title="US aid to Ukraine", text="Congress approved about 61 billion dollars in April 2024...",
+                       source="Reuters", url="https://www.reuters.com/x", date="2024-04-24"),
+                Source(title="Channel", text="60 billion stolen", source="channel", url="https://t.me/two_majors/1")]
 
 
 @pytest.fixture
 def ai():
-    fake = FakeAI()
+    fake = SeqAI(VERDICTS)
     fake.answers["patterns"] = PATTERNS
-    fake.answers["truth"] = TRUTH
+    fake.answers["claimsearch"] = CLAIMS
     return fake
 
 
@@ -51,11 +90,45 @@ def test_patterns_are_checked_against_the_post(ai):
     assert out["overall"].startswith("Uses labels") and out["prompt"] == "patterns.v1"
 
 
-def test_truth_check_clears_quotes_not_in_the_post(ai):
-    out = check_truth(ai.client(), TEXT, "2026-11-14T10:00:00Z", "English")
-    assert [c["verdict"] for c in out["items"]] == ["misleading", "false"]
-    assert out["items"][0]["quote"] == "Ukraine received 60 billion dollars" and out["items"][1]["quote"] == ""
-    assert "No sources were checked" in out["basis"]
+def test_truth_check_uses_the_search_tool_not_the_post(ai):
+    out = check_truth(ai.client(), TEXT, "English", [Found()])
+    aid, puppet, capital, pensions = out["items"]
+    # Judged against the source found; the Telegram "source" never reaches Gemma; a cited number
+    # that wasn't given (7) is dropped.
+    assert aid["verdict"] == "misleading" and aid["basis"] == "sources"
+    assert [s["source"] for s in aid["sources"]] == ["Reuters"] and aid["sources"][0]["n"] == 1
+    assert aid["searched"] == ["Ukraine US aid 2024 60 billion", "Ukraina 60 milijardų JAV"]
+    assert aid["quote"] == "Ukraine received 60 billion dollars" and puppet["quote"] == ""
+    # A verdict "from sources" that cites none stays unverified.
+    assert puppet["verdict"] == "unverified" and puppet["basis"] == "none" and puppet["sources"] == []
+    # Basic general knowledge is allowed, and labelled as such.
+    assert capital["verdict"] == "refuted" and capital["basis"] == "general_knowledge"
+    # No source at all: unverified without asking Gemma.
+    assert pensions["verdict"] == "unverified" and pensions["explanation"] == "No trusted source about this was found."
+    assert "never against the post" in out["basis"] and ai.calls.count("verdict") == 3
+
+
+def test_the_verdict_prompt_gets_numbered_sources_and_not_the_post(ai):
+    seen = []
+    original = SeqAI.__call__
+
+    def spy(self, request):
+        import json as _json
+        if request.url.path.endswith("/chat/completions"):
+            body = _json.loads(request.content)
+            if body["response_format"]["json_schema"]["name"] == "verdict":
+                seen.append(body["messages"][1]["content"])
+        return original(self, request)
+
+    SeqAI.__call__ = spy
+    try:
+        check_truth(ai.client(), TEXT, "English", [Found()])
+    finally:
+        SeqAI.__call__ = original
+    assert "[1] (trusted document, Reuters, 2024-04-24) US aid to Ukraine" in seen[0]
+    assert "t.me" not in seen[0] and "stolen" not in seen[0]
+    assert len(seen) == 3                                                 # the pensioners claim had no source
+    assert all("Everyone knows the media lies" not in s for s in seen)   # the post is not given as evidence
 
 
 ITEM = {"id": "fb1", "url": "https://www.facebook.com/groups/g1/posts/1/", "author": "a.b", "author_name": "Ann B",
@@ -95,7 +168,7 @@ def test_trace_with_nothing_known():
 
 @pytest.fixture
 def client(settings, ai):
-    jobs = DeepJobs(DeepServices(ai=ai.client, similar=lambda _ai, text, url: []))
+    jobs = DeepJobs(DeepServices(ai=ai.client, similar=lambda _ai, text, url: [], evidence=lambda _ai: [Found()]))
     deep.set_jobs(jobs)
     yield make_client(settings), ai
     deep.set_jobs(None)
@@ -117,9 +190,10 @@ def test_api_runs_all_three_parts(client):
     assert res.status_code == 200 and res.json()["status"] == "running"
     job = wait(c, res.json()["id"])
     assert job["status"] == "done" and job["step"] == 3 and job["error"] is None
-    assert len(job["patterns"]["items"]) == 2 and len(job["truth"]["items"]) == 2
+    assert len(job["patterns"]["items"]) == 2 and len(job["truth"]["items"]) == 4
     assert [n["kind"] for n in job["trace"]["nodes"]][-2:] == ["original", "this"]
-    assert ai.calls.count("patterns") == 1 and ai.calls.count("truth") == 1
+    assert ai.calls.count("patterns") == 1 and ai.calls.count("claimsearch") == 1 and ai.calls.count("verdict") == 3
+    assert job["truth"]["items"][0]["sources"][0]["source"] == "Reuters"
 
 
 def test_api_same_post_reuses_its_job(client):
@@ -142,6 +216,6 @@ def test_api_refusals(client):
 
 def test_api_ai_failing_mid_job_ends_with_a_plain_error(client):
     c, ai = client
-    del ai.answers["truth"]   # the fake AI raises KeyError -> 500 from the AI -> AiUnavailable
+    del ai.answers["claimsearch"]   # the fake AI raises KeyError -> 500 from the AI -> AiUnavailable
     job = wait(c, c.post("/api/ext/deep", json={"item": {**ITEM, "id": "fb3"}}).json()["id"])
     assert job["status"] == "error" and job["error"] and job["patterns"] is not None

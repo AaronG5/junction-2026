@@ -73,9 +73,11 @@ try {
   // The existing content is still there, above the new sections.
   check(await pop.locator('blockquote').first().isVisible() && /Telegram source post/.test(await pop.locator('.pop').textContent()), 'existing popover content kept (Telegram source)');
 
-  const tiers = await pop.locator('.pat .tier').allTextContents();
-  check(tiers.length >= 2 && tiers[0] === 'Clear', 'patterns listed with tiers, clearest first: ' + tiers.join(', '));
-  check(await pop.locator('.vd').count() >= 1 && /No sources were checked/.test(await pop.locator('.basis').textContent()), 'fact check: verdict chip and its basis');
+  const legend = await pop.locator('.legend').first().textContent();
+  check(/2 clear/.test(legend) && /likely/.test(legend), 'patterns summed up per tier: ' + legend);
+  check(await pop.locator('.pat').count() === 0, 'highlighted phrases are not repeated in the popover (hover them instead)');
+  check(/Hover the highlighted text/.test(await pop.locator('.deep').textContent()), 'popover points to the hover explanations');
+  check(await pop.locator('.vd').count() >= 1 && /never against the post/.test(await pop.locator('.basis').textContent()), 'fact check: verdict chip and its basis');
   const tl = await pop.locator('ol.tl li').evaluateAll((ls) => ls.map((l) => l.className));
   check(tl.includes('telegram') && tl[tl.length - 1] === 'this', 'trace: Telegram source before this post: ' + tl.join(' > '));
   check(/earliest trace found is @two_majors/.test(await pop.locator('.deep').textContent()), 'trace summary names the earliest trace');
@@ -90,6 +92,23 @@ try {
   await page.screenshot({ path: path.join(outDir, '10-deep-popover.png') });
 
   await page.keyboard.press('Escape');
+
+  // Hovering a highlighted phrase explains it, right there in the post.
+  const box = await page.evaluate(() => {
+    const r = [...CSS.highlights.get('ppg-clear')].find((x) => /CIA operation/i.test(x.toString()));
+    const b = r.getClientRects()[0];
+    return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+  });
+  await page.mouse.move(box.x, box.y);
+  const tip = page.locator('ppg-tip .tip');
+  await tip.waitFor({ timeout: 2000 });
+  const tipText = await tip.textContent();
+  check(/^Clear/.test(tipText) && /loaded language|Conspiracy/i.test(tipText), 'hover shows the tier, technique and why: ' + tipText);
+  await page.screenshot({ path: path.join(outDir, '12-deep-hover.png') });
+  await page.mouse.move(5, 5);
+  await page.waitForTimeout(150);
+  check(await page.locator('ppg-tip').count() === 0, 'the explanation goes away when the pointer leaves');
+
   check((await btn.locator('.dot').count()) >= 1 && /pattern/.test(await btn.getAttribute('aria-label')), 'button summarizes the result: ' + (await btn.getAttribute('aria-label')));
   const over = await nv.evaluate((a) => { const h = a.querySelector('ppg-deep'); return h.getBoundingClientRect().right - a.getBoundingClientRect().right; });
   check(over <= 0, 'Analyze button stays inside the post (' + Math.round(over) + ' px)');
@@ -101,9 +120,11 @@ try {
   // A clean post: the analysis runs, finds nothing, and says so plainly.
   const plain = page.locator('article').filter({ hasNotText: /Nvidia|puppet|regime|Patriot/i }).first();
   await plain.locator('ppg-deep button').click();
-  await page.locator('ppg-popover ol.tl').waitFor({ timeout: 8000 });
-  const t = await page.locator('ppg-popover .deep').textContent();
-  check(/No checkable factual claims found|could be checked/.test(t) && /No earlier trace found|earliest trace/.test(t), 'a plain post gets plain answers');
+  await page.locator('ppg-popover .deep h3', { hasText: /^Where it came from$/ }).waitFor({ timeout: 8000 });
+  const t = await page.locator('ppg-popover .deep').innerText();   // innerText: not the <style> text
+  check(await page.locator('ppg-popover ol.tl').count() === 0, 'no timeline when this post is all there is');
+  check(/No checkable factual claims found|No trusted source found/.test(t) && /No earlier trace found|earliest trace/.test(t),
+    'a plain post gets plain answers: ' + t.replace(/\s+/g, ' ').slice(0, 200));
   await page.keyboard.press('Escape');
 
   check(errors.length === 0, 'no console errors' + (errors.length ? ': ' + errors.join(' | ') : ''));

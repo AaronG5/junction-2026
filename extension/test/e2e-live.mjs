@@ -24,7 +24,7 @@ function findChromium() {
 }
 
 // --- stub backend + demo file server on one port
-const log = { batches: [], polls: [], feedback: [], cookies: 0 };
+const log = { batches: [], polls: [], feedback: [], cookies: 0, saves: [] };
 const firstSeen = new Map();
 function resultFor(id, text) {
   const t0 = firstSeen.get(id) ?? Date.now();
@@ -57,6 +57,7 @@ const server = http.createServer(async (req, res) => {
     return json({ results: ids.map((id) => resultFor(id, texts.get(id))) });
   }
   if (u.pathname === '/api/ext/feedback') { log.feedback.push(JSON.parse(body)); return json({ ok: true }); }
+  if (u.pathname === '/local/api/ext/save') { log.saves.push(JSON.parse(body)); return json({ queued: JSON.parse(body).items.length }); }
   if (u.pathname === '/feed.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); return fs.createReadStream(path.join(extDir, 'demo', 'feed.html')).pipe(res); }
   res.writeHead(404); res.end();
 });
@@ -78,7 +79,8 @@ try {
   // overwrite the stub URL set below (read-then-write race), and the test talks to the
   // real default backend instead of the stub.
   await pop.waitForFunction(async () => !!(await chrome.storage.sync.get('baseUrl')).baseUrl, null, { timeout: 5000 });
-  await pop.evaluate((b) => chrome.storage.sync.set({ baseUrl: b, mock: false }), base);
+  await pop.evaluate((b) => chrome.storage.sync.set({ baseUrl: b, deepUrl: b + '/local', mock: false }), base);
+  // deepUrl = the stub's /local: the posts' local copy (savePosts) lands in the stub, never in a real Veritas Lens.
   await pop.close();
 
   const page = await ctx.newPage();
@@ -88,6 +90,9 @@ try {
   check(true, 'fast-path source match from backend shown');
   check(log.batches.length >= 1 && log.batches[0].client === 'ext/0.1', `batch POSTed (${log.batches.length} request(s))`);
   check(log.batches.every((b) => b.items.length <= 16), 'batches hold at most 16 items');
+  await new Promise((r) => setTimeout(r, 500));
+  const savedIds = new Set(log.saves.flatMap((s) => s.items.map((i) => i.id)));
+  check(log.batches.flatMap((b) => b.items).every((i) => savedIds.has(i.id)), `every post also copied to the local Veritas Lens (${savedIds.size} posts)`);
   const it = log.batches.flatMap((b) => b.items).find((i) => i.id === '1890412233445566771');
   check(it && it.author === 'eu_insider_news' && it.kind === 'post' && it.lang === 'en' && it.url.startsWith('https://x.com/') && it.time, 'item fields match API.md');
   const q = log.batches.flatMap((b) => b.items).find((i) => i.kind === 'quote');

@@ -252,6 +252,7 @@ This needs heavier packages, so it'll be an optional install: `uv sync --extra c
 - Each group: centre (stored in Qdrant `clusters`, also used to assign new posts at once), ranks (1 = most typical), 2 typical and 1 edge post, platforms and language shares, accounts, first/last seen, main claim (the claim most of its posts make), and a name and summary from Gemma (`prompts/cluster_name.v1.md`).
 - Narratives across runs: a new group whose centre is at least 0.85 similar to one from the previous run continues that narrative, and gets its week-on-week change; others start a new narrative.
 - Fewer than 20 posts in the window: no run, "no clusters" message. A failure marks the run failed, and the screens keep showing the last good run.
+- The Narratives screen's **Update clusters** button does the same from the dashboard: `POST /api/clustering {"days": N}` starts one run in a background thread (`veritas/clustering_job.py`; a second press while it runs just reports the running one), `GET /api/clustering` says idle / running / done / too_few / failed with a plain message, and the screen reloads when it's done. N is the screen's date filter.
 - The demo data has no vectors. Posts analyzed through "Analyze a link" (B6) or loaded from the team's scrape (B10, `--import-data`) get vectors, and then appear in the next run.
 
 **Tests**

@@ -26,6 +26,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from . import __version__
 from .ai import LocalAI
 from .analysis import JobRunner, Services
+from .clustering_job import ClusteringJob
 from .collectors import collector_for
 from .config import Settings
 from .db import DatabaseUnavailable
@@ -83,6 +84,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         qdrant=lambda: Qdrant.from_settings(settings),
         collector=collector_for(settings),
     ))
+    # "Update clusters" on the Narratives screen (veritas/clustering_job.py). Tests swap .run.
+    app.state.clustering = ClusteringJob(settings)
 
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.allowed_hosts))
     _add_error_handlers(app, settings.frontend_dist)

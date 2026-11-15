@@ -5,6 +5,8 @@ POST /api/ext/batch     {"client", "items": [{id, url, author, author_name, text
                         judge runs
 GET  /api/ext/result?ids=a,b   -> {"results": [...]} (poll pending ids)
 POST /api/ext/feedback  {tweet_id, verdict_shown, user_says, note?} -> {"ok": true}
+POST /api/ext/save      {"client", "items"} -> {"queued": n}: only store the posts (no check)
+                        Posts from /batch and /save are kept in MySQL + Qdrant (veritas/ext_store.py).
 POST /api/ext/deep      {"item", "shared"?, "context"?} -> the in-depth analysis job (patterns, truth check, trace)
 GET  /api/ext/deep/{id} -> the job (poll until status is "done" or "error")
 The engine lives in veritas/narrative.py; the in-depth analysis in veritas/deep.py. Labels are "potentially propaganda" at most, never an attribution.
@@ -95,10 +97,31 @@ def _engine(request: Request):
     return narrative.get_engine(lambda: LocalAI.from_settings(settings))
 
 
+def _keep(request: Request, items: list[dict]) -> int:
+    """Store the posts in MySQL + Qdrant in the background (veritas/ext_store.py); never fails the request."""
+    from .. import ext_store
+    try:
+        store = ext_store.get_store(request.app.state.settings)
+        return store.add(items) if store else 0
+    except Exception:  # noqa: BLE001 - saving is best effort
+        return 0
+
+
 @router.post("/batch")
 def batch(request: Request, body: Batch):
     _limit(request)
-    return {"results": _engine(request).batch([i.model_dump() for i in body.items])}
+    items = [i.model_dump() for i in body.items]
+    results = _engine(request).batch(items)
+    _keep(request, items)
+    return {"results": results}
+
+
+@router.post("/save")
+def save(request: Request, body: Batch):
+    """Only store the posts (no check): the extension's copy to Veritas Lens on the reader's computer,
+    when its automatic check runs on another server."""
+    _limit(request)
+    return {"queued": _keep(request, [i.model_dump() for i in body.items])}
 
 
 @router.get("/result")

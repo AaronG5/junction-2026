@@ -37,6 +37,7 @@ It works in Chrome, Edge, Brave and other Chromium browsers, version 116 or late
 | Mock mode | off | On X too, answer from `src/mock.js` and send nothing over the network. About 5% of posts get flagged, chosen by a hash of the id. The fast path takes 300 ms, the judge 3 s. |
 | Backend URL | `https://augustasrink--ppg-ext-web.us-east.modal.run` | Where `/api/ext/*` lives. |
 | In-depth analysis | `http://127.0.0.1:8000` | Where the **Analyze** button's analysis runs (`/api/ext/deep`): Veritas Lens on your computer, with the local Gemma. |
+| Save posts on this computer | on | Also send every post to `/api/ext/save` at the in-depth analysis address, to keep it in your local database. |
 
 The settings live in `chrome.storage.sync`. The counters (scanned, flagged) cover the current browser session.
 
@@ -82,12 +83,17 @@ stays as it is; the in-depth analysis runs only when asked, on your own computer
 (`backend/veritas/deep.py`, about 10–60 s). It adds three sections to the popover, below the existing ones:
 
 1. **Propaganda patterns.** Phrases that use a propaganda or manipulation technique, each with a tier:
-   **Clear**, **Likely** or **Possible**. They are **highlighted in the post itself**: red, orange and dotted
-   yellow underlines. Highlights use the CSS Custom Highlight API, so the site's DOM is never changed.
-   A phrase behind "See more" is listed but can't be highlighted (the popover says so).
-2. **Fact check.** Each checkable claim with a verdict: **Accurate**, **False**, **Misleading** or **Can't tell**,
-   with the model's confidence and a short explanation. These come from the model's own knowledge;
-   no sources are consulted yet, and the section says so.
+   **Clear**, **Likely** or **Possible**. They are **highlighted in the post itself** (red, orange and dotted
+   yellow underlines); **hover a highlighted phrase** to see its tier, technique and why. The popover only sums
+   them up (a count per tier) and lists the phrases that couldn't be highlighted (behind "See more").
+   Highlights use the CSS Custom Highlight API, so the site's DOM is never changed.
+2. **Fact check, with sources.** The post is never treated as a source. Gemma lists the checkable claims with
+   search queries; a search tool (`backend/veritas/evidence.py`) looks them up in the trusted documents in
+   `data/evidence/` and in the documented disinformation of the narrative bank (EUvsDisinfo and others); Gemma
+   then judges each claim against those sources only: **Supported**, **Refuted**, **Misleading** or **Unverified**,
+   citing them (with links). Claims no source covers are summed up in one "Unverified" line. The scraped
+   propaganda data and known propaganda outlets are never searched. A web-search model (for example Gemini with
+   Google Search) can be added as another search tool.
 3. **Where it came from.** A timeline, oldest first: the documented narrative and its state-media echo,
    matching Telegram posts (both from the automatic check), earlier similar posts in the Veritas Lens database,
    the original post when this one quotes or shares it, and finally this post and how it reached your feed
@@ -98,7 +104,12 @@ part as it arrives. When done, the button summarises the result: a coloured dot 
 the number of false or misleading claims. Results last for the page's life; the backend keeps finished jobs
 in memory, so the same post is answered at once.
 
-Code: `src/deep.js` (job tracking, highlights, button, popover sections; shared by X and Facebook),
+**Every post is kept.** Posts that reach the backend's `/api/ext/batch` are stored in MySQL and embedded into
+Qdrant (`backend/veritas/ext_store.py`). With **Save posts on this computer** on (the default), the extension
+also sends each batch to Veritas Lens on your computer (`/api/ext/save`), so your local database grows while you
+browse even when the badges come from another server.
+
+Code: `src/deep.js` (job tracking, highlights and their hover explanations, button, popover sections; shared by X and Facebook),
 the `deep-start` / `deep-get` messages in `src/background.js`, `MockDeep` in `src/mock.js`.
 
 ## How it works

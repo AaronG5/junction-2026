@@ -259,6 +259,16 @@ export interface TrendingResponse {
 /* ------------------------------------------------------------------- settings */
 
 /** GET/PUT /api/settings: shared by every browser using this install. */
+/** GET/POST /api/clustering: the "Update clusters" run started from the dashboard. */
+export interface ClusteringState {
+  /** idle = not run since the backend started; too_few = not enough posts with vectors in the window. */
+  status: "idle" | "running" | "done" | "too_few" | "failed";
+  message: string | null;
+  days: number | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
 export interface AppSettings {
   dataMode: "central" | "hybrid" | "local";
   /** Can't be true in "local" mode (the backend refuses it). */

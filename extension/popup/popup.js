@@ -7,6 +7,7 @@ const DEFAULTS = {
   showAll: false,
   sensitivity: 'normal',
   mock: false,
+  savePosts: true,
 };
 const $ = (id) => document.getElementById(id);
 const status = (t, cls) => { const s = $('status'); s.textContent = t; s.className = 'status ' + (cls || ''); };
@@ -16,6 +17,7 @@ async function load() {
   $('enabled').checked = s.enabled;
   $('showAll').checked = s.showAll;
   $('mock').checked = s.mock;
+  $('savePosts').checked = s.savePosts;
   $('baseUrl').value = s.baseUrl;
   $('deepUrl').value = s.deepUrl;
   document.querySelector(`input[name=sensitivity][value=${s.sensitivity === 'strict' ? 'strict' : 'normal'}]`).checked = true;
@@ -32,7 +34,7 @@ function refreshCounters() {
   });
 }
 
-for (const id of ['enabled', 'showAll', 'mock']) {
+for (const id of ['enabled', 'showAll', 'mock', 'savePosts']) {
   $(id).addEventListener('change', async (e) => {
     await chrome.storage.sync.set({ [id]: e.target.checked });
     if (id === 'enabled') document.body.classList.toggle('off', !e.target.checked);

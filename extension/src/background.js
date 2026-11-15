@@ -10,6 +10,9 @@ export const DEFAULTS = Object.freeze({
   // In-depth analysis ("Analyze" button: patterns, truth check, trace) needs the local Gemma,
   // so it goes to the Veritas Lens backend on this computer.
   deepUrl: 'http://127.0.0.1:8000',
+  // Also keep every post in Veritas Lens on this computer (POST {deepUrl}/api/ext/save), so the
+  // local database grows while you browse, even when the badges come from another server.
+  savePosts: true,
   showAll: false,
   sensitivity: 'normal',
   mock: false,
@@ -143,6 +146,7 @@ class Pipeline {
   }
 
   async sendBatch(items) {
+    if (this.key !== 'mock') mirrorToLocal(this.key, items);
     let res;
     try {
       res = await this.t.batch(items);
@@ -245,6 +249,20 @@ class Pipeline {
     }
     for (const [p, rs] of perPort) send(p, rs);
   }
+}
+
+// The local copy (savePosts). Skipped when the badges already come from that same server (its
+// /batch stores them) and in mock mode. Best effort: never retried, never shown as an error.
+function mirrorToLocal(batchBase, items) {
+  if (!settings.savePosts) return;
+  const local = trimBase(settings.deepUrl || DEFAULTS.deepUrl);
+  if (!local || local === trimBase(batchBase)) return;
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), REQ_TIMEOUT_MS);
+  fetch(local + '/api/ext/save', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'omit', cache: 'no-store', signal: ctl.signal,
+    body: JSON.stringify({ client: CLIENT, items }),
+  }).catch(() => {}).finally(() => clearTimeout(t));
 }
 
 function hash(s) {

@@ -153,8 +153,12 @@ The client polls `GET /api/ext/deep/{id}` every 1.5 s (for up to 5 minutes) unti
   "steps": ["Finding propaganda patterns", "Checking the claims", "Tracing where it came from"],
   "patterns": { "items": [ { "quote": "a CIA operation", "technique": "Conspiracy framing", "tier": "clear", "why": "…" } ],
                 "overall": "…", "model": "gemma-4-E2B-it", "prompt": "patterns.v1" },
-  "truth": { "items": [ { "claim": "…", "quote": "…", "verdict": "unverifiable", "confidence": 70, "explanation": "…" } ],
-             "basis": "The model's own knowledge. No sources were checked, …", "model": "…", "prompt": "truth.v1" },
+  "truth": { "items": [ { "claim": "…", "quote": "…", "verdict": "refuted", "basis": "sources", "explanation": "…",
+                          "searched": ["Zelensky selling Ukrainian children", "…"],
+                          "sources": [ { "n": 1, "kind": "disinfo", "source": "EUvsDisinfo", "title": "…", "text": "…",
+                                         "url": "https://euvsdisinfo.eu/report/…", "date": "2025-07-15", "score": 0.88 } ] } ],
+             "basis": "Checked against trusted documents and documented disinformation, never against the post itself.",
+             "model": "…", "prompt": "claimsearch.v1+verdict.v1" },
   "trace": { "summary": "The earliest trace found is @two_majors (…)…",
              "nodes": [ { "kind": "telegram", "title": "Telegram post", "who": "@two_majors", "where": "…", "time": "2026-11-13T18:49:44Z",
                           "url": "https://t.me/…", "sim": 0.97, "text": "…", "note": "…" } ] }
@@ -164,11 +168,24 @@ The client polls `GET /api/ext/deep/{id}` every 1.5 s (for up to 5 minutes) unti
 - `step`: 0–2 while running (index into `steps`), 3 when done. Each part appears as soon as it is ready.
 - `patterns.items[].tier`: `clear`, `likely` or `possible`, clearest first. Every `quote` is the post's own words
   (Gemma's quotes that aren't in the post are dropped); the client highlights them.
-- `truth.items[].verdict`: `true`, `false`, `misleading` or `unverifiable`; `confidence` 0–100. A `quote` not in
-  the post is `""`.
+- `truth.items[]`: a fact check with a search tool (`backend/veritas/evidence.py`), never the post itself:
+  Gemma lists the claims with search queries (`searched`), the tool searches the trusted documents in `data/evidence/`
+  and the narrative bank's documented disinformation, and Gemma judges each claim against those numbered sources only.
+  `verdict`: `supported`, `refuted`, `misleading` or `unverified`; `basis`: `sources` (then `sources` lists what it
+  cites, `kind` `document` or `disinfo`), `general_knowledge` (basic long-established facts only) or `none`
+  (no source found: always `unverified`). A `quote` not in the post is `""`.
 - `trace.nodes[].kind`: `narrative` (undated background, first), `state_media`, `telegram`, `similar` (earlier posts
   in the Veritas Lens database), `original` (the shared or quoted post), `this` (this post, with how it reached the
   feed). Oldest first; nodes after `this` appeared later. Only `https:` links are kept.
+
+## POST /api/ext/save
+
+Same body as `/api/ext/batch`; answers `{ "queued": n }`. Only stores the posts, no check. The extension
+sends every batch here too, to the in-depth analysis URL (Veritas Lens on the user's computer), when the
+popup's **Save posts on this computer** is on and the badges come from another server.
+
+Posts that reach `/api/ext/batch` or `/api/ext/save` are kept in MySQL and embedded into Qdrant
+(`backend/veritas/ext_store.py`), so the collection grows while people browse. Off with `EXT_SAVE_POSTS=off`.
 
 ## Client behaviour the backend can rely on
 

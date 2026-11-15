@@ -36,6 +36,13 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             item.add_marker(skip)
 
 
+@pytest.fixture(autouse=True)
+def no_post_saving(monkeypatch):
+    """/api/ext/batch keeps every post in MySQL + Qdrant (veritas/ext_store.py). Off in tests,
+    so no test writes to your database; test_ext_store.py turns it on with a throwaway one."""
+    monkeypatch.setenv("EXT_SAVE_POSTS", "off")
+
+
 @pytest.fixture
 def fake_dist(tmp_path: Path) -> Path:
     """A minimal built frontend: index.html, one hashed asset, a font and a root file."""

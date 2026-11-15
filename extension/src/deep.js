@@ -17,7 +17,7 @@ var PPG_DEEP_POLL_MS = 1500;
 var PPG_DEEP_MAX_MS = 5 * 60 * 1000;
 var PPG_DEEP_WAIT_MS = 10000; // wait this long for the fast check before starting without it
 var PPG_TIERS = { clear: 'Clear', likely: 'Likely', possible: 'Possible' };
-var PPG_VERDICTS = { 'true': 'Accurate', 'false': 'False', misleading: 'Misleading', unverifiable: 'Can’t tell' };
+var PPG_VERDICTS = { supported: 'Supported', refuted: 'Refuted', misleading: 'Misleading', unverified: 'Unverified' };
 
 // ---------------------------------------------------------------- jobs
 var PPG_Deep = (function () {
@@ -104,6 +104,7 @@ var PPG_highlight = (function () {
   function clear(id) {
     var old = ranges.get(id);
     if (old && reg) old.forEach(function (r) { reg[r.tier].delete(r.range); });
+    if (old && shown && old.indexOf(shown) >= 0) hide();
     ranges.delete(id);
   }
 
@@ -151,10 +152,110 @@ var PPG_highlight = (function () {
       var range = document.createRange();
       try { range.setStart(a.node, a.offset); range.setEnd(b.node, b.offset); } catch (e) { lost.add(p.quote); return; }
       reg[p.tier].add(range);
-      mine.push({ tier: p.tier, range: range });
+      mine.push({ tier: p.tier, range: range, pattern: p });
     });
     ranges.set(id, mine);
     missing.set(id, lost);
+    listen();
+  }
+
+  // ---- hover: the explanation of a highlighted phrase, right under it.
+  // Highlights have no events of their own, so one listener checks the pointer against the
+  // highlighted ranges' boxes (throttled to one check per frame).
+  var TIER_ORDER = { clear: 0, likely: 1, possible: 2 };
+  var TIP_CSS =
+    ':host{all:initial;position:fixed;z-index:2147483646;pointer-events:none;' +
+    'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}' +
+    '.tip{box-sizing:border-box;max-width:300px;background:var(--surface);color:var(--text);border:1px solid var(--border);' +
+    'border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);padding:8px 10px;font-size:12.5px;line-height:1.4}' +
+    '.top{display:flex;gap:6px;align-items:baseline;margin-bottom:2px}' +
+    '.tier{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}' +
+    '.tier.clear{color:#D03B3B}.tier.likely{color:#D9692F}.tier.possible{color:#B08A17}' +
+    '.tech{font-weight:700}.why{color:var(--text-muted)}';
+  var tip = null, shown = null, frame = 0, px = 0, py = 0, listening = false;
+
+  function listen() {
+    if (listening) return;
+    listening = true;
+    document.addEventListener('mousemove', function (e) {
+      px = e.clientX; py = e.clientY;
+      if (!frame) frame = requestAnimationFrame(check);
+    }, { passive: true, capture: true });
+    window.addEventListener('scroll', hide, { passive: true, capture: true });
+  }
+
+  function hitAt(x, y) {
+    var best = null;
+    ranges.forEach(function (list) {
+      list.forEach(function (r) {
+        if (best && TIER_ORDER[best.r.tier] <= TIER_ORDER[r.tier]) return;
+        var rects = r.range.getClientRects();
+        for (var i = 0; i < rects.length; i++) {
+          var b = rects[i];
+          if (x >= b.left && x <= b.right && y >= b.top - 1 && y <= b.bottom + 1) { best = { r: r, rect: b }; return; }
+        }
+      });
+    });
+    return best;
+  }
+
+  function check() {
+    frame = 0;
+    var hit = hitAt(px, py);
+    if (!hit) { hide(); return; }
+    if (shown !== hit.r) show(hit.r);
+    place(hit.rect);
+  }
+
+  function show(r) {
+    if (!tip) {
+      tip = document.createElement('ppg-tip');
+      tip.setAttribute('data-ppg', 'tip');
+      tip.attachShadow({ mode: 'open' });
+    }
+    var root = tip.shadowRoot;
+    while (root.firstChild) root.removeChild(root.firstChild);
+    var st = document.createElement('style');
+    st.textContent = PPG_TOKENS + TIP_CSS;
+    root.appendChild(st);
+    var box = document.createElement('div');
+    box.className = 'tip';
+    var top = document.createElement('div');
+    top.className = 'top';
+    var t = document.createElement('span');
+    t.className = 'tier ' + r.tier;
+    t.textContent = PPG_TIERS[r.tier] || r.tier;
+    var n = document.createElement('span');
+    n.className = 'tech';
+    n.textContent = r.pattern.technique;
+    top.appendChild(t);
+    top.appendChild(n);
+    box.appendChild(top);
+    if (r.pattern.why) {
+      var w = document.createElement('div');
+      w.className = 'why';
+      w.textContent = r.pattern.why;
+      box.appendChild(w);
+    }
+    root.appendChild(box);
+    tip.setAttribute('data-theme', PPG_theme);
+    if (!tip.isConnected) document.documentElement.appendChild(tip);
+    shown = r;
+  }
+
+  function place(rect) {
+    var box = tip.shadowRoot.querySelector('.tip');
+    var w = box.offsetWidth || 260, h = box.offsetHeight || 60;
+    var left = Math.max(8, Math.min(rect.left, window.innerWidth - w - 8));
+    var top = rect.bottom + 6;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, rect.top - h - 6);
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+
+  function hide() {
+    if (tip && tip.isConnected) tip.remove();
+    shown = null;
   }
 
   /** Still in place? (The site may have re-rendered the text: then apply again.) */
@@ -212,7 +313,7 @@ PPG_DeepButton.prototype.render = function (s) {
   var job = s.job || {};
   var counts = { clear: 0, likely: 0, possible: 0 };
   ((job.patterns && job.patterns.items) || []).forEach(function (p) { if (p.tier in counts) counts[p.tier]++; });
-  var bad = ((job.truth && job.truth.items) || []).filter(function (c) { return c.verdict === 'false' || c.verdict === 'misleading'; }).length;
+  var bad = ((job.truth && job.truth.items) || []).filter(function (c) { return c.verdict === 'refuted' || c.verdict === 'misleading'; }).length;
   var key = PPG_theme + '|' + s.status + '|' + (job.step || 0) + '|' + counts.clear + counts.likely + counts.possible + '|' + bad;
   if (key === this.key) { this.fit(); return; }
   this.key = key;
@@ -231,9 +332,9 @@ PPG_DeepButton.prototype.render = function (s) {
       add('dot ' + t).setAttribute('aria-hidden', 'true');
       add('n', String(counts[t]));
     });
-    add('tx', n ? (bad ? 'Analysis · ' + bad + ' false/misleading' : 'Analysis') : (bad ? bad + ' false/misleading' : 'No patterns'));
+    add('tx', n ? (bad ? 'Analysis · ' + bad + ' refuted/misleading' : 'Analysis') : (bad ? bad + ' refuted/misleading' : 'No patterns'));
     b.setAttribute('aria-label', 'In-depth analysis: ' + n + ' propaganda pattern' + (n === 1 ? '' : 's') +
-      (bad ? ', ' + bad + ' false or misleading claim' + (bad === 1 ? '' : 's') : '') + '. Open details');
+      (bad ? ', ' + bad + ' refuted or misleading claim' + (bad === 1 ? '' : 's') : '') + '. Open details');
   } else {
     add('ic', '⌕').setAttribute('aria-hidden', 'true');
     add('tx', s.status === 'error' ? 'Retry analysis' : 'Analyze');
@@ -272,10 +373,10 @@ var PPG_DEEP_POP_CSS =
   '.mark{border-radius:3px;padding:0 2px}' +
   '.claim{margin:8px 0}' +
   '.vd{display:inline-block;font-size:11px;font-weight:700;border-radius:8px;padding:1px 7px;margin-right:6px;border:1px solid}' +
-  '.vd.true{color:#2F7D4F;border-color:#2F7D4F;background:rgba(47,125,79,.1)}' +
-  '.vd.false{color:var(--v-false-text);border-color:var(--v-false);background:var(--v-false-soft)}' +
+  '.vd.supported{color:#2F7D4F;border-color:#2F7D4F;background:rgba(47,125,79,.1)}' +
+  '.vd.refuted{color:var(--v-false-text);border-color:var(--v-false);background:var(--v-false-soft)}' +
   '.vd.misleading{color:var(--v-mis-text);border-color:var(--v-mis);background:var(--v-mis-soft)}' +
-  '.vd.unverifiable{color:var(--text-muted);border-color:var(--border)}' +
+  '.vd.unverified{color:var(--text-muted);border-color:var(--border)}' +
   '.basis{font-style:italic}' +
   'ol.tl{list-style:none;margin:6px 0 0;padding:0}' +
   'ol.tl li{position:relative;padding:0 0 10px 18px;border-left:2px solid var(--border);margin-left:5px}' +
@@ -355,83 +456,118 @@ function PPG_deepSection(pop, ctx) {
   pop.appendChild(box);
 }
 
+// Patterns: the summary, a count per tier and a hint; each phrase is explained by hovering it
+// in the post. Only phrases that couldn't be highlighted (not on screen) are listed here.
 function patternsSection(p, missing) {
   var sec = ppgD('section');
   sec.appendChild(ppgD('h3', null, 'Propaganda patterns'));
   var items = p.items || [];
-  if (items.length) {
-    var lg = ppgD('div', 'legend');
-    ['clear', 'likely', 'possible'].forEach(function (t) {
-      var x = ppgD('span');
-      x.appendChild(ppgD('span', 'sw t-' + t));
-      x.appendChild(document.createTextNode(PPG_TIERS[t]));
-      lg.appendChild(x);
-    });
-    sec.appendChild(lg);
-  }
   if (p.overall) sec.appendChild(ppgD('p', null, p.overall));
-  if (!items.length) sec.appendChild(ppgD('p', 'meta', 'No propaganda patterns found in the text.'));
-  items.forEach(function (x) {
-    var row = ppgD('div', 'pat ' + x.tier);
-    var top = ppgD('p');
-    top.appendChild(ppgD('span', 'tier ' + x.tier, PPG_TIERS[x.tier] || x.tier));
-    top.appendChild(ppgD('b', null, x.technique));
-    row.appendChild(top);
-    var q = ppgD('p');
-    q.appendChild(ppgD('span', 'mark t-' + x.tier, '“' + ppgDSnip(x.quote, 140) + '”'));
-    row.appendChild(q);
-    if (x.why) row.appendChild(ppgD('p', 'meta', x.why));
-    if (missing.has(x.quote)) row.appendChild(ppgD('p', 'meta', 'Not highlighted: this part of the post isn’t on screen (try “See more”).'));
-    sec.appendChild(row);
+  if (!items.length) { sec.appendChild(ppgD('p', 'meta', 'No propaganda patterns found in the text.')); return sec; }
+  var counts = ppgD('div', 'legend');
+  ['clear', 'likely', 'possible'].forEach(function (t) {
+    var n = items.filter(function (x) { return x.tier === t; }).length;
+    if (!n) return;
+    var x = ppgD('span');
+    x.appendChild(ppgD('span', 'sw t-' + t));
+    x.appendChild(document.createTextNode(n + ' ' + PPG_TIERS[t].toLowerCase()));
+    counts.appendChild(x);
   });
+  sec.appendChild(counts);
+  var hidden = items.filter(function (x) { return missing.has(x.quote); });
+  if (hidden.length < items.length) sec.appendChild(ppgD('p', 'meta', 'Hover the highlighted text in the post to see why each part is marked.'));
+  if (hidden.length) {
+    sec.appendChild(ppgD('p', 'meta', 'Not on screen (open “See more” to highlight them):'));
+    hidden.forEach(function (x) {
+      var row = ppgD('div', 'pat ' + x.tier);
+      var top = ppgD('p');
+      top.appendChild(ppgD('span', 'tier ' + x.tier, PPG_TIERS[x.tier] || x.tier));
+      top.appendChild(ppgD('b', null, x.technique));
+      top.appendChild(document.createTextNode(' — “' + ppgDSnip(x.quote, 80) + '”'));
+      row.appendChild(top);
+      if (x.why) row.appendChild(ppgD('p', 'meta', x.why));
+      sec.appendChild(row);
+    });
+  }
   return sec;
 }
 
+// Fact check: the claims that sources could judge, each with its verdict and the sources it
+// cites; the claims no source covered are summed up in one line.
 function truthSection(t) {
   var sec = ppgD('section');
   sec.appendChild(ppgD('h3', null, 'Fact check'));
-  sec.appendChild(ppgD('p', 'meta basis', t.basis || 'The model’s own knowledge. No sources were checked.'));
   var items = t.items || [];
   if (!items.length) { sec.appendChild(ppgD('p', 'meta', 'No checkable factual claims found.')); return sec; }
-  if (items.every(function (c) { return c.verdict === 'unverifiable'; })) {
-    sec.appendChild(ppgD('p', null, 'None of the claims could be checked from what the model knows.'));
-  }
-  items.forEach(function (c) {
+  var judged = items.filter(function (c) { return (c.sources && c.sources.length) || c.basis === 'general_knowledge'; });
+  var open = items.filter(function (c) { return judged.indexOf(c) < 0; });
+  judged.forEach(function (c) {
     var row = ppgD('div', 'claim');
     var top = ppgD('p');
     top.appendChild(ppgD('span', 'vd ' + c.verdict, PPG_VERDICTS[c.verdict] || c.verdict));
     top.appendChild(document.createTextNode(c.claim));
     row.appendChild(top);
-    if (c.explanation) row.appendChild(ppgD('p', 'meta', c.explanation + (c.verdict !== 'unverifiable' && typeof c.confidence === 'number' ? ' (' + c.confidence + '% sure)' : '')));
+    if (c.explanation) row.appendChild(ppgD('p', 'meta', c.explanation));
+    var src = ppgD('p', 'meta srcs');
+    if (c.sources && c.sources.length) {
+      src.appendChild(document.createTextNode('Sources: '));
+      c.sources.forEach(function (s, i) {
+        if (i) src.appendChild(document.createTextNode(' · '));
+        var label = s.source + (s.kind === 'disinfo' ? ' (documented disinformation)' : '') + (s.date ? ', ' + String(s.date).slice(0, 10) : '');
+        var u = ppgDSafe(s.url);
+        if (u) {
+          var a = ppgD('a', null, label);
+          a.href = u; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          a.title = s.title || '';
+          src.appendChild(a);
+        } else {
+          src.appendChild(ppgD('span', null, label));
+        }
+      });
+    } else {
+      src.appendChild(document.createTextNode('General knowledge (no source covers it).'));
+    }
+    row.appendChild(src);
     sec.appendChild(row);
   });
+  if (open.length) {
+    var p = ppgD('p', 'meta');
+    p.appendChild(ppgD('span', 'vd unverified', PPG_VERDICTS.unverified));
+    p.appendChild(document.createTextNode('No trusted source found for ' +
+      (open.length === 1 ? 'this claim: ' : 'these ' + open.length + ' claims: ') +
+      open.map(function (c) { return ppgDSnip(c.claim, 70); }).join('; ')));
+    sec.appendChild(p);
+  }
+  sec.appendChild(ppgD('p', 'meta basis', t.basis || 'Checked against trusted sources, never against the post itself.'));
   return sec;
 }
 
+// Where it came from: a compact timeline, oldest first.
 function traceSection(tr) {
   var sec = ppgD('section');
   sec.appendChild(ppgD('h3', null, 'Where it came from'));
   if (tr.summary) sec.appendChild(ppgD('p', null, tr.summary));
+  var nodes = tr.nodes || [];
+  if (nodes.length <= 1) return sec;   // only this post: the summary says it all
   var ol = ppgD('ol', 'tl');
-  (tr.nodes || []).forEach(function (n) {
+  nodes.forEach(function (n) {
     var li = ppgD('li', n.kind);
-    li.appendChild(ppgD('div', 'when', n.time ? ppgDWhen(n.time) : (n.kind === 'this' ? 'Undated' : 'Background')));
-    var t = ppgD('p');
-    t.appendChild(ppgD('b', null, n.title));
-    li.appendChild(t);
+    var top = ppgD('p');
+    top.appendChild(ppgD('b', null, n.title));
+    top.appendChild(ppgD('span', 'when', '  ' + (n.time ? ppgDWhen(n.time) : (n.kind === 'this' ? '' : 'background'))));
+    li.appendChild(top);
     var who = [n.who, n.where].filter(Boolean).join(' · ');
     if (typeof n.sim === 'number') who += ' · ' + Math.round(n.sim * 100) + '% similar';
     var meta = ppgD('p', 'meta', who);
     var u = ppgDSafe(n.url);
-    if (u) {
+    if (u && n.kind !== 'this') {
       meta.appendChild(document.createTextNode(' · '));
       var a = ppgD('a', null, 'open');
       a.href = u; a.target = '_blank'; a.rel = 'noopener noreferrer';
       meta.appendChild(a);
     }
     li.appendChild(meta);
-    if (n.text) li.appendChild(ppgD('blockquote', null, ppgDSnip(n.text, 200)));
-    if (n.note) li.appendChild(ppgD('p', 'meta', n.note));
+    if (n.text && n.kind !== 'this') li.appendChild(ppgD('p', 'q', '“' + ppgDSnip(n.text, 120) + '”'));
     ol.appendChild(li);
   });
   sec.appendChild(ol);

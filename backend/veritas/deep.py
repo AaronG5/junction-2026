@@ -4,9 +4,15 @@ Three parts, run one after another in a background job (the screen polls it):
   1. patterns  Gemma marks the phrases that use propaganda or manipulation techniques, each with a
                tier: "clear", "likely" or "possible" (prompt patterns.v1). The extension highlights
                them in the post, coloured by tier.
-  2. truth     Gemma lists the checkable claims and gives each a verdict from its own knowledge:
-               true / false / misleading / unverifiable, with a confidence and an explanation
-               (prompt truth.v1). No sources are consulted yet, and the extension says so.
+  2. truth     A fact check with a search tool. The post is never treated as a source:
+                 a. Gemma lists the checkable claims, each with search queries (prompt claimsearch.v1);
+                 b. the search tool (veritas/evidence.py) looks for each claim in the trusted documents
+                    (data/evidence/) and in the documented disinformation of the narrative bank;
+                 c. Gemma judges each claim against those numbered sources only (prompt verdict.v1):
+                    supported / refuted / misleading / unverified, citing the sources it used.
+                 Without any source the verdict is "unverified" (Gemma isn't asked). With sources,
+                 plain general knowledge is allowed only for basic, long-established facts, and is
+                 labelled as such.
   3. trace     Where the post came from, as a timeline, oldest first. No AI: it is put together from
                what is known about the post:
                  - the documented narrative and its state-media echo (narrative bank, sent by the
@@ -31,12 +37,13 @@ from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Annotated, Any, Callable, Literal
+from typing import Annotated, Any, Callable, Literal, Sequence
 
 from pydantic import Field
 
 from .ai import AiError, AiUnavailable, LocalAI, load_prompt
 from .analyzers import Short, _Strict, find_wording
+from .evidence import DisinfoBank, Provider, Source, TrustedFiles, search_all
 
 log = logging.getLogger("veritas.deep")
 
@@ -62,16 +69,21 @@ class PatternsAnswer(_Strict):
     overall: Short
 
 
-class ClaimCheck(_Strict):
+class ClaimToCheck(_Strict):
     claim: Short
     quote: Short
-    verdict: Literal["true", "false", "misleading", "unverifiable"]
-    confidence: int = Field(ge=0, le=100)
+    queries: list[Annotated[str, Field(max_length=120)]] = Field(max_length=3)
+
+
+class ClaimSearchAnswer(_Strict):
+    claims: list[ClaimToCheck] = Field(max_length=4)
+
+
+class VerdictAnswer(_Strict):
+    verdict: Literal["supported", "refuted", "misleading", "unverified"]
+    sources: list[int] = Field(max_length=6)
+    basis: Literal["sources", "general_knowledge", "none"]
     explanation: Short
-
-
-class TruthAnswer(_Strict):
-    claims: list[ClaimCheck] = Field(max_length=4)
 
 
 # --------------------------------------------------------------------------- the three parts
@@ -90,15 +102,57 @@ def find_patterns(ai: LocalAI, text: str, language: str = "unknown") -> dict:
     return {"items": kept, "overall": answer.value.overall.strip(), "model": answer.model, "prompt": answer.prompt}
 
 
-def check_truth(ai: LocalAI, text: str, published: str | None, language: str = "unknown") -> dict:
+NO_SOURCE = "No trusted source about this was found."
+UNCITED = "The model gave no source for this, so it stays unverified."
+
+
+def _sources_block(found: list[Source]) -> str:
+    if not found:
+        return "(none found)"
+    lines = []
+    for i, s in enumerate(found, 1):
+        label = "documented disinformation" if s.kind == "disinfo" else "trusted document"
+        meta = ", ".join(x for x in (label, s.source, s.date or "") if x)
+        lines.append(f"[{i}] ({meta}) {s.title}: {s.text}")
+    return "\n".join(lines)
+
+
+def check_truth(ai: LocalAI, text: str, language: str = "unknown",
+                providers: Sequence[Provider] = ()) -> dict:
+    """The fact check: claims and queries (Gemma), sources (the search tool), a verdict per claim
+    from those sources only (Gemma). A verdict that rests on sources must cite at least one."""
+    found = ai.ask(load_prompt("claimsearch"), ClaimSearchAnswer, text=text, language=language)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    answer = ai.ask(load_prompt("truth"), TruthAnswer, text=text, language=language, today=today,
-                    published=(published or "at an unknown date")[:40])
-    claims = [{"claim": c.claim.strip(), "quote": find_wording(text, c.quote) or "", "verdict": c.verdict,
-               "confidence": c.confidence, "explanation": c.explanation.strip()}
-              for c in answer.value.claims if c.claim.strip()]
-    return {"items": claims, "model": answer.model, "prompt": answer.prompt,
-            "basis": "The model's own knowledge. No sources were checked, and it may be wrong or out of date."}
+    items = []
+    model, prompts = found.model, [found.prompt]
+    claims = [c for c in found.value.claims if c.claim.strip()]
+    for p in providers:   # search first, for every claim (one embedding call), then judge
+        if hasattr(p, "prepare"):
+            p.prepare([c.claim.strip() for c in claims])
+    searched = [(c, [q.strip() for q in c.queries if q.strip()]) for c in claims]
+    searched = [(c, queries, search_all(providers, c.claim.strip(), queries)) for c, queries in searched]
+    for c, queries, sources in searched:
+        claim = c.claim.strip()
+        if not sources:   # nothing to judge it against: unverified, without asking Gemma
+            items.append({"claim": claim, "quote": find_wording(text, c.quote) or "", "verdict": "unverified",
+                          "basis": "none", "explanation": NO_SOURCE, "searched": queries, "sources": []})
+            continue
+        v = ai.ask(load_prompt("verdict"), VerdictAnswer, claim=claim, sources=_sources_block(sources), today=today)
+        prompts.append(v.prompt) if v.prompt not in prompts else None
+        cited = sorted({n for n in v.value.sources if 1 <= n <= len(sources)})
+        verdict, basis, explanation = v.value.verdict, v.value.basis, v.value.explanation.strip()
+        if verdict != "unverified" and basis == "sources" and not cited:
+            verdict, basis, explanation = "unverified", "none", UNCITED
+        if verdict == "unverified" and not cited:
+            basis = "none"
+            explanation = explanation or NO_SOURCE
+        items.append({
+            "claim": claim, "quote": find_wording(text, c.quote) or "", "verdict": verdict, "basis": basis,
+            "explanation": explanation, "searched": queries,
+            "sources": [{"n": n, **sources[n - 1].to_json()} for n in cited],
+        })
+    return {"items": items, "model": model, "prompt": "+".join(prompts),
+            "basis": "Checked against trusted documents and documented disinformation, never against the post itself."}
 
 
 def _when(value: Any) -> datetime | None:
@@ -269,6 +323,8 @@ def similar_in_database(settings, ai: LocalAI, text: str, url: str | None) -> li
 class DeepServices:
     ai: Callable[[], LocalAI]
     similar: Callable[[LocalAI, str, str | None], list[dict]]
+    # The fact check's search tool: the providers for one job (they may use that job's AI to embed).
+    evidence: Callable[[LocalAI], Sequence[Provider]] = lambda ai: ()
 
 
 class DeepJobs:
@@ -330,7 +386,7 @@ class DeepJobs:
         try:
             self._set(job_id, step=0)
             self._set(job_id, patterns=find_patterns(ai, text, language), step=1)
-            self._set(job_id, truth=check_truth(ai, text, item.get("time"), language), step=2)
+            self._set(job_id, truth=check_truth(ai, text, language, self.services.evidence(ai)), step=2)
             similar = self.services.similar(ai, text, item.get("url"))
             self._set(job_id, trace=build_trace(item, context, similar), step=3, status="done")
         except (AiUnavailable, AiError) as exc:
@@ -350,9 +406,16 @@ def get_jobs(settings) -> DeepJobs:
     global _jobs
     with _jobs_lock:
         if _jobs is None:
+            files = TrustedFiles()
+
+            def bank():  # the narrative engine's bank (loaded once, shared with /api/ext/batch)
+                from . import narrative
+                return narrative.get_engine(lambda: LocalAI.from_settings(settings)).bank
+
             _jobs = DeepJobs(DeepServices(
                 ai=lambda: LocalAI.from_settings(settings),
-                similar=lambda ai, text, url: similar_in_database(settings, ai, text, url)))
+                similar=lambda ai, text, url: similar_in_database(settings, ai, text, url),
+                evidence=lambda ai: (DisinfoBank(bank, lambda texts: ai.embed_documents(list(texts))), files)))
         return _jobs
 
 

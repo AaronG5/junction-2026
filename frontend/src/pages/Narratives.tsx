@@ -1,12 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import type { Cluster, Filters, MapPoint } from "../api/types";
+import type { Cluster, ClusteringState, Filters, MapPoint } from "../api/types";
 import { FilterBar, FilterSummary } from "../components/FilterBar";
 import { LanguageBar } from "../components/LanguageBar";
 import { EmptyState, ErrorState, Loading } from "../components/States";
 import { StatusDot } from "../components/Verdict";
-import { VERDICT_LABEL, defaultFilters, shortDate } from "../lib/filters";
+import { VERDICT_LABEL, defaultFilters, shortDate, todayIso } from "../lib/filters";
 import { useApi } from "../lib/useApi";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 
@@ -35,8 +35,11 @@ export function Narratives() {
           </p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-          <Link to="/dashboard/analyze" className="btn">Analyze a link</Link>
-          {data && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <UpdateClusters days={windowDays(filters)} onFinished={reload} />
+            <Link to="/dashboard/analyze" className="btn">Analyze a link</Link>
+          </div>
+          {data && data.run.clusters > 0 && (
             <span className="mono muted" style={{ fontSize: 12.5 }}>
               Latest run {shortDate(data.run.date)} · {data.run.posts.toLocaleString("en-US")} posts · {data.run.clusters} clusters
             </span>
@@ -65,7 +68,9 @@ export function Narratives() {
 
             <section className="card cluster-list" aria-labelledby="list-h">
               <h2 id="list-h" className="h2" style={{ padding: "6px 12px 8px" }}>Largest clusters</h2>
-              {clusters.length === 0 ? (
+              {data.run.clusters === 0 ? (
+                <EmptyState>No clusters yet. Press “Update clusters” to group the collected posts.</EmptyState>
+              ) : clusters.length === 0 ? (
                 <EmptyState action={<button type="button" className="link-btn" onClick={clear}>Clear filters</button>}>
                   No clusters match these filters.
                 </EmptyState>
@@ -93,6 +98,77 @@ export function Narratives() {
         </>
       )}
     </div>
+  );
+}
+
+/** How many days back the clustering run looks: the filter's range (custom: from its start to today). */
+export function windowDays(f: Filters, today: string = todayIso()): number {
+  const days = f.range === "custom"
+    ? Math.round((Date.parse(today) - Date.parse(f.from || today)) / 86_400_000)
+    : Number(f.range);
+  return Math.min(365, Math.max(1, Number.isFinite(days) ? days : 7));
+}
+
+/** How often a running clustering is checked. Tests shorten it. */
+export const clusteringPolling = { intervalMs: 2000 };
+
+/**
+ * "Update clusters": groups the posts of the chosen period again (backend/veritas/clustering_job.py).
+ * Runs in the background on the server; this polls it and reloads the screen when it's done.
+ * A run started earlier (another tab, before a page reload) is picked up and followed too.
+ */
+function UpdateClusters({ days, onFinished }: { days: number; onFinished: () => void }) {
+  const [state, setState] = useState<ClusteringState | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const finished = useRef(onFinished);
+  finished.current = onFinished;
+
+  useEffect(() => {
+    let alive = true;
+    api.clusteringState().then((s) => alive && setState(s), () => {});
+    return () => { alive = false; };
+  }, []);
+
+  const running = state?.status === "running";
+  useEffect(() => {
+    if (!running) return;
+    let alive = true;
+    const timer = setInterval(() => {
+      api.clusteringState().then((s) => {
+        if (!alive || s.status === "running") return;
+        setState(s);
+        if (s.status === "done") finished.current();
+      }, () => {});
+    }, clusteringPolling.intervalMs);
+    return () => { alive = false; clearInterval(timer); };
+  }, [running]);
+
+  const start = () => {
+    setError(null);
+    api.startClustering(days).then((s) => {
+      setState(s);
+      if (s.status === "done") finished.current();
+    }, (err: unknown) => setError(err instanceof Error ? err.message : "Clustering couldn't be started."));
+  };
+
+  const note = error ?? (running ? `Grouping the posts of the last ${state?.days ?? days} days. This can take a few minutes.`
+    : state && state.status !== "idle" ? state.message : null);
+  return (
+    <>
+      <button type="button" className="btn btn-plain" onClick={start} disabled={running} aria-busy={running}
+        title={`Group the posts of the last ${days} days into narratives again`}>
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" className={running ? "spin" : undefined}
+          style={{ marginRight: 6, verticalAlign: "-2px" }}>
+          <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" fill="none" stroke="currentColor" strokeWidth="1.6"
+            strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {running ? "Updating clusters…" : "Update clusters"}
+      </button>
+      <span aria-live="polite" data-testid="clustering-note" className={error || state?.status === "failed" ? undefined : "muted"}
+        style={{ fontSize: 12.5, flexBasis: "100%", textAlign: "right", maxWidth: "48ch", marginLeft: "auto" }}>
+        {note}
+      </span>
+    </>
   );
 }
 

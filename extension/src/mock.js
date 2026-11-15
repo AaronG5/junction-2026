@@ -178,7 +178,8 @@ export const _test = { pickScenario, build };
 
 export const MOCK_DEEP_STEP_MS = 700;
 const DEEP_STEPS = ['Finding propaganda patterns', 'Checking the claims', 'Tracing where it came from'];
-const BASIS = 'The model’s own knowledge. No sources were checked, and it may be wrong or out of date.';
+const BASIS = 'Checked against trusted documents and documented disinformation, never against the post itself.';
+const NO_SOURCE = 'No trusted source about this was found.';
 
 const LOADED = [
   ['regime', 'Name-calling', 'likely', 'Labels a government as illegitimate.'],
@@ -190,12 +191,14 @@ const LOADED = [
 ];
 
 const MOCK_CLAIMS = {
-  nvidia: [{ claim: 'The Nvidia scandal was staged by the CIA.', quote: 'a CIA operation', verdict: 'unverifiable', confidence: 70,
-    explanation: 'No evidence for a CIA role is known; the post gives none.' }],
-  puppet: [{ claim: 'Ukraine’s government is controlled by the United States.', quote: 'puppet', verdict: 'false', confidence: 85,
-    explanation: 'Ukraine has its own elected government and makes its own decisions; this is a documented disinformation narrative.' }],
-  patriot: [{ claim: 'Patriot paperwork agreed in October is stuck in the Pentagon.', quote: '', verdict: 'unverifiable', confidence: 60,
-    explanation: 'Recent internal paperwork can’t be checked from general knowledge.' }],
+  nvidia: [{ claim: 'The Nvidia scandal was staged by the CIA.', quote: 'a CIA operation', verdict: 'unverified', basis: 'none',
+    explanation: NO_SOURCE, searched: ['Nvidia Jensen Huang CIA', 'Nvidia scandal investigation'], sources: [] }],
+  puppet: [{ claim: 'Ukraine’s government is controlled by the United States.', quote: 'puppet', verdict: 'refuted', basis: 'sources',
+    explanation: 'Fact-checkers have documented this as a recurring disinformation narrative.', searched: ['Kyiv puppet United States'],
+    sources: [{ n: 1, kind: 'disinfo', source: 'EUvsDisinfo', title: 'Documented disinformation claim (EUvsDisinfo)',
+      text: 'The Kyiv regime is an American puppet', url: 'https://euvsdisinfo.eu/', date: '2024-01-07', score: 0.91 }] }],
+  patriot: [{ claim: 'Patriot paperwork agreed in October is stuck in the Pentagon.', quote: '', verdict: 'unverified', basis: 'none',
+    explanation: NO_SOURCE, searched: ['Patriot Ukraine Pentagon paperwork'], sources: [] }],
 };
 
 function findIn(text, phrase) {
@@ -283,7 +286,7 @@ export class MockDeep {
         overall: items.length ? 'Uses charged labels and framing to steer how readers see the story. (Mock answer.)' : 'No persuasion techniques stand out. (Mock answer.)' };
     }
     if (step >= 2) {
-      job.truth = { items: (MOCK_CLAIMS[scen] || []).map((c) => ({ ...c, quote: findIn(text, c.quote) || '' })), model: 'mock', prompt: 'truth.v1', basis: BASIS };
+      job.truth = { items: (MOCK_CLAIMS[scen] || []).map((c) => ({ ...c, quote: findIn(text, c.quote) || '' })), model: 'mock', prompt: 'claimsearch.v1+verdict.v1', basis: BASIS };
     }
     if (step >= 3) job.trace = mockTrace(j.item, j.context, j.shared);
     return job;
