@@ -58,7 +58,7 @@ def _point_id(value: str | uuid.UUID | bytes) -> str:
 
 
 class Qdrant:
-    """A small client for the parts of Qdrant Veritas Lens uses.
+    """A small client for the parts of Qdrant Providence uses.
 
     prefix: put in front of every collection and alias name. Tests use it to
     work in their own throwaway collections; the app leaves it empty."""

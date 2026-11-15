@@ -10,9 +10,9 @@ Everything runs on your own computer: the AI model, the search index and the dat
 - Windows: double-click `launch.bat`
 - Linux / macOS: run `./launch.sh`
 
-That's it. The first start checks your computer, picks the Gemma model that fits it best, downloads it, and starts everything - the AI models, MySQL and Qdrant, the dashboard build and the server that serves it. If the download is interrupted, start it again and it continues where it stopped. Later starts take seconds and work offline.
+That's it. The first start checks your computer, picks the Gemma model that fits it best, downloads it, and starts everything - the AI models, MySQL and Qdrant, the dashboard build, the server that serves it and the nginx proxy that puts it on the default web port. If the download is interrupted, start it again and it continues where it stopped. Later starts take seconds and work offline.
 
-**You need:** [uv](https://docs.astral.sh/uv/) (the launcher offers to install it; uv brings its own Python) and [Docker Desktop](https://docs.docker.com/get-started/get-docker/) for the databases.
+**You need:** [uv](https://docs.astral.sh/uv/) (the launcher offers to install it; uv brings its own Python) and [Docker Desktop](https://docs.docker.com/get-started/get-docker/) for the databases and the web proxy.
 
 Developers: run Python through uv as well, e.g. `uv run python -m local_ai --status`.
 
@@ -28,6 +28,7 @@ Developers: run Python through uv as well, e.g. `uv run python -m local_ai --sta
 | `--stop` | Stop everything |
 | `--host 0.0.0.0` | Serve the dashboard and the AI to the network (what `./launch.sh` does by default) |
 | `--local` | The opposite: this computer only |
+| `--no-proxy` | Don't serve the dashboard on port 80; leave it on 8000 |
 | `--expose-databases` | Publish MySQL and Qdrant on that address too |
 | `--demo-data` | Load the example data (only into an empty database) |
 | `--import-data` | Load the collected data (see below) and make its vectors |
@@ -46,6 +47,8 @@ The import stores the posts and their accounts in MySQL and makes a vector for e
 **Where it listens**
 
 `./launch.sh` serves the dashboard on `0.0.0.0:8000`, so a server install is reachable from the web. `launch.bat` and `./launch.sh --local` keep everything on `127.0.0.1` (this computer only). The choice is saved as `BIND_HOST` in `.env` - the backend server and Docker both read it - so later starts keep it, and editing it there works too.
+
+An nginx container (`docker/docker-compose.yml`, config in `docker/nginx/default.conf.template`) sits in front of it and sends everything that arrives on the default web port to port 8000, so the dashboard opens at `http://<this computer>/` with no port number - `:8000` keeps working as well. It starts last, after the dashboard server it routes to, and is skipped - with a message, never fatally - if port 80 is taken or Docker isn't there. `HTTP_PORT` in `.env` moves it to another port, `--no-proxy` leaves it out. The AI server on 8080 is deliberately not proxied: it has no login, so the default web port must not lead to it.
 
 MySQL and Qdrant stay on `127.0.0.1` either way: nothing outside the machine needs them. `--expose-databases` publishes them on `BIND_HOST` as well.
 

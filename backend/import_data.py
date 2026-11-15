@@ -37,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
             stream.reconfigure(errors="backslashreplace")
         except (AttributeError, ValueError):
             pass
-    parser = argparse.ArgumentParser(description="Load the collected posts and articles into Veritas Lens.")
+    parser = argparse.ArgumentParser(description="Load the collected posts and articles into Providence.")
     parser.add_argument("--source", action="append", choices=sorted(importer.SOURCES), metavar="NAME",
                         help=f"only this source; one of {', '.join(importer.SOURCES)} (repeatable)")
     parser.add_argument("--no-embed", action="store_true", help="store the rows only; make no vectors")

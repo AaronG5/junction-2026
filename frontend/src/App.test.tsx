@@ -60,7 +60,7 @@ describe("dashboard sidebar", () => {
 
   it("brand links back to the landing page", () => {
     renderApp("/dashboard/system");
-    expect(screen.getByRole("link", { name: /veritas lens/i })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: /providence/i })).toHaveAttribute("href", "/");
   });
 
   it("shows the current data source (Hybrid by default)", () => {

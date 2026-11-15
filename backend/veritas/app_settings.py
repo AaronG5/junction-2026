@@ -13,7 +13,7 @@ from .models import AppSettings
 
 KEY = "data_source"
 DEFAULTS = AppSettings(data_mode="hybrid", share_analyses=False)
-SHARING_WHILE_LOCAL = ("Sharing can't be turned on while Veritas Lens works only on this computer. "
+SHARING_WHILE_LOCAL = ("Sharing can't be turned on while Providence works only on this computer. "
                        "Choose Hybrid or Central server first.")
 
 

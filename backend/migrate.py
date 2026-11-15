@@ -25,7 +25,7 @@ def main(argv: list[str] | None = None) -> int:
             stream.reconfigure(errors="backslashreplace")
         except (AttributeError, ValueError):
             pass
-    parser = argparse.ArgumentParser(description="Bring the Veritas Lens database schema up to date.")
+    parser = argparse.ArgumentParser(description="Bring the Providence database schema up to date.")
     parser.add_argument("--status", action="store_true", help="only show applied and pending migrations")
     args = parser.parse_args(argv)
     try:
@@ -37,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
                 for mig in migrations:
                     print(f"  {'pending' if mig.version in todo else 'applied'}  {mig.version}")
                 for version in unknown_versions(conn, migrations):
-                    print(f"  applied  {version}  (not known to this version of Veritas Lens)")
+                    print(f"  applied  {version}  (not known to this version of Providence)")
                 return 0
             applied = migrate(conn, migrations,
                               on_skip=lambda note: print(f"  note: {note}", flush=True),

@@ -127,7 +127,7 @@ While polling, the client ignores a per-item `status: "error"` and keeps polling
 ## POST /api/ext/deep, GET /api/ext/deep/{id} (in-depth analysis)
 
 Started only when the user clicks **Analyze**. It goes to the **in-depth analysis URL** (popup setting
-`deepUrl`, default `http://127.0.0.1:8000`: Veritas Lens on the user's computer, because it needs the
+`deepUrl`, default `http://127.0.0.1:8000`: Providence on the user's computer, because it needs the
 local Gemma). Implemented in `backend/veritas/deep.py`; `src/mock.js` (`MockDeep`) follows the same shape.
 
 ```json
@@ -175,13 +175,13 @@ The client polls `GET /api/ext/deep/{id}` every 1.5 s (for up to 5 minutes) unti
   cites, `kind` `document` or `disinfo`), `general_knowledge` (basic long-established facts only) or `none`
   (no source found: always `unverified`). A `quote` not in the post is `""`.
 - `trace.nodes[].kind`: `narrative` (undated background, first), `state_media`, `telegram`, `similar` (earlier posts
-  in the Veritas Lens database), `original` (the shared or quoted post), `this` (this post, with how it reached the
+  in the Providence database), `original` (the shared or quoted post), `this` (this post, with how it reached the
   feed). Oldest first; nodes after `this` appeared later. Only `https:` links are kept.
 
 ## POST /api/ext/save
 
 Same body as `/api/ext/batch`; answers `{ "queued": n }`. Only stores the posts, no check. The extension
-sends every batch here too, to the in-depth analysis URL (Veritas Lens on the user's computer), when the
+sends every batch here too, to the in-depth analysis URL (Providence on the user's computer), when the
 popup's **Save posts on this computer** is on and the badges come from another server.
 
 Posts that reach `/api/ext/batch` or `/api/ext/save` are kept in MySQL and embedded into Qdrant

@@ -15,7 +15,7 @@ rem The uv installer puts uv here; a fresh install isn't on PATH until a new win
 if not defined UV if exist "%USERPROFILE%\.local\bin\uv.exe" set "UV=%USERPROFILE%\.local\bin\uv.exe"
 
 if not defined UV (
-    echo uv is needed to run Veritas Lens and was not found.
+    echo uv is needed to run Providence and was not found.
     echo It is a small tool that manages Python for this project: https://docs.astral.sh/uv/
     choice /M "Install uv now"
     if errorlevel 2 goto :nouv

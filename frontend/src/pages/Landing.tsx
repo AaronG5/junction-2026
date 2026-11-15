@@ -60,7 +60,7 @@ function Hero() {
       navigate(`/story/${encodeURIComponent(story.id)}?via=link`);
     } catch (err) {
       setBusy(false);
-      setProblem(err instanceof ApiError ? err.message : "We couldn't reach Veritas Lens right now. Please try again in a moment.");
+      setProblem(err instanceof ApiError ? err.message : "We couldn't reach Providence right now. Please try again in a moment.");
     }
   };
 

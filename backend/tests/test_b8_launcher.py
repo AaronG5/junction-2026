@@ -4,6 +4,7 @@ from __future__ import annotations
 import itertools
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -36,11 +37,13 @@ def test_steps_run_in_a_sensible_order():
     assert titles.index("Starting the databases (MySQL + Qdrant)") < titles.index("Preparing the database")
     assert titles.index("Preparing the database") < titles.index("Setting up vector search")
     assert titles.index("Loading the demo data") > titles.index("Preparing the database")
-    assert titles[-1] == "Starting the dashboard"
+    # The proxy routes to the dashboard server, so it is started after it.
+    assert titles.index("Starting the dashboard") == len(titles) - 2
+    assert titles[-1] == "Serving the dashboard on the default web port (nginx)"
 
 
 def _ctx(**args):
-    defaults = dict(demo_data=False, no_backend=False, skip_docker=False)
+    defaults = dict(demo_data=False, no_backend=False, skip_docker=False, no_proxy=False)
     return launcher.Context(args=SimpleNamespace(**{**defaults, **args}), state={})
 
 
@@ -564,3 +567,137 @@ def test_upgrade_is_a_better_model_that_fits():
 def test_backend_running_reads_the_health_answer(monkeypatch, answer, running):
     monkeypatch.setattr(backend, "http_get", lambda url, timeout=3: answer)  # the real http_get returns bytes
     assert backend.backend_running({"BACKEND_PORT": "8000"}) is running
+
+
+# --------------------------------------------------------------------------- the web proxy (nginx)
+
+@pytest.fixture
+def proxy(monkeypatch):
+    """start_nginx() with Docker, the port and the proxy's answer all faked."""
+    fake = {"env": {"BIND_HOST": "0.0.0.0", "HTTP_PORT": "80", "BACKEND_PORT": "8000"},
+            "calls": [], "answers": True, "free": True, "platform": "Linux"}
+    monkeypatch.setattr(services, "read_env", lambda: dict(fake["env"]))
+    monkeypatch.setattr(services.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(services, "_docker_ready", lambda: True)
+    monkeypatch.setattr(services, "_compose_cmd", lambda: ["docker", "compose"])
+    monkeypatch.setattr(services, "_container_running", lambda name: False)
+    monkeypatch.setattr(services, "port_free", lambda port: fake["free"])
+    monkeypatch.setattr(services, "nginx_running", lambda env=None: fake["answers"])
+    monkeypatch.setattr(services, "lan_ip", lambda: "192.0.2.10")
+    monkeypatch.setattr(services.platform, "system", lambda: fake["platform"])
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+    monkeypatch.setattr(services.subprocess, "run",
+                        lambda cmd, **kw: fake["calls"].append((cmd, kw.get("env", {}))) or completed())
+    return fake
+
+
+def test_the_proxy_puts_the_dashboard_on_the_default_web_port(proxy, capsys):
+    assert services.start_nginx() is True
+    cmd, env = proxy["calls"][0]
+    # Only the proxy: MySQL and Qdrant have their own, earlier step.
+    assert cmd[-3:] == ["up", "-d", "nginx"]
+    # On Linux the container shares this computer's network, so nginx binds the
+    # address itself and reaches the dashboard on the loopback address - which
+    # also works when the dashboard listens on 127.0.0.1 only (--local).
+    assert env["NGINX_NETWORK_MODE"] == "host"
+    assert env["NGINX_LISTEN"] == "0.0.0.0:80"
+    assert env["NGINX_UPSTREAM"] == "127.0.0.1:8000"
+    # The address users are told about has no port number in it.
+    assert "http://192.0.2.10 " in capsys.readouterr().out
+
+
+def test_docker_desktop_reaches_the_dashboard_through_its_own_gateway(proxy):
+    proxy["platform"] = "Darwin"
+    assert services.start_nginx() is True
+    _, env = proxy["calls"][0]
+    assert env["NGINX_NETWORK_MODE"] == "bridge"                     # no host networking there
+    assert env["NGINX_LISTEN"] == "80"                               # Docker publishes the port instead
+    assert env["NGINX_UPSTREAM"] == "host.docker.internal:8000"
+
+
+def test_the_proxy_follows_a_dashboard_that_moved(proxy):
+    """A busy 8000 moves the dashboard server; the proxy must route to the new port."""
+    proxy["env"]["BACKEND_PORT"] = "8001"
+    services.start_nginx()
+    assert proxy["calls"][0][1]["NGINX_UPSTREAM"] == "127.0.0.1:8001"
+
+
+def test_an_ipv6_address_is_bracketed_for_nginx(proxy):
+    proxy["env"]["BIND_HOST"] = "::"
+    services.start_nginx()
+    assert proxy["calls"][0][1]["NGINX_LISTEN"] == "[::]:80"   # listen :::80 would not parse
+
+
+def test_a_busy_web_port_skips_the_proxy_instead_of_failing(proxy, capsys):
+    proxy["free"] = False
+    assert services.start_nginx() is False
+    assert proxy["calls"] == []  # nothing started
+    out = capsys.readouterr().out
+    assert "8000" in out and "HTTP_PORT" in out  # the dashboard still works, and how to move the proxy
+
+
+def test_a_proxy_that_does_not_answer_is_reported_but_not_fatal(proxy, capsys):
+    proxy["answers"] = False
+    assert services.start_nginx() is False
+    assert "docker logs junction-nginx" in capsys.readouterr().out
+
+
+def test_the_proxy_step_needs_docker_and_something_to_route_to(monkeypatch):
+    started = []
+    monkeypatch.setattr(services, "start_nginx", lambda: started.append(1) or True)
+    monkeypatch.setattr(services, "proxy_url", lambda: "http://192.0.2.10")
+    launcher.step_proxy(_ctx(no_proxy=True))
+    launcher.step_proxy(_ctx(skip_docker=True))
+    launcher.step_proxy(_ctx(no_backend=True))
+    assert started == []
+    ctx = _ctx()
+    launcher.step_proxy(ctx)
+    assert started == [1] and ctx.results["proxy"] == "http://192.0.2.10"
+
+
+def test_the_databases_start_without_the_proxy(monkeypatch):
+    """The proxy routes to the dashboard, so `up -d` must not start it early."""
+    calls = []
+    env = {"MYSQL_PORT": "3306", "QDRANT_PORT": "6333"}
+    monkeypatch.setattr(services.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(services, "_docker_ready", lambda: True)
+    monkeypatch.setattr(services, "_compose_cmd", lambda: ["docker", "compose"])
+    monkeypatch.setattr(services, "read_env", lambda: dict(env))
+    monkeypatch.setattr(services, "_resolve_port_conflicts", lambda current: dict(env))
+    monkeypatch.setattr(services, "_wait_healthy", lambda container, timeout=180: True)
+    monkeypatch.setattr(services, "http_get", lambda url, timeout=3: (200, b""))
+    monkeypatch.setattr(services.subprocess, "run", lambda cmd, **kw: calls.append(cmd) or completed())
+    assert services.start_docker_services() is True
+    assert calls[-1][-4:] == ["up", "-d", "mysql", "qdrant"] and "nginx" not in calls[-1]
+
+
+@pytest.mark.parametrize("env, url", [
+    ({"BIND_HOST": "127.0.0.1", "HTTP_PORT": "80"}, "http://127.0.0.1"),
+    ({"BIND_HOST": "0.0.0.0", "HTTP_PORT": "80"}, "http://192.0.2.10"),
+    ({"BIND_HOST": "0.0.0.0", "HTTP_PORT": "8081"}, "http://192.0.2.10:8081"),
+])
+def test_the_proxy_address_is_one_users_can_type(monkeypatch, env, url):
+    monkeypatch.setattr(services, "lan_ip", lambda: "192.0.2.10")
+    assert services.proxy_url(env) == url
+
+
+@pytest.mark.parametrize("status, running", [(200, True), (502, True), (None, False)])
+def test_the_proxy_counts_as_running_whenever_it_answers(monkeypatch, status, running):
+    # 502 means nginx itself is up and the dashboard behind it is not.
+    monkeypatch.setattr(services, "http_get", lambda url, timeout=3: (status, b""))
+    assert services.nginx_running({"BIND_HOST": "127.0.0.1", "HTTP_PORT": "80"}) is running
+
+
+def test_the_nginx_config_only_uses_variables_the_launcher_sets():
+    """A renamed variable would render as an empty nginx directive, so keep the
+    template, docker-compose.yml and _nginx_env on the same names."""
+    template = (ROOT / "docker" / "nginx" / "default.conf.template").read_text(encoding="utf-8")
+    used = set(re.findall(r"\$\{(\w+)\}", template))
+    computed = set(services._nginx_env({"BIND_HOST": "0.0.0.0", "HTTP_PORT": "80", "BACKEND_PORT": "8000"}))
+    assert used and used <= computed
+    compose = paths.COMPOSE_FILE.read_text(encoding="utf-8")
+    for name in computed:
+        assert name in compose  # docker-compose.yml hands each one to the container
+    # The AI server has no login of its own, so the default web port must not lead to it.
+    directives = [line for line in template.splitlines() if not line.lstrip().startswith("#")]
+    assert "8080" not in "\n".join(directives)

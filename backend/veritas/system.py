@@ -76,7 +76,7 @@ def _model_id(models: dict | None, alias: str) -> tuple[str | None, dict]:
 def _hardware(state: dict) -> tuple[str, str]:
     hw = state.get("hardware")
     if not isinstance(hw, dict):
-        return "Not detected yet", "Start Veritas Lens with the launcher to detect it."
+        return "Not detected yet", "Start Providence with the launcher to detect it."
     gpu, vram = hw.get("gpu"), hw.get("vram_gb")
     name = f"{gpu} · {vram:g} GB" if gpu and isinstance(vram, (int, float)) else (gpu or "No graphics card (processor only)")
     parts = []

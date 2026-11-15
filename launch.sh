@@ -25,7 +25,7 @@ find_uv() {
 
 UV="$(find_uv || true)"
 if [ -z "$UV" ]; then
-    echo "uv is needed to run Veritas Lens and was not found."
+    echo "uv is needed to run Providence and was not found."
     echo "It is a small tool that manages Python for this project: https://docs.astral.sh/uv/"
     answer="n"
     if [ -t 0 ]; then

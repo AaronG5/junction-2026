@@ -8,12 +8,12 @@ export const DEFAULTS = Object.freeze({
   enabled: true,
   baseUrl: 'https://augustasrink--ppg-ext-web.us-east.modal.run',
   // In-depth analysis ("Analyze" button: patterns, truth check, trace) needs the local Gemma,
-  // so it goes to the Veritas Lens backend on this computer.
+  // so it goes to the Providence backend on this computer.
   deepUrl: 'http://127.0.0.1:8000',
-  // Where the in-depth analysis runs (the popup's "runs on" switch): 'local' = deepUrl (Veritas Lens
+  // Where the in-depth analysis runs (the popup's "runs on" switch): 'local' = deepUrl (Providence
   // with Gemma on this computer), 'cloud' = the same analysis with stock Gemma 26B on Modal (DEEP_CLOUD_URL).
   deepEngine: 'local',
-  // Also keep every post in Veritas Lens on this computer (POST {deepUrl}/api/ext/save), so the
+  // Also keep every post in Providence on this computer (POST {deepUrl}/api/ext/save), so the
   // local database grows while you browse, even when the badges come from another server.
   savePosts: true,
   showAll: false,
@@ -327,8 +327,8 @@ chrome.runtime.onConnect.addListener((port) => {
 // Stateless pass-through: the content script starts the job and polls it (src/deep.js).
 let mockDeep = null;
 const DEEP_ITEM_KEYS = ['id', 'url', 'author', 'author_name', 'text', 'lang', 'time', 'kind', 'quoted_id', 'platform', 'group'];
-const DEEP_OLD = 'Veritas Lens on this computer is running an older version without the in-depth analysis. Restart it (launch.bat --stop, then launch.bat).';
-const DEEP_DOWN ='The in-depth analysis runs on your own computer, and Veritas Lens isn’t answering there. Start it with launch.bat (or launch.sh).';
+const DEEP_OLD = 'Providence on this computer is running an older version without the in-depth analysis. Restart it (launch.bat --stop, then launch.bat).';
+const DEEP_DOWN ='The in-depth analysis runs on your own computer, and Providence isn’t answering there. Start it with launch.bat (or launch.sh).';
 const DEEP_CLOUD_DOWN = 'The cloud in-depth analysis isn’t answering. Check your internet connection and try again, or switch to “This computer” in the extension’s settings.';
 
 function deepEngine() { return settings.deepEngine === 'cloud' ? 'cloud' : 'local'; }
@@ -353,7 +353,7 @@ async function deepCallOn(engine, msg, sender) {
       };
       if (useMock) return { ok: true, data: await mockDeep.start(body) };
       const res = await deepFetch('/api/ext/deep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      // A 404 here means the server is up but has no in-depth analysis: a Veritas Lens started
+      // A 404 here means the server is up but has no in-depth analysis: a Providence started
       // before it was added (or another server at that address).
       if (res.status === 404) return { ok: false, status: 404, error: engine === 'cloud' ? DEEP_CLOUD_DOWN : DEEP_OLD };
       return res;

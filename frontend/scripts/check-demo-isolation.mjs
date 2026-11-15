@@ -6,7 +6,7 @@ import { execSync } from "node:child_process";
 import { readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-const MARKER = "veritas-lens-demo-data-v1";
+const MARKER = "providence-demo-data-v1";
 
 function build(mode, outDir) {
   rmSync(outDir, { recursive: true, force: true });

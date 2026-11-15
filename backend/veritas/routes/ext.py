@@ -119,7 +119,7 @@ def batch(request: Request, body: Batch):
 
 @router.post("/save")
 def save(request: Request, body: Batch):
-    """Only store the posts (no check): the extension's copy to Veritas Lens on the reader's computer,
+    """Only store the posts (no check): the extension's copy to Providence on the reader's computer,
     when its automatic check runs on another server."""
     _limit(request)
     return {"queued": _keep(request, [i.model_dump() for i in body.items])}

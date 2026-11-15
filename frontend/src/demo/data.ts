@@ -11,7 +11,7 @@ import type {
 import { shiftDays, todayIso } from "../lib/filters";
 
 /** Marker used by the build check to prove demo data is absent from normal builds. */
-export const DEMO_DATA_MARKER = "veritas-lens-demo-data-v1";
+export const DEMO_DATA_MARKER = "providence-demo-data-v1";
 
 const today = todayIso();
 /** A day relative to today: d(-3) = three days ago. */

@@ -1,4 +1,4 @@
-"""Launcher steps for the Veritas Lens app itself (B8): database schema, vector
+"""Launcher steps for the Providence app itself (B8): database schema, vector
 collections, the dashboard build, optional demo data, and the backend server.
 
 The backend's own tools do the work (backend/migrate.py, setup_vectors.py,

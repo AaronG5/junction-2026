@@ -25,7 +25,7 @@ def main(argv: list[str] | None = None) -> int:
             stream.reconfigure(errors="backslashreplace")
         except (AttributeError, ValueError):
             pass
-    parser = argparse.ArgumentParser(description="Load or remove the Veritas Lens demo data.")
+    parser = argparse.ArgumentParser(description="Load or remove the Providence demo data.")
     parser.add_argument("--remove", action="store_true", help="delete the demo data")
     parser.add_argument("--as-exported", action="store_true", help="don't move the dates to today")
     args = parser.parse_args(argv)

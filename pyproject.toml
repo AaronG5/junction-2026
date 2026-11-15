@@ -1,7 +1,7 @@
 [project]
-name = "veritas-lens"
+name = "providence"
 version = "0.1.0"
-description = "Veritas Lens: disinformation analysis you can run on your own computer"
+description = "Providence: disinformation analysis you can run on your own computer"
 requires-python = ">=3.10"
 dependencies = [
     "beautifulsoup4>=4.15.0",

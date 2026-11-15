@@ -12,7 +12,7 @@ const DEFAULTS = {
 };
 const $ = (id) => document.getElementById(id);
 const DEEP_NOTES = {
-  local: 'Veritas Lens on this computer, with Gemma. Nothing leaves your computer for it.',
+  local: 'Providence on this computer, with Gemma. Nothing leaves your computer for it.',
   cloud: 'Stock Gemma 26B on a Modal GPU. The post’s text is sent there. The first analysis after a pause can take a few minutes while the model starts.',
 };
 function showEngine(engine) {
@@ -91,7 +91,7 @@ async function save() {
     status(r && r.ok ? 'Saved. Server answered.' : 'Saved, but the server did not answer (' + ((r && r.error) || 'no reply') + ').', r && r.ok ? 'ok' : 'err');
   });
 }
-// The in-depth analysis address (Veritas Lens with the local Gemma).
+// The in-depth analysis address (Providence with the local Gemma).
 async function saveDeep() {
   const out = (t, cls) => { const s = $('deepStatus'); s.textContent = t; s.className = 'status ' + (cls || ''); };
   let url;

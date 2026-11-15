@@ -36,7 +36,7 @@ It works in Chrome, Edge, Brave and other Chromium browsers, version 116 or late
 | Sensitivity | normal | **Strict** shows the judge's flag only when `score ≥ 0.75`. Source matches and coordination are shown in both modes. |
 | Mock mode | off | On X too, answer from `src/mock.js` and send nothing over the network. About 5% of posts get flagged, chosen by a hash of the id. The fast path takes 300 ms, the judge 3 s. |
 | Backend URL | `https://augustasrink--ppg-ext-web.us-east.modal.run` | Where `/api/ext/*` lives. |
-| In-depth analysis | `http://127.0.0.1:8000` | Where the **Analyze** button's analysis runs (`/api/ext/deep`): Veritas Lens on your computer, with the local Gemma. |
+| In-depth analysis | `http://127.0.0.1:8000` | Where the **Analyze** button's analysis runs (`/api/ext/deep`): Providence on your computer, with the local Gemma. |
 | Save posts on this computer | on | Also send every post to `/api/ext/save` at the in-depth analysis address, to keep it in your local database. |
 
 The settings live in `chrome.storage.sync`. The counters (scanned, flagged) cover the current browser session.
@@ -95,7 +95,7 @@ stays as it is; the in-depth analysis runs only when asked, on your own computer
    propaganda data and known propaganda outlets are never searched. A web-search model (for example Gemini with
    Google Search) can be added as another search tool.
 3. **Where it came from.** A timeline, oldest first: the documented narrative and its state-media echo,
-   matching Telegram posts (both from the automatic check), earlier similar posts in the Veritas Lens database,
+   matching Telegram posts (both from the automatic check), earlier similar posts in the Providence database,
    the original post when this one quotes or shares it, and finally this post and how it reached your feed
    (the group, page or repost). A one-line summary names the earliest trace.
 
@@ -106,7 +106,7 @@ in memory, so the same post is answered at once.
 
 **Every post is kept.** Posts that reach the backend's `/api/ext/batch` are stored in MySQL and embedded into
 Qdrant (`backend/veritas/ext_store.py`). With **Save posts on this computer** on (the default), the extension
-also sends each batch to Veritas Lens on your computer (`/api/ext/save`), so your local database grows while you
+also sends each batch to Providence on your computer (`/api/ext/save`), so your local database grows while you
 browse even when the badges come from another server.
 
 Code: `src/deep.js` (job tracking, highlights and their hover explanations, button, popover sections; shared by X and Facebook),
@@ -179,7 +179,7 @@ The e2e tests use Playwright's Chromium from `~/.cache/ms-playwright`. To use an
 
 ## Privacy
 
-What is sent: the text of posts you scroll near on X and Facebook, with the post's id, link, author handle, display name, time and language (on Facebook also the group's name). It goes to the backend URL in the popup. When you click **Analyze**, that post (with the quoted or shared original, and what the automatic check found) goes to the in-depth analysis URL, by default Veritas Lens on your own computer.
+What is sent: the text of posts you scroll near on X and Facebook, with the post's id, link, author handle, display name, time and language (on Facebook also the group's name). It goes to the backend URL in the popup. When you click **Analyze**, that post (with the quoted or shared original, and what the automatic check found) goes to the in-depth analysis URL, by default Providence on your own computer.
 
 What is not sent: no cookies, no X or Facebook account data, no browsing history, and nothing from other sites. In mock mode, nothing leaves the browser. Results are cached for the browser session only.
 

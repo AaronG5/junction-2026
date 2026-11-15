@@ -27,7 +27,7 @@ export interface SettingsSync {
   message?: string;
 }
 
-const KEY = "veritas-lens.settings";
+const KEY = "providence.settings";
 const DEFAULTS: Settings = { theme: "system", dataMode: "hybrid", shareAnalyses: false };
 export const OFFLINE_NOTE = "The backend isn't reachable, so this choice is saved in this browser only for now.";
 

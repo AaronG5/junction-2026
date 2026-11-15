@@ -1,4 +1,4 @@
-# Implementation plan: Veritas Lens frontend (and the backend after it)
+# Implementation plan: Providence frontend (and the backend after it)
 
 Goal: turn the prototype (https://claude.ai/artifact/DMV2DxZRyEHyjfS2ZqcxHb) into a real React + Vite + TypeScript app in `frontend/`. Each phase has tests that must pass before the next phase starts.
 

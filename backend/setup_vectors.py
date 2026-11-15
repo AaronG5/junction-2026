@@ -23,7 +23,7 @@ def main(argv: list[str] | None = None) -> int:
             stream.reconfigure(errors="backslashreplace")
         except (AttributeError, ValueError):
             pass
-    parser = argparse.ArgumentParser(description="Create the Veritas Lens vector search collections.")
+    parser = argparse.ArgumentParser(description="Create the Providence vector search collections.")
     parser.add_argument("--remove-orphans", action="store_true", help="delete vectors of posts that no longer exist")
     args = parser.parse_args(argv)
     try:

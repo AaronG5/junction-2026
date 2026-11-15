@@ -1,4 +1,4 @@
-"""Veritas Lens backend: serves /api for the dashboard and the built frontend.
+"""Providence backend: serves /api for the dashboard and the built frontend.
 
 Run it with:  uv run python backend/run.py
 """

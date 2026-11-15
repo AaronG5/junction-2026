@@ -1,5 +1,5 @@
 {
-  "_comment": "Which links Veritas Lens accepts (Telegram and Facebook). Read by frontend/src/api/client.test.ts and backend/tests/test_b1_shared_cases.py. Escapes like \\ufeff are JSON escapes for invisible characters.",
+  "_comment": "Which links Providence accepts (Telegram and Facebook). Read by frontend/src/api/client.test.ts and backend/tests/test_b1_shared_cases.py. Escapes like \\ufeff are JSON escapes for invisible characters.",
   "accept": [
     "https://t.me/kanalas_b/4521",
     "t.me/kanalas_b",

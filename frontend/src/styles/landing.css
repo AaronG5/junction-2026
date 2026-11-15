@@ -29,17 +29,14 @@
   Archivo width axis (VERITAS at 62%, LENS opened up to fill the same measure)
   and set on near-solid leading.
 */
-.wordmark { display: block; text-decoration: none; color: var(--ink); line-height: .8; }
+/* One word, set at the narrowest the display axis goes: a dense block rather
+   than a line of running text. */
+.wordmark { display: block; text-decoration: none; color: var(--ink); line-height: .82; }
 .wordmark b {
   display: block;
-  font-family: var(--font-display); font-weight: 900;
-  font-size: clamp(25px, 2.7vw, 31px); text-transform: uppercase;
+  font-family: var(--font-display); font-weight: 900; font-stretch: 62%;
+  font-size: clamp(26px, 2.9vw, 34px); letter-spacing: 0.005em; text-transform: uppercase;
 }
-/* Width-matched on the variable axis so the two lines are flush on BOTH edges;
-   the negative margin cancels the trailing letter-space CSS adds after the
-   last character, which would otherwise push the right edge out. */
-.wordmark b:first-of-type { font-stretch: 62%; letter-spacing: -0.005em; }
-.wordmark b:last-of-type { font-stretch: 104%; letter-spacing: 0.028em; margin-right: -0.028em; }
 .wordmark:hover { color: var(--red); }
 
 /* ------------------------------------------------------------------- hero */

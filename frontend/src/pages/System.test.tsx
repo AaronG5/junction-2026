@@ -119,7 +119,7 @@ describe("System with the backend: data source and sharing are stored there", ()
     renderApp("/dashboard/system");
     expect(radio(/central server/i)).toBeChecked();
     expect(share()).toBeChecked();
-    expect(screen.getByTestId("settings-sync")).toHaveTextContent("Saved for everyone using Veritas Lens on this computer.");
+    expect(screen.getByTestId("settings-sync")).toHaveTextContent("Saved for everyone using Providence on this computer.");
   });
 
   it("a change is saved to the backend", async () => {

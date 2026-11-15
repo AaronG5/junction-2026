@@ -1,5 +1,5 @@
 /**
- * The contract between the Veritas Lens frontend and backend.
+ * The contract between the Providence frontend and backend.
  *
  * Every /api endpoint returns exactly these shapes as JSON. The demo data
  * (src/demo) is written in the same types, so it doubles as the backend's

@@ -75,13 +75,13 @@ describe("keyboard", () => {
 
 describe("browser tab titles", () => {
   it.each([
-    ["/", "Veritas Lens"],
-    ["/dashboard/narratives", "Narratives · Veritas Lens"],
-    ["/dashboard/analyze", "Analyze a post · Veritas Lens"],
-    ["/dashboard/claims", "Claims · Veritas Lens"],
-    ["/dashboard/sources", "Sources · Veritas Lens"],
-    ["/dashboard/system", "System · Veritas Lens"],
-    ["/nope", "Page not found · Veritas Lens"],
+    ["/", "Providence"],
+    ["/dashboard/narratives", "Narratives · Providence"],
+    ["/dashboard/analyze", "Analyze a post · Providence"],
+    ["/dashboard/claims", "Claims · Providence"],
+    ["/dashboard/sources", "Sources · Providence"],
+    ["/dashboard/system", "System · Providence"],
+    ["/nope", "Page not found · Providence"],
   ])("%s → %s", async (path, title) => {
     renderApp(path);
     await waitFor(() => expect(document.title).toBe(title));
@@ -89,10 +89,10 @@ describe("browser tab titles", () => {
 
   it("a channel report and a walk-through step name what's on screen", async () => {
     const first = renderApp("/dashboard/sources/kanalas_b");
-    await waitFor(() => expect(document.title).toBe("@kanalas_b · Channel report · Veritas Lens"));
+    await waitFor(() => expect(document.title).toBe("@kanalas_b · Channel report · Providence"));
     first.unmount();
     renderApp("/story/electricity?step=3");
-    await waitFor(() => expect(document.title).toBe("Where it started · Energy prices · Veritas Lens"));
+    await waitFor(() => expect(document.title).toBe("Where it started · Energy prices · Providence"));
   });
 });
 
@@ -107,7 +107,7 @@ describe("'can't reach the server' message", () => {
     vi.stubEnv("DEV", false);
     render(<ErrorState error={new BackendUnavailable()} />);
     const alert = screen.getByRole("alert");
-    expect(alert).toHaveTextContent("Veritas Lens can't reach its server right now.");
+    expect(alert).toHaveTextContent("Providence can't reach its server right now.");
     expect(alert).toHaveTextContent("launch.bat");
     expect(alert).not.toHaveTextContent("npm");
   });

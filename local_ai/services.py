@@ -1,4 +1,5 @@
-"""Background services: Docker (MySQL + Qdrant) and the llama-swap process."""
+"""Background services: Docker (MySQL + Qdrant + the nginx web proxy) and the
+llama-swap process."""
 import json
 import os
 import platform
@@ -71,7 +72,7 @@ def port_free(port):
             return False
 
 
-PORT_KEYS = ("MYSQL_PORT", "QDRANT_PORT", "QDRANT_GRPC_PORT", "LLAMA_SWAP_PORT")
+PORT_KEYS = ("MYSQL_PORT", "QDRANT_PORT", "QDRANT_GRPC_PORT", "LLAMA_SWAP_PORT", "HTTP_PORT")
 
 
 def next_free_port(start, taken=()):
@@ -219,8 +220,10 @@ def start_docker_services():
     # still starting up, so a port conflict gets one more try with new ports.
     for attempt in range(2):
         env = _resolve_port_conflicts(read_env())
+        # Named services only: the nginx proxy in the same file is started by
+        # start_nginx(), after the backend it routes to is up.
         result = subprocess.run([*compose, "--env-file", str(paths.ENV_FILE),
-                                 "-f", str(paths.COMPOSE_FILE), "up", "-d"],
+                                 "-f", str(paths.COMPOSE_FILE), "up", "-d", "mysql", "qdrant"],
                                 capture_output=True, text=True)
         output = (result.stdout or "") + (result.stderr or "")
         if result.returncode == 0:
@@ -246,9 +249,102 @@ def start_docker_services():
 
 
 def stop_docker_services():
+    """Stop everything in the compose file: MySQL, Qdrant and the web proxy."""
     compose = _compose_cmd() if shutil.which("docker") else None
     if compose and _docker_ready():
         subprocess.run([*compose, "--env-file", str(paths.ENV_FILE), "-f", str(paths.COMPOSE_FILE), "stop"])
+
+
+# ---- nginx: the dashboard on the default web port ----------------------------------
+
+NGINX_CONTAINER = "junction-nginx"
+
+
+def http_port(env=None):
+    """The port the web proxy serves on (.env HTTP_PORT; 80 = the default web
+    port, so the dashboard needs no port number in the browser)."""
+    return (env or read_env()).get("HTTP_PORT") or "80"
+
+
+def backend_port(env=None):
+    """The port the dashboard server listens on, which the proxy routes to."""
+    return (env or read_env()).get("BACKEND_PORT") or "8000"
+
+
+def proxy_url(env=None):
+    """The proxy's address as a user would type it (no :80)."""
+    env = env or read_env()
+    port = http_port(env)
+    return f"http://{reachable_host(env)}" + ("" if port == "80" else f":{port}")
+
+
+def _nginx_env(env):
+    """What the nginx container listens on and proxies to. How a container can
+    reach the backend - a process on this computer, not in Docker - differs per
+    system, so docker-compose.yml takes both as variables:
+
+    - Linux: the container shares this computer's network (network_mode: host),
+      so nginx binds BIND_HOST:HTTP_PORT itself and reaches the backend on
+      127.0.0.1 - which also works when the backend listens on loopback only
+      (--local), unlike a published port on the Docker bridge.
+    - Docker Desktop (macOS/Windows) has no host networking: Docker publishes
+      the port, and host.docker.internal is the way back to the backend.
+    """
+    if platform.system() == "Linux":
+        host = bind_host(env)
+        if ":" in host and not host.startswith("["):
+            host = f"[{host}]"          # nginx wants IPv6 in brackets: listen [::]:80
+        return {"NGINX_NETWORK_MODE": "host",
+                "NGINX_LISTEN": f"{host}:{http_port(env)}",
+                "NGINX_UPSTREAM": f"127.0.0.1:{backend_port(env)}"}
+    return {"NGINX_NETWORK_MODE": "bridge",
+            "NGINX_LISTEN": "80",
+            "NGINX_UPSTREAM": f"host.docker.internal:{backend_port(env)}"}
+
+
+def nginx_running(env=None):
+    """True when the proxy answers on its port. Any answer counts: a 502 means
+    nginx is up and the dashboard behind it isn't."""
+    env = env or read_env()
+    return http_get(f"http://{reachable_host(env)}:{http_port(env)}/api/health")[0] is not None
+
+
+def start_nginx():
+    """Put the dashboard on the default web port, so it opens without :8000.
+    Never raises: the dashboard keeps working on its own port, so everything
+    here is a warning."""
+    env = read_env()
+    port, dashboard = http_port(env), backend_port(env)
+    skipped = f"The web proxy was skipped; the dashboard is still at port {dashboard}."
+    if not shutil.which("docker") or not _docker_ready():
+        ui.warn(f"Docker isn't running. {skipped}")
+        return False
+    compose = _compose_cmd()
+    if not compose:
+        ui.warn(f"Docker Compose is missing; please update Docker. {skipped}")
+        return False
+    if not port_free(port) and not _container_running(NGINX_CONTAINER):
+        ui.warn(f"Port {port} is already used by another program (another web server?). {skipped}")
+        ui.info("Stop that program, or set HTTP_PORT in .env to a free port.")
+        return False
+
+    # The listen address and the upstream go in as environment variables rather
+    # than into .env: they are derived from BIND_HOST, HTTP_PORT and
+    # BACKEND_PORT, and recomputed on every run (the backend may have moved).
+    result = subprocess.run([*compose, "--env-file", str(paths.ENV_FILE), "-f", str(paths.COMPOSE_FILE),
+                             "up", "-d", "nginx"], capture_output=True, text=True,
+                            env={**os.environ, **_nginx_env(env)})
+    if result.returncode != 0:
+        print((result.stdout or "") + (result.stderr or ""))
+        ui.warn(f"Could not start the web proxy (see the Docker output above). {skipped}")
+        return False
+    for _ in range(20):
+        if nginx_running(env):
+            ui.ok(f"Dashboard also at {proxy_url(env)} - nginx sends it to port {dashboard}")
+            return True
+        time.sleep(0.5)
+    ui.warn(f"The web proxy doesn't answer on port {port} yet; check: docker logs {NGINX_CONTAINER}")
+    return False
 
 
 # ---- llama-swap -----------------------------------------------------------------

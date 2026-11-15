@@ -1,13 +1,13 @@
 # The analysis cycle
 
-What happens, step by step, when Veritas Lens analyzes a post. The goal is that anyone on the team can follow a post from the moment someone pastes its link to the report on screen.
+What happens, step by step, when Providence analyzes a post. The goal is that anyone on the team can follow a post from the moment someone pastes its link to the report on screen.
 
 **Speed is not a goal yet.** Every step runs one after the other, does one thing, and saves its result before the next step starts. That makes each step easy to understand, test and debug. We optimize later, once it all works.
 
 There are two cycles:
 
 1. **The analysis cycle.** Someone asks about one post. It runs on demand.
-2. **The collection cycle.** Veritas Lens keeps collecting from the sources it follows, and regroups everything into narratives. It runs in the background on a schedule (built later).
+2. **The collection cycle.** Providence keeps collecting from the sources it follows, and regroups everything into narratives. It runs in the background on a schedule (built later).
 
 ## 1. The analysis cycle
 
@@ -61,7 +61,7 @@ flowchart TD
 ### Step 2 · Fingerprint it
 - **Does:** turns the post's text into 768 numbers with EmbeddingGemma, running locally. Posts that mean the same thing get similar numbers, even in different languages: a Lithuanian sentence and its English translation scored 0.81 in our test.
 - **Saved:** a point in the Qdrant `posts` collection, with the same ID as the post in MySQL (`posts.uuid`).
-- **If it fails:** "The local AI isn't running. Start Veritas Lens with the launcher."
+- **If it fails:** "The local AI isn't running. Start Providence with the launcher."
 
 ### Step 3 · Find where it came from
 - **Does:** finds the post's relatives and puts them in time order. Each kind of link is recorded with how it was found, and the earliest post is the origin:
@@ -106,7 +106,7 @@ flowchart TD
 
 Runs in the background, on a schedule:
 
-1. **Collect** new posts from the sources Veritas Lens follows (Oxylabs, context.dev), and save them (step 1 above).
+1. **Collect** new posts from the sources Providence follows (Oxylabs, context.dev), and save them (step 1 above).
 2. **Fingerprint** every new post (step 2 above).
 3. **Group into narratives** (clustering, after the backend's B8 phase):
    - UMAP + HDBSCAN group posts that say the same thing.

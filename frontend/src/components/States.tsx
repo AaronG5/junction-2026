@@ -27,7 +27,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
     // Developers (npm run dev) get the demo-mode hint; everyone else gets launcher guidance.
     return import.meta.env.DEV ? (
       <div className="state state-error" role="alert">
-        <strong>The Veritas Lens backend isn't connected yet.</strong>
+        <strong>The Providence backend isn't connected yet.</strong>
         <span className="muted">
           This screen needs the backend to show real data. To explore with example data, start the dashboard in demo mode:
         </span>
@@ -36,9 +36,9 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
       </div>
     ) : (
       <div className="state state-error" role="alert">
-        <strong>Veritas Lens can't reach its server right now.</strong>
+        <strong>Providence can't reach its server right now.</strong>
         <span className="muted">
-          If you run Veritas Lens on your own computer, start it with the launcher (launch.bat on Windows, ./launch.sh on
+          If you run Providence on your own computer, start it with the launcher (launch.bat on Windows, ./launch.sh on
           Linux and macOS), then try again.
         </span>
         {retry}

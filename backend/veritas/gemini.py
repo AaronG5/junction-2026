@@ -8,7 +8,7 @@ claim extraction and fact checks with Google Search (veritas/factcheck.py).
   and server errors (with waits), because speed is not the priority here.
 - search=True lets Gemini use Google Search; the sources it used come back with the answer
   (title, link, and the sentences of the answer each one backs).
-- Never used when Veritas Lens is set to work only on this computer (data mode "local"):
+- Never used when Providence is set to work only on this computer (data mode "local"):
   see available().
 """
 from __future__ import annotations

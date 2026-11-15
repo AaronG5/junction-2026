@@ -1,4 +1,4 @@
-"""Which links Veritas Lens accepts: the same rule as isSupportedLink() in
+"""Which links Providence accepts: the same rule as isSupportedLink() in
 frontend/src/api/client.ts, tested against shared/cases/links.json.
 
 Spelled out character by character on both sides (no str.strip(), \\s or \\S),
@@ -79,7 +79,7 @@ def _query_param(query: str, name: str) -> str | None:
 
 
 def parse_link(value: str) -> ParsedLink | None:
-    """What a supported link points at; None for links Veritas Lens doesn't accept.
+    """What a supported link points at; None for links Providence doesn't accept.
 
     Telegram  t.me/<name>/<n>, t.me/s/<name>/<n>, t.me/<name>/<topic>/<n>  -> post "<name>/<n>"
               t.me/c/<id>/<n> (private channel)                            -> post "-100<id>/<n>"

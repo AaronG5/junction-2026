@@ -223,7 +223,7 @@ export const DEMO_CLUSTERING = "Demo mode: the example clusters stay as they are
 let demoClustering: ClusteringState = { status: "idle", message: null, mode: null, days: null, startedAt: null, finishedAt: null };
 
 /** The backend's rule and message (backend/veritas/app_settings.py). */
-export const SHARING_WHILE_LOCAL = "Sharing can't be turned on while Veritas Lens works only on this computer. Choose Hybrid or Central server first.";
+export const SHARING_WHILE_LOCAL = "Sharing can't be turned on while Providence works only on this computer. Choose Hybrid or Central server first.";
 let demoSettings: AppSettings = { dataMode: "hybrid", shareAnalyses: false };
 /** Test helper. */
 export function resetDemoSettings() {

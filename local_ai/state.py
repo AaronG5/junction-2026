@@ -36,6 +36,9 @@ ENV_DEFAULTS = {
     "QDRANT_PORT": "6333",
     "QDRANT_GRPC_PORT": "6334",
     "LLAMA_SWAP_PORT": "8080",
+    # The nginx proxy in front of the dashboard: 80 is the default web port, so
+    # the dashboard opens without a port number (launcher flag --no-proxy skips it).
+    "HTTP_PORT": "80",
     "LLAMA_CTX_SIZE": "16384",
 }
 

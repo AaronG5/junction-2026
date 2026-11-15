@@ -83,7 +83,7 @@ def test_posting_to_an_app_address_is_a_json_404(client) -> None:
 
 def test_api_description_is_available_but_swagger_ui_is_off(client) -> None:
     assert client.get("/api/openapi.json").status_code == 200
-    r = client.get("/api/docs")  # Swagger UI would load scripts from a CDN; Veritas Lens works offline
+    r = client.get("/api/docs")  # Swagger UI would load scripts from a CDN; Providence works offline
     assert r.status_code == 404 and r.json() == {"detail": NOT_FOUND}
 
 

@@ -4,9 +4,9 @@
 
 First run: detects hardware, picks and downloads a Gemma model, installs
 llama.cpp + llama-swap, starts MySQL/Qdrant and the AI server, then prepares
-the database and vector search, builds the dashboard and starts it on
-port 8000. Later runs skip everything already done (and work offline once
-installed).
+the database and vector search, builds the dashboard and starts it on port 8000,
+with an nginx proxy in front so the default web port (80) leads to it. Later
+runs skip everything already done (and work offline once installed).
 
 Everything listens on BIND_HOST (.env): 127.0.0.1 for this computer only, or
 0.0.0.0 to serve the network, which is what a server install wants
@@ -263,6 +263,23 @@ def step_backend(ctx):
     ctx.results["dashboard"] = backend.dashboard_url()
 
 
+def step_proxy(ctx):
+    """nginx in front of the dashboard, so the default web port (80) leads to
+    it: http://<this computer>/ instead of http://<this computer>:8000.
+    Last, because it routes to the backend the step before started."""
+    if ctx.args.no_proxy:
+        ui.info("Skipped (--no-proxy); the dashboard is served on its own port.")
+        return
+    if ctx.args.skip_docker:
+        ui.info("Skipped (--skip-docker); the proxy is a Docker service.")
+        return
+    if ctx.args.no_backend:
+        ui.info("Skipped (--no-backend); there is nothing to route to.")
+        return
+    if services.start_nginx():
+        ctx.results["proxy"] = services.proxy_url()
+
+
 STEPS = [
     ("Checking this computer", step_hardware),
     ("Choosing the AI model", step_select_model),
@@ -278,6 +295,7 @@ STEPS = [
     ("Loading the demo data", step_demo),
     ("Loading the collected data", step_import),
     ("Starting the dashboard", step_backend),
+    ("Serving the dashboard on the default web port (nginx)", step_proxy),
 ]
 
 
@@ -306,6 +324,8 @@ def cmd_status(args):
         up = port and not services.port_free(port)
         print(f"{name + ':':<11} {f'listening on {db_host}:{port}' if up else 'stopped'}")
     print(f"Dashboard:  {'running at ' + backend.dashboard_url(env) if backend.backend_running(env) else 'stopped'}")
+    proxy = f"{services.proxy_url(env)} -> port {services.backend_port(env)}"
+    print(f"Web proxy:  {'serving ' + proxy if services.nginx_running(env) else 'stopped'}")
 
 
 def cmd_stop(args):
@@ -315,7 +335,7 @@ def cmd_stop(args):
     print("AI server stopped.")
     if not args.skip_docker:
         services.stop_docker_services()
-        print("Databases stopped.")
+        print("Databases and the web proxy stopped.")
 
 
 def main():
@@ -340,6 +360,9 @@ def main():
     p.add_argument("--skip-docker", action="store_true", help="do not start MySQL/Qdrant")
     p.add_argument("--no-ai-server", action="store_true", help="set up everything but do not start llama-swap")
     p.add_argument("--no-backend", action="store_true", help="do not start the dashboard server")
+    p.add_argument("--no-proxy", action="store_true",
+                   help="do not start the nginx proxy that serves the dashboard on the default "
+                        "web port (80); it stays on its own port (HTTP_PORT in .env picks another)")
     p.add_argument("--demo-data", action="store_true",
                    help="load the example data (only into an empty database; remove it with backend/demo_data.py --remove)")
     p.add_argument("--import-data", action="store_true",
@@ -371,10 +394,12 @@ def main():
         return 130
 
     print()
+    # With the proxy up, the address without a port number is the one to give out.
+    opened = ctx.results.get("proxy") or ctx.results.get("dashboard")
     if ctx.results.get("ai") and ctx.results.get("dashboard"):
-        print(f"All set. Open the dashboard: {ctx.results['dashboard']}")
+        print(f"All set. Open the dashboard: {opened}")
     elif ctx.results.get("dashboard"):
-        print(f"The dashboard is at {ctx.results['dashboard']}, but the AI isn't ready yet (see above).")
+        print(f"The dashboard is at {opened}, but the AI isn't ready yet (see above).")
     else:
         print("Setup finished with warnings (see above).")
     print("Run the launcher again any time; use --stop to shut everything down.")

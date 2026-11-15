@@ -1,7 +1,7 @@
 """Keeping the posts the browser extension sends, so the collection grows while people browse.
 
 Every post that reaches /api/ext/batch (the automatic check) or /api/ext/save (the extension's
-copy to Veritas Lens on the reader's own computer) is stored in MySQL and embedded into Qdrant,
+copy to Providence on the reader's own computer) is stored in MySQL and embedded into Qdrant,
 the same way the importer stores the team's collected data (veritas/importer.py):
   - X          platform "x", external_id = the status id, account = the handle
   - Facebook   platform "facebook", external_id as links.parse_link gives it ("<group>_<post>",

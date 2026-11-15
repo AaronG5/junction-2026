@@ -11,9 +11,8 @@ export function LandingShell({ children }: { children: ReactNode }) {
       <a href="#main" className="skip-link">Skip to content</a>
       <header className="masthead">
         <div className="shell masthead-in">
-          <Link to="/" className="wordmark" aria-label="Veritas Lens, home">
-            <b>Veritas</b>
-            <b>Lens</b>
+          <Link to="/" className="wordmark" aria-label="Providence, home">
+            <b>Providence</b>
           </Link>
           {/* Short in the masthead, but still "Open the dashboard" to a screen reader. */}
           <Link to="/dashboard/narratives" className="btn btn-plain">
@@ -24,7 +23,7 @@ export function LandingShell({ children }: { children: ReactNode }) {
       <main id="main" tabIndex={-1} style={{ outline: "none" }}>{children}</main>
       <footer className="landing-foot">
         <div className="shell landing-foot-in">
-          <span>Veritas Lens · Synthetic Logic LAB · Junction 2026</span>
+          <span>Providence · Synthetic Logic LAB · Junction 2026</span>
           <span className="foot-links">
             <a href="https://github.com/AaronG5/junction-2026">Source code</a>
             <a href="https://github.com/AaronG5/junction-2026/blob/main/LICENSE">Licence</a>

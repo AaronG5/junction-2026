@@ -1,4 +1,4 @@
-"""The Veritas Lens web app: /api for data, everything else serves the built frontend.
+"""The Providence web app: /api for data, everything else serves the built frontend.
 
 - Errors are always JSON {"detail": "..."} in plain words, so the frontend can show
   them as they are. Unexpected errors never leak tracebacks to the browser.
@@ -35,7 +35,7 @@ from .vectors import Qdrant
 
 log = logging.getLogger("veritas")
 
-NOT_FOUND = "There's nothing at this address in the Veritas Lens API."
+NOT_FOUND = "There's nothing at this address in the Providence API."
 FILE_NOT_FOUND = "Not found."
 METHOD_NOT_ALLOWED = "This address doesn't accept that kind of request."
 SERVER_ERROR = "Something went wrong on the server. Please try again."
@@ -59,9 +59,9 @@ STATIC_EXTENSIONS = {
 HASHED_ASSET_CACHE = "public, max-age=31536000, immutable"
 
 FRONTEND_MISSING = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Veritas Lens</title></head>
+<html lang="en"><head><meta charset="utf-8"><title>Providence</title></head>
 <body style="font-family: system-ui, sans-serif; max-width: 640px; margin: 64px auto; padding: 0 16px; line-height: 1.5">
-<h1>Veritas Lens is running, but the dashboard isn't built yet</h1>
+<h1>Providence is running, but the dashboard isn't built yet</h1>
 <p>Build it once, then reload this page:</p>
 <pre style="background:#eee; padding:12px; border-radius:8px">cd frontend
 npm install
@@ -73,9 +73,9 @@ npm run build</pre>
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Build the app. Nothing happens at import time; run.py and tests call this."""
     settings = settings or Settings.load()
-    # Swagger UI is off: it loads its scripts from a CDN, and Veritas Lens must work offline.
+    # Swagger UI is off: it loads its scripts from a CDN, and Providence must work offline.
     # The machine-readable API description stays at /api/openapi.json.
-    app = FastAPI(title="Veritas Lens", version=__version__, docs_url=None, redoc_url=None, openapi_url="/api/openapi.json")
+    app = FastAPI(title="Providence", version=__version__, docs_url=None, redoc_url=None, openapi_url="/api/openapi.json")
     app.state.settings = settings
     # "Analyze a link" jobs run in a background thread (veritas/analysis.py). Tests swap the services.
     app.state.analysis = JobRunner(Services(

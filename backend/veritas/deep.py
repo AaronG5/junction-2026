@@ -226,7 +226,7 @@ def build_trace(item: dict, context: dict, similar: list[dict]) -> dict:
     for s in similar:
         nodes.append({"kind": "similar", "title": s["relation"], "who": s["who"], "where": s["where"], "time": s["time"],
                       "url": _https(s.get("url")), "sim": s["sim"], "text": _snip(s.get("text")),
-                      "note": "Collected earlier by Veritas Lens."})
+                      "note": "Collected earlier by Providence."})
     shared = item.get("shared") or item.get("quoted")
     if isinstance(shared, dict) and (shared.get("text") or shared.get("url")):
         nodes.append({"kind": "original", "title": "Original post (shared or quoted here)",
@@ -304,7 +304,7 @@ def is_same_post(row: dict, url: str | None) -> bool:
 
 
 def similar_in_database(settings, ai: LocalAI, text: str, url: str | None) -> list[dict]:
-    """Earlier posts in Veritas Lens' own database with the same or similar text. Empty when the
+    """Earlier posts in Providence' own database with the same or similar text. Empty when the
     database or vector store isn't running (the trace then shows what else is known)."""
     from .analysis import _POST_COLUMNS, _author, _where  # same helpers as "Analyze a link"
     from .db import connection

@@ -29,7 +29,7 @@ export function DashboardLayout() {
       <aside className="sidebar" data-open={menuOpen}>
         <div className="sidebar-top">
           <Link to="/" className="brand">
-            <b>Veritas Lens</b>
+            <b>Providence</b>
             <span>Disinformation analysis</span>
           </Link>
           <button type="button" className="btn btn-plain menu-btn" aria-expanded={menuOpen} aria-controls="side-menu"

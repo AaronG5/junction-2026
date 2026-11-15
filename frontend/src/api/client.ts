@@ -11,7 +11,7 @@ import type {
 
 /** The backend can't be reached, isn't running yet, or answered with something that isn't our API. */
 export class BackendUnavailable extends Error {
-  constructor(reason = "The Veritas Lens backend is not reachable.") {
+  constructor(reason = "The Providence backend is not reachable.") {
     super(reason);
     this.name = "BackendUnavailable";
   }
@@ -211,7 +211,7 @@ function loadDemo(): Promise<Api> {
     return Promise.reject(new Error("Demo data is only available in demo mode."));
   }
   demoApi ??= import("../demo").then((m) => {
-    console.info(`Veritas Lens is running in demo mode with example data (${m.DEMO_DATA_MARKER}).`);
+    console.info(`Providence is running in demo mode with example data (${m.DEMO_DATA_MARKER}).`);
     return m.demoApi;
   });
   return demoApi;

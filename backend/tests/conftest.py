@@ -48,7 +48,7 @@ def fake_dist(tmp_path: Path) -> Path:
     """A minimal built frontend: index.html, one hashed asset, a font and a root file."""
     dist = tmp_path / "dist"
     (dist / "assets").mkdir(parents=True)
-    (dist / "index.html").write_text("<!doctype html><title>Veritas Lens</title><div id=root></div>", encoding="utf-8")
+    (dist / "index.html").write_text("<!doctype html><title>Providence</title><div id=root></div>", encoding="utf-8")
     (dist / "assets" / "index-abc123.js").write_text("console.log('app')", encoding="utf-8")
     (dist / "assets" / "plex-400.woff2").write_bytes(b"wOF2fake")
     (dist / "favicon.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'/>", encoding="utf-8")

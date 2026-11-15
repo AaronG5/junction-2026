@@ -4,7 +4,7 @@
 //   2. Fact check            each checkable claim with the model's verdict (no sources yet)
 //   3. Where it came from    a timeline from the earliest known trace to this post in your feed
 // Shared by X (src/content.js) and Facebook (src/fb/content.js). Network calls go through the
-// worker (messages deep-start / deep-get); the job runs on the Veritas Lens backend on this
+// worker (messages deep-start / deep-get); the job runs on the Providence backend on this
 // computer (backend/veritas/deep.py), or, when the settings popup says "Cloud (Modal)", the same
 // code with stock Gemma 26B on Modal (propaganda/gemma/modal_deep.py); in src/mock.js in mock mode.
 // The popover's heading says which one ran.

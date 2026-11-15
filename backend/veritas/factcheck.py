@@ -13,7 +13,7 @@ the real page), never links the model wrote. Guards:
     otherwise it becomes "unverified";
   - a claim is checked once; it is checked again only when asked (recheck).
 
-Gemini is never used when Veritas Lens is set to work only on this computer (data mode
+Gemini is never used when Providence is set to work only on this computer (data mode
 "local"), or without GEMINI_API_KEY: then claims come from the local AI and stay unchecked.
 """
 from __future__ import annotations

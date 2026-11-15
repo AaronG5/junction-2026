@@ -1,4 +1,4 @@
-"""Start the Veritas Lens backend:  uv run python backend/run.py
+"""Start the Providence backend:  uv run python backend/run.py
 
 Listens on BIND_HOST:BACKEND_PORT from .env (default 127.0.0.1:8000 = this
 computer only). BIND_HOST=0.0.0.0 serves the network too, which is what the

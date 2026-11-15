@@ -84,7 +84,7 @@ describe("landing page", () => {
     const { currentPath } = renderApp("/");
     await user.type(linkInput(), "https://t.me/someone/42");
     await user.click(screen.getByRole("button", { name: "Check it" }));
-    await waitFor(() => expect(within(screen.getByRole("main")).getAllByRole("alert").some((a) => /couldn't reach veritas lens/i.test(a.textContent!))).toBe(true));
+    await waitFor(() => expect(within(screen.getByRole("main")).getAllByRole("alert").some((a) => /couldn't reach providence/i.test(a.textContent!))).toBe(true));
     expect(currentPath()).toBe("/");
     expect(screen.getByRole("button", { name: "Check it" })).toBeEnabled();
   });

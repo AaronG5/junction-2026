@@ -60,7 +60,7 @@ export function System() {
           <small className="muted" data-testid="settings-sync">
             {isDemoMode() ? "Demo mode: saved in this browser only."
               : sync.state === "saving" ? "Saving…"
-              : sync.state === "saved" ? "Saved for everyone using Veritas Lens on this computer."
+              : sync.state === "saved" ? "Saved for everyone using Providence on this computer."
               : sync.message ?? "Saved in this browser."}
           </small>
         )}
@@ -95,7 +95,7 @@ export function System() {
             )}
             {showHow && (
               <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5 }}>
-                <span>Close Veritas Lens, then run the launcher with this option. If the download is interrupted, it continues where it stopped.</span>
+                <span>Close Providence, then run the launcher with this option. If the download is interrupted, it continues where it stopped.</span>
                 <code className="mono codeline">launch.bat --reselect</code>
                 <span className="muted" style={{ fontSize: 12.5 }}>On Linux or macOS: <code className="mono">./launch.sh --reselect</code></span>
               </div>
@@ -166,7 +166,7 @@ function NarrativeCheckCard({ s }: { s: NarrativeCheckStatus }) {
           <div className="split" style={{ gap: 16 }}>
             <Fact label="Judge" value={s.judge ? "On" : "Off"}
               note={s.judge ? "The fine-tuned Gemma 4 E2B judge decides whether a post asserts a claim." : "No judge verdicts: only copies of Telegram posts are flagged."} />
-            <Fact label="Fingerprints" value={s.embeddingModel ?? "EmbeddingGemma"} note={s.dim ? `${s.dim} numbers per text.` : "Same model as the rest of Veritas Lens."} mono />
+            <Fact label="Fingerprints" value={s.embeddingModel ?? "EmbeddingGemma"} note={s.dim ? `${s.dim} numbers per text.` : "Same model as the rest of Providence."} mono />
             <Fact label="Thresholds" mono
               value={["copy_strong", "candidate_gate", "echo_min"].filter((k) => k in t).map((k) => `${k} ${t[k]}`).join(" · ") || "defaults"}
               note="Copy match, judge gate and state-media echo, as similarity (0 to 1)." />
