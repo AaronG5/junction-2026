@@ -9,7 +9,6 @@ beforeEach(() => resetSettingsForTests());
 describe("routing", () => {
   it.each([
     ["/", /every lie has a first author/i],
-    ["/dashboard/narratives", /^narratives$/i],
     ["/dashboard/analyze", /analyze a post/i],
     ["/dashboard/claims", /^claims$/i],
     ["/dashboard/sources", /^sources$/i],
@@ -20,39 +19,38 @@ describe("routing", () => {
     expect(screen.getByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
   });
 
-  it("/dashboard redirects to the narratives home", () => {
-    const { currentPath } = renderApp("/dashboard");
-    expect(currentPath()).toBe("/dashboard/narratives");
-    expect(screen.getByRole("heading", { level: 1, name: /^narratives$/i })).toBeInTheDocument();
+  it.each(["/dashboard", "/dashboard/narratives"])("%s goes to Analyze (Narratives is switched off)", (path) => {
+    const { currentPath } = renderApp(path);
+    expect(currentPath()).toBe("/dashboard/analyze");
   });
 
   it.each(["/nope", "/dashboard/nope"])("unknown address %s shows not-found with a way back", (path) => {
     renderApp(path);
     expect(screen.getByRole("heading", { level: 1, name: /page not found/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /open the dashboard/i })).toHaveAttribute("href", "/dashboard/narratives");
+    expect(screen.getByRole("link", { name: /open the dashboard/i })).toHaveAttribute("href", "/dashboard/analyze");
   });
 
   it("landing links to the dashboard home", () => {
     renderApp("/");
     const links = screen.getAllByRole("link", { name: /open the dashboard/i });
     expect(links.length).toBeGreaterThanOrEqual(2);
-    for (const l of links) expect(l).toHaveAttribute("href", "/dashboard/narratives");
+    for (const l of links) expect(l).toHaveAttribute("href", "/dashboard/analyze");
   });
 });
 
 describe("dashboard sidebar", () => {
-  it("lists Narratives first and marks the current page", () => {
+  it("lists the pages and marks the current one", () => {
     renderApp("/dashboard/claims");
     const nav = screen.getByRole("navigation", { name: "Main" });
     const links = within(nav).getAllByRole("link");
-    expect(links.map((l) => l.textContent)).toEqual(["Narratives", "Analyze a post", "Claims", "Sources", "System"]);
+    expect(links.map((l) => l.textContent)).toEqual(["Analyze a post", "Claims", "Sources", "System"]);
     expect(within(nav).getByRole("link", { name: "Claims" })).toHaveAttribute("aria-current", "page");
-    expect(within(nav).getByRole("link", { name: "Narratives" })).not.toHaveAttribute("aria-current");
+    expect(within(nav).getByRole("link", { name: "System" })).not.toHaveAttribute("aria-current");
   });
 
   it("navigates between pages", async () => {
     const user = userEvent.setup();
-    const { currentPath } = renderApp("/dashboard/narratives");
+    const { currentPath } = renderApp("/dashboard/system");
     await user.click(screen.getByRole("link", { name: "Sources" }));
     expect(currentPath()).toBe("/dashboard/sources");
     expect(screen.getByRole("heading", { level: 1, name: /^sources$/i })).toBeInTheDocument();
@@ -64,7 +62,7 @@ describe("dashboard sidebar", () => {
   });
 
   it("shows the current data source (Hybrid by default)", () => {
-    renderApp("/dashboard/narratives");
+    renderApp("/dashboard/system");
     expect(screen.getByTestId("data-source")).toHaveTextContent("Hybrid");
   });
 });
@@ -72,7 +70,7 @@ describe("dashboard sidebar", () => {
 describe("theme switch", () => {
   it("sets and clears data-theme on the page", async () => {
     const user = userEvent.setup();
-    renderApp("/dashboard/narratives");
+    renderApp("/dashboard/system");
     const group = screen.getByRole("group", { name: /color theme/i });
     expect(within(group).getByRole("button", { name: "Auto" })).toHaveAttribute("aria-pressed", "true");
 
@@ -89,11 +87,11 @@ describe("theme switch", () => {
 
   it("remembers the choice across reloads", async () => {
     const user = userEvent.setup();
-    const first = renderApp("/dashboard/narratives");
+    const first = renderApp("/dashboard/system");
     await user.click(screen.getByRole("button", { name: "Dark" }));
     first.unmount();
     resetSettingsForTests(); // simulates a page reload: state comes back from storage
-    renderApp("/dashboard/narratives");
+    renderApp("/dashboard/system");
     expect(screen.getByRole("button", { name: "Dark" })).toHaveAttribute("aria-pressed", "true");
   });
 });

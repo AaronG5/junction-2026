@@ -1,3 +1,4 @@
+// The Narratives page (UMAP map + clusters) is switched off in the app; its tests are kept but skipped.
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,7 +29,7 @@ async function openDemo() {
   return user;
 }
 
-describe("Narratives (demo data)", () => {
+describe.skip("Narratives (demo data)", () => {
   it("lists the clusters, largest first, and selects the largest", async () => {
     await openDemo();
     expect(rowNames()).toEqual([
@@ -128,7 +129,7 @@ describe("Narratives (demo data)", () => {
   });
 });
 
-describe("Narratives without a backend", () => {
+describe.skip("Narratives without a backend", () => {
   it("explains that the backend isn't connected and offers a retry", async () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new TypeError("Failed to fetch"))));
     renderApp("/dashboard/narratives");
@@ -144,7 +145,7 @@ describe("Narratives without a backend", () => {
   });
 });
 
-describe("Update clusters", () => {
+describe.skip("Update clusters", () => {
   const empty = {
     run: { date: "2026-11-15", posts: 0, clusters: 0, unclustered: 0 }, clusters: [], total: 0,
     counts: { all: 0, credible: 0, unverified: 0, misleading: 0, false: 0 }, points: [],
@@ -255,7 +256,7 @@ describe("Update clusters", () => {
   });
 });
 
-describe("Typical and edge posts", () => {
+describe.skip("Typical and edge posts", () => {
   it("show the highlighted phrases, how many per tier, and a link to the post", () => {
     render(<PostCard post={{
       id: "1", url: "https://t.me/chan/5", text: "They lie. Everyone knows.", author: "@chan", where: "Telegram channel · English",

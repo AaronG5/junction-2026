@@ -93,7 +93,7 @@ describe("Analyze a link (demo data)", () => {
 
     expect(screen.getByText("Alarmist")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /NATO .provocations. at the Belarus border/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open in Narratives" })).toHaveAttribute("href", "/dashboard/narratives");
+    expect(screen.queryByRole("link", { name: "Open in Narratives" })).not.toBeInTheDocument();
   });
 
   it("the spread chain goes earliest first, marks this post and says how each copy was found", async () => {
@@ -105,7 +105,7 @@ describe("Analyze a link (demo data)", () => {
     expect(items[2]).toHaveTextContent("This post");
     expect(items[2].querySelector(".chain-here")).not.toBeNull();
     expect(within(chain).getByLabelText("then, by translation:")).toBeInTheDocument();
-    expect(within(chain).getByRole("link", { name: "+37 more copies" })).toBeInTheDocument();
+    expect(within(chain).getByText("+37 more copies")).toBeInTheDocument();
   });
 
   it("switches between the original and the English translation; flagged words are marked", async () => {

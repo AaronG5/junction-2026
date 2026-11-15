@@ -27,7 +27,7 @@ describe("landing page", () => {
     expect(linkInput()).toBeInTheDocument();
     const dashboardLinks = screen.getAllByRole("link", { name: /open the dashboard/i });
     expect(dashboardLinks).toHaveLength(2);
-    dashboardLinks.forEach((l) => expect(l).toHaveAttribute("href", "/dashboard/narratives"));
+    dashboardLinks.forEach((l) => expect(l).toHaveAttribute("href", "/dashboard/analyze"));
     expect(await screen.findByText("18,420")).toBeInTheDocument(); // the posts-read figure in the sovereignty band
   });
 
@@ -152,7 +152,7 @@ describe("guided walk-through", () => {
     await screen.findByRole("heading", { level: 1, name: /one of 1,284 posts/i });
     expect(screen.queryByRole("button", { name: /^next/i })).not.toBeInTheDocument();
     const main = screen.getByRole("main");
-    expect(within(main).getByRole("link", { name: "Open the dashboard" })).toHaveAttribute("href", "/dashboard/narratives");
+    expect(within(main).getByRole("link", { name: "Open the dashboard" })).toHaveAttribute("href", "/dashboard/analyze");
     expect(within(main).getByRole("link", { name: "Open the full report" }))
       .toHaveAttribute("href", "/dashboard/analyze?url=" + encodeURIComponent("https://t.me/kanalas_b/4521"));
     expect(within(main).getByRole("link", { name: "Trace another post" })).toHaveAttribute("href", "/");

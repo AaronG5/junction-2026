@@ -216,7 +216,6 @@ function Board() {
     <section className="shell section" aria-labelledby="trend-h">
       <div className="board-head">
         <h2 id="trend-h" className="board-title">What&rsquo;s spreading this week</h2>
-        <Link to="/dashboard/narratives" className="go">Every narrative</Link>
       </div>
 
       {/* One axis here. Three filter rows governing three results is chrome
@@ -290,14 +289,13 @@ function Sovereignty() {
           <h2 id="sov-h" className="sov-say">
             Run the whole thing on your own machine.
           </h2>
-          <Link to="/dashboard/narratives" className="btn btn-big">Open the dashboard</Link>
+          <Link to="/dashboard/analyze" className="btn btn-big">Open the dashboard</Link>
         </div>
         <div className="sov-side">
           <dl className="sov-zero">
             <dt className="lbl">Accounts needed</dt><dd className="num">0</dd>
           </dl>
           <dl className="stats sov-stats">
-            <div><dt className="lbl">Narratives</dt><dd className="num">{data ? data.run.clusters : "—"}</dd></div>
             <div><dt className="lbl">Posts read</dt><dd className="num">{data ? data.run.posts.toLocaleString("en-US") : "—"}</dd></div>
             <div><dt className="lbl">Cost to run</dt><dd className="num">€0</dd></div>
           </dl>

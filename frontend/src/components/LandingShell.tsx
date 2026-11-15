@@ -17,7 +17,7 @@ export function LandingShell({ children }: { children: ReactNode }) {
             <b>Providence</b>
           </Link>
           {/* Short in the masthead, but still "Open the dashboard" to a screen reader. */}
-          <Link to="/dashboard/narratives" className="btn btn-plain">
+          <Link to="/dashboard/analyze" className="btn btn-plain">
             <span className="visually-hidden">Open the </span>Dashboard
           </Link>
         </div>

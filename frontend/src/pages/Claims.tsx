@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { Claim, Filters, Stance } from "../api/types";
 import { FilterBar, FilterSummary } from "../components/FilterBar";
@@ -105,7 +104,6 @@ function ClaimRow({ claim: c, open, onToggle }: { claim: Claim; open: boolean; o
           </div>
           <div className="muted" style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: 12.5 }}>
             <span>Checked by {c.checkedBy} · confidence {c.confidence.toFixed(2)} · {shortDate(c.checkedAt)}</span>
-            {c.clusterId !== null && <Link to="/dashboard/narratives" style={{ fontWeight: 600 }}>See its narrative</Link>}
           </div>
         </div>
       )}

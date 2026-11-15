@@ -44,7 +44,7 @@ describe("phone menu", () => {
 });
 
 describe("keyboard", () => {
-  it.each(["/dashboard/narratives", "/"])("on %s the first Tab reaches 'Skip to content', which points at the main content", async (path) => {
+  it.each(["/dashboard/system", "/"])("on %s the first Tab reaches 'Skip to content', which points at the main content", async (path) => {
     const user = userEvent.setup();
     renderApp(path);
     await user.tab();
@@ -54,7 +54,7 @@ describe("keyboard", () => {
     expect(document.getElementById("main")?.tagName).toBe("MAIN");
   });
 
-  it("clusters can be chosen with the keyboard", async () => {
+  it.skip("clusters can be chosen with the keyboard (Narratives is switched off)", async () => {
     const user = userEvent.setup();
     renderApp("/dashboard/narratives");
     const row = await screen.findByRole("button", { name: /refugees get bigger benefits/i });
@@ -76,7 +76,6 @@ describe("keyboard", () => {
 describe("browser tab titles", () => {
   it.each([
     ["/", "Providence"],
-    ["/dashboard/narratives", "Narratives · Providence"],
     ["/dashboard/analyze", "Analyze a post · Providence"],
     ["/dashboard/claims", "Claims · Providence"],
     ["/dashboard/sources", "Sources · Providence"],

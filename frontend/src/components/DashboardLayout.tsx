@@ -5,7 +5,6 @@ import { ProvidenceMark } from "./Mark";
 import { ThemeSwitch } from "./ThemeSwitch";
 
 const NAV = [
-  { to: "/dashboard/narratives", label: "Narratives" },
   { to: "/dashboard/analyze", label: "Analyze a post" },
   { to: "/dashboard/claims", label: "Claims" },
   { to: "/dashboard/sources", label: "Sources" },

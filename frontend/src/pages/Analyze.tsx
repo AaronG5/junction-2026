@@ -236,7 +236,7 @@ function Report({ report: r }: { report: PostReport }) {
                 </li>
               ))}
               {r.moreCopies > 0 && (
-                <li className="chain-item"><Link to="/dashboard/narratives" style={{ fontWeight: 600, fontSize: 13, alignSelf: "center" }}>+{r.moreCopies} more copies</Link></li>
+                <li className="chain-item"><span style={{ fontWeight: 600, fontSize: 13, alignSelf: "center" }}>+{r.moreCopies} more copies</span></li>
               )}
             </ol>
             <span className="muted" style={{ fontSize: 12.5 }}>Arrows show how each link was found: platform data (forward, share) or text similarity (translation, copy).</span>
@@ -315,7 +315,6 @@ function Report({ report: r }: { report: PostReport }) {
               <h2 id="cl-h" className="h2">{r.cluster.name}</h2>
               <span className="muted" style={{ fontSize: 13 }}>{r.cluster.summary}</span>
               <LanguageBar languages={r.cluster.languages} />
-              <Link to="/dashboard/narratives" className="btn btn-ghost" style={{ alignSelf: "flex-start" }}>Open in Narratives</Link>
             </section>
           ) : (
             <section className="card" aria-labelledby="cl-h">

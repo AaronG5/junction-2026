@@ -55,7 +55,7 @@ describe("Claims", () => {
     expect(within(panel).getAllByRole("listitem")).toHaveLength(2);
     expect(within(panel).getAllByText("Contradicts")).toHaveLength(2);
     expect(panel).toHaveTextContent("confidence 0.86");
-    expect(within(panel).getByRole("link", { name: "See its narrative" })).toBeInTheDocument();
+    expect(within(panel).queryByRole("link", { name: "See its narrative" })).not.toBeInTheDocument();
     await user.click(btn);
     expect(btn).toHaveAttribute("aria-expanded", "false");
     expect(document.getElementById(btn.getAttribute("aria-controls")!)).toBeNull();

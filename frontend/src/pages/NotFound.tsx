@@ -9,7 +9,7 @@ export function NotFound() {
       <p className="muted">This address doesn't exist in Providence.</p>
       <p style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <Link to="/" className="btn btn-plain">Go to the start page</Link>
-        <Link to="/dashboard/narratives" className="btn">Open the dashboard</Link>
+        <Link to="/dashboard/analyze" className="btn">Open the dashboard</Link>
       </p>
     </div>
   );

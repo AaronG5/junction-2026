@@ -191,7 +191,7 @@ function Step({ story: s, step, headingRef }: { story: Story; step: number; head
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           <Link to="/" className="btn btn-ghost">Trace another post</Link>
-          <Link to="/dashboard/narratives" className="btn btn-ghost">Open the dashboard</Link>
+          <Link to="/dashboard/analyze" className="btn btn-ghost">Open the dashboard</Link>
           <Link to={s.post.url ? `/dashboard/analyze?url=${encodeURIComponent(s.post.url)}` : "/dashboard/analyze"} className="btn">Open the full report</Link>
         </div>
       </div>

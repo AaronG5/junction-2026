@@ -44,7 +44,6 @@ function Report({ r }: { r: ChannelReport }) {
           <h1 className="page-title" style={{ fontSize: 30 }}>{r.name}</h1>
           <span className="muted">{r.subtitle}</span>
         </div>
-        <Link to="/dashboard/narratives" className="btn">See its narratives</Link>
       </header>
 
       <p className="muted" style={{ fontSize: 13, maxWidth: "80ch" }}>

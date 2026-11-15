@@ -4,7 +4,6 @@ import { Analyze } from "./pages/Analyze";
 import { Channel } from "./pages/Channel";
 import { Claims } from "./pages/Claims";
 import { Landing } from "./pages/Landing";
-import { Narratives } from "./pages/Narratives";
 import { NotFound } from "./pages/NotFound";
 import { Sources } from "./pages/Sources";
 import { StoryTour } from "./pages/StoryTour";
@@ -17,8 +16,9 @@ export function AppRoutes() {
       <Route path="/" element={<Landing />} />
       <Route path="/story/:id" element={<StoryTour />} />
       <Route path="/dashboard" element={<DashboardLayout />}>
-        <Route index element={<Navigate to="narratives" replace />} />
-        <Route path="narratives" element={<Narratives />} />
+        <Route index element={<Navigate to="analyze" replace />} />
+        {/* Narratives (UMAP map + clusters) is switched off: not useful at 50k posts. Old links go to Analyze. */}
+        <Route path="narratives" element={<Navigate to="/dashboard/analyze" replace />} />
         <Route path="analyze" element={<Analyze />} />
         <Route path="claims" element={<Claims />} />
         <Route path="sources" element={<Sources />} />
