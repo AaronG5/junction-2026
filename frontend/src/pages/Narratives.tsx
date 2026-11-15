@@ -35,10 +35,7 @@ export function Narratives() {
           </p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <UpdateClusters days={windowDays(filters)} onFinished={reload} />
-            <Link to="/dashboard/analyze" className="btn">Analyze a link</Link>
-          </div>
+          <Link to="/dashboard/analyze" className="btn">Analyze a link</Link>
           {data && data.run.clusters > 0 && (
             <span className="mono muted" style={{ fontSize: 12.5 }}>
               Latest run {shortDate(data.run.date)} · {data.run.posts.toLocaleString("en-US")} posts · {data.run.clusters} clusters
@@ -55,7 +52,10 @@ export function Narratives() {
         <Loading label="Loading narratives" />
       ) : (
         <>
-          <FilterSummary shown={clusters.length} total={data.total} noun="large clusters" value={filters} defaults={defaults} onClear={clear} />
+          <div className="summary-row">
+            <FilterSummary shown={clusters.length} total={data.total} noun="large clusters" value={filters} defaults={defaults} onClear={clear} />
+            <UpdateClusters days={windowDays(filters)} onFinished={reload} />
+          </div>
 
           <div className="split" aria-busy={loading}>
             <section className="card" aria-labelledby="map-h" style={{ flex: "999 1 520px" }}>
@@ -154,21 +154,20 @@ function UpdateClusters({ days, onFinished }: { days: number; onFinished: () => 
   const note = error ?? (running ? `Grouping the posts of the last ${state?.days ?? days} days. This can take a few minutes.`
     : state && state.status !== "idle" ? state.message : null);
   return (
-    <>
+    <div className="cluster-update">
+      <span aria-live="polite" data-testid="clustering-note" title={note ?? undefined}
+        className={`cluster-update-note${error || state?.status === "failed" ? "" : " muted"}`}>
+        {note}
+      </span>
       <button type="button" className="btn btn-plain" onClick={start} disabled={running} aria-busy={running}
         title={`Group the posts of the last ${days} days into narratives again`}>
-        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" className={running ? "spin" : undefined}
-          style={{ marginRight: 6, verticalAlign: "-2px" }}>
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" className={running ? "spin" : undefined}>
           <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" fill="none" stroke="currentColor" strokeWidth="1.6"
             strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         {running ? "Updating clusters…" : "Update clusters"}
       </button>
-      <span aria-live="polite" data-testid="clustering-note" className={error || state?.status === "failed" ? undefined : "muted"}
-        style={{ fontSize: 12.5, flexBasis: "100%", textAlign: "right", maxWidth: "48ch", marginLeft: "auto" }}>
-        {note}
-      </span>
-    </>
+    </div>
   );
 }
 

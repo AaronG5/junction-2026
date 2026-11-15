@@ -152,6 +152,17 @@ a:hover { color: var(--accent-hover); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 1s linear infinite; transform-origin: center; }
 @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+/* Narratives: "Update clusters" sits at the right end of the summary line. Positioned out of the
+   flow, so it never moves the page (the line is shorter than the button). Wraps below on narrow screens. */
+.summary-row { position: relative; }
+.cluster-update { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 12px; }
+.cluster-update .btn { min-height: 34px; padding: 0 14px; font-size: 13px; min-width: 172px; }
+.cluster-update-note { font-size: 12.5px; max-width: 48ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 900px) {
+  .summary-row { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+  .cluster-update { position: static; transform: none; flex-direction: row-reverse; flex-wrap: wrap; justify-content: flex-end; }
+  .cluster-update-note { white-space: normal; }
+}
 .codeline { padding: 8px 12px; border-radius: 8px; background: var(--sunk); color: var(--text); font-size: 13px; }
 
 /* ---- page building blocks ---- */
