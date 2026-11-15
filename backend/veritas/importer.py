@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Callable, Iterable, Iterator
 from urllib.parse import urlsplit
 
-from .ai import LocalAI
+from .ai import LocalAI, document_input
 from .analysis import save_collected
 from .collectors import CollectedPost
 from .content import store_post_vector
@@ -234,12 +234,36 @@ def count_pending(conn) -> int:
         return int(cur.fetchone()["n"])
 
 
-def embed_pending(conn, qdrant: Qdrant, ai: LocalAI, *, batch: int = EMBED_BATCH, limit: int | None = None,
-                  progress: Progress | None = None) -> int:
+# Vectors computed elsewhere (e.g. on a cloud GPU) with the same model and the same document_input(), keyed by
+# vector_key(). With them, a fresh server stores tens of thousands of vectors in minutes instead of hours.
+VECTORS = ROOT / "data" / "vectors" / "posts_768.npz"
+
+
+def vector_key(text: str, title: str | None = None) -> str:
+    return hashlib.sha256(document_input(text, title).encode("utf-8")).hexdigest()[:32]
+
+
+def load_precomputed(path: Path | None = None) -> dict:
+    """{vector_key: vector} from an .npz with arrays "keys" (str) and "vectors" (float16/32, n x 768). {} if absent."""
+    path = path if path is not None else VECTORS
+    if not path.is_file():
+        return {}
+    import numpy as np  # only needed for this path
+    with np.load(path, allow_pickle=False) as z:
+        keys, vecs = z["keys"], z["vectors"]
+        if len(keys) != len(vecs):
+            raise DataFileError(f"{path}: {len(keys)} keys but {len(vecs)} vectors.")
+        return {str(k): vecs[i] for i, k in enumerate(keys)}
+
+
+def embed_pending(conn, qdrant: Qdrant, ai: LocalAI | None, *, batch: int = EMBED_BATCH, limit: int | None = None,
+                  progress: Progress | None = None, precomputed: dict | None = None) -> int:
     """Give every post without a vector one, oldest id first. Returns how many were embedded.
-    Each batch is stored and committed before the next, so a stopped run loses at most one batch."""
+    Each batch is stored and committed before the next, so a stopped run loses at most one batch.
+    precomputed: {vector_key: vector}; posts found there skip the AI. Without an AI, posts not found stay pending."""
     done = 0
     last_id = 0
+    precomputed = precomputed or {}
     while limit is None or done < limit:
         size = batch if limit is None else min(batch, limit - done)
         with conn.cursor() as cur:
@@ -249,11 +273,17 @@ def embed_pending(conn, qdrant: Qdrant, ai: LocalAI, *, batch: int = EMBED_BATCH
             rows = cur.fetchall()
         if not rows:
             break
-        vectors = ai.embed_documents([r["text"] for r in rows], [r["title"] for r in rows])
-        for row, vector in zip(rows, vectors):
-            store_post_vector(conn, qdrant, row["post_id"], vector)
+        found = {r["post_id"]: precomputed.get(vector_key(r["text"], r["title"])) for r in rows}
+        missing = [r for r in rows if found[r["post_id"]] is None]
+        if missing and ai is not None:
+            for r, v in zip(missing, ai.embed_documents([r["text"] for r in missing], [r["title"] for r in missing])):
+                found[r["post_id"]] = v
+        for row in rows:
+            vector = found[row["post_id"]]
+            if vector is not None:
+                store_post_vector(conn, qdrant, row["post_id"], [float(x) for x in vector])
+                done += 1
         last_id = rows[-1]["post_id"]
-        done += len(rows)
         if progress:
             progress(f"  {done} vectors stored...")
     return done
@@ -263,7 +293,8 @@ def embed_pending(conn, qdrant: Qdrant, ai: LocalAI, *, batch: int = EMBED_BATCH
 
 def run_import(conn, names: Iterable[str], *, qdrant: Qdrant | None = None, ai: LocalAI | None = None,
                embed: bool = True, batch: int = EMBED_BATCH, limit: int | None = None,
-               progress: Progress | None = None, sources: dict[str, Path] | None = None) -> dict:
+               progress: Progress | None = None, sources: dict[str, Path] | None = None,
+               precomputed: dict | None = None) -> dict:
     """Load the named sources, then embed what has no vector. Returns the counts per source and the
     number of vectors made. With embed=False (or no AI/Qdrant), only the rows are loaded."""
     say = progress or (lambda message: None)
@@ -276,11 +307,15 @@ def run_import(conn, names: Iterable[str], *, qdrant: Qdrant | None = None, ai: 
         counts = load_posts(conn, posts, progress=progress)
         result["sources"][name] = counts
         say(f"  {counts.summary()}")
-    if embed and qdrant is not None and ai is not None:
+    if embed and qdrant is not None and (ai is not None or precomputed):
         pending = count_pending(conn)
         if pending:
-            say(f"Making vectors for {pending} posts (this can take a while; stop it any time and run again to continue)...")
-            result["embedded"] = embed_pending(conn, qdrant, ai, batch=batch, limit=limit, progress=progress)
+            if precomputed:
+                say(f"Storing vectors for {pending} posts ({len(precomputed)} precomputed; the AI makes only the rest)...")
+            else:
+                say(f"Making vectors for {pending} posts (this can take a while; stop it any time and run again to continue)...")
+            result["embedded"] = embed_pending(conn, qdrant, ai, batch=batch, limit=limit, progress=progress,
+                                               precomputed=precomputed)
     result["pending"] = count_pending(conn)
     return result
 

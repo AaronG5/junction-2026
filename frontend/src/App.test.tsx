@@ -8,7 +8,7 @@ beforeEach(() => resetSettingsForTests());
 
 describe("routing", () => {
   it.each([
-    ["/", /paste a post\. see whether it repeats known propaganda/i],
+    ["/", /every lie has a first author/i],
     ["/dashboard/narratives", /^narratives$/i],
     ["/dashboard/analyze", /analyze a post/i],
     ["/dashboard/claims", /^claims$/i],
@@ -35,7 +35,7 @@ describe("routing", () => {
   it("landing links to the dashboard home", () => {
     renderApp("/");
     const links = screen.getAllByRole("link", { name: /open the dashboard/i });
-    expect(links.length).toBeGreaterThanOrEqual(3);
+    expect(links.length).toBeGreaterThanOrEqual(2);
     for (const l of links) expect(l).toHaveAttribute("href", "/dashboard/narratives");
   });
 });

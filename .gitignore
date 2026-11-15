@@ -21,3 +21,4 @@ frontend/dist/
 **/datasets
 data/narrative_bank/
 data/narrative_feedback.jsonl
+data/vectors/

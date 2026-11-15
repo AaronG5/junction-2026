@@ -7,6 +7,8 @@
   --embed-only         skip the files; only make the missing vectors
   --limit N            at most N posts per source and N vectors (a quick check)
   --batch N            texts per embedding request (default 32)
+  --vectors FILE       precomputed vectors (.npz); default data/vectors/posts_768.npz when present.
+                       Get it with:  uv run python backend/fetch_vectors.py   (minutes instead of hours)
 
 Safe to run again: posts already stored with the same text are skipped, and a stopped
 embedding run continues where it left off. Needs MySQL and Qdrant; the local AI
@@ -42,6 +44,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--embed-only", action="store_true", help="read no files; only make the missing vectors")
     parser.add_argument("--limit", type=int, help="at most this many posts per source and vectors")
     parser.add_argument("--batch", type=int, default=importer.EMBED_BATCH, help="texts per embedding request")
+    parser.add_argument("--vectors", type=Path, default=None, help="precomputed vectors (.npz); default data/vectors/posts_768.npz")
     args = parser.parse_args(argv)
     if args.no_embed and args.embed_only:
         print("Choose one of --no-embed and --embed-only.", file=sys.stderr)
@@ -61,10 +64,22 @@ def main(argv: list[str] | None = None) -> int:
             if args.no_embed:
                 result = importer.run_import(conn, names, embed=False, limit=args.limit, progress=say)
             else:
+                pre = importer.load_precomputed(args.vectors)
+                if pre:
+                    say(f"Using {len(pre)} precomputed vectors.")
+                elif args.vectors is not None:
+                    print(f"No vectors file at {args.vectors}.", file=sys.stderr)
+                    return 1
                 with Qdrant.from_settings(settings) as qdrant, LocalAI.from_settings(settings, timeout=300) as ai:
-                    ai.check()
+                    try:
+                        ai.check()
+                    except AiUnavailable:
+                        if not pre:
+                            raise
+                        say("The local AI isn't running: storing the precomputed vectors only.")
+                        ai = None
                     result = importer.run_import(conn, names, qdrant=qdrant, ai=ai, batch=args.batch,
-                                                 limit=args.limit, progress=say)
+                                                 limit=args.limit, progress=say, precomputed=pre)
     except (importer.DataFileError, DatabaseUnavailable, VectorStoreUnavailable, VectorStoreError,
             AiUnavailable, AiError, ValueError) as exc:
         print(f"Import stopped. {exc}", file=sys.stderr)

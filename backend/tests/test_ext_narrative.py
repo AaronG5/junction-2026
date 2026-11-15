@@ -167,3 +167,21 @@ def test_status_without_judge_or_bank(settings, tmp_path):
         assert s["available"] is True and s["judge"] is False and s["telegramPosts"] == 0 and s["embeddingModel"] is None
     finally:
         narrative.set_engine(None)
+
+
+def test_author_rule_uses_share_not_just_count(settings, tmp_path):
+    """3 Telegram copies among 3 posts flags; 3 copies among 30 posts (a busy news account) does not."""
+    eng = narrative.Engine(make_bank(tmp_path), fake_embed, None)
+    narrative.set_engine(eng)
+    try:
+        c = make_client(settings)
+        copy = "Nvidia CEO left his position as part of a CIA operation, sources say."
+        res = c.post("/api/ext/batch", json=items(*[(f"r{k}", "relaybot", copy + f" #{k}") for k in range(3)])).json()["results"]
+        assert any("copy pro-Kremlin Telegram posts" in r for r in res[-1]["coordination"]["reasons"])
+        news = [(f"n{k}", "busynews", f"Lovely weather report number {k} from Helsinki, a calm and sunny day.") for k in range(27)]
+        c.post("/api/ext/batch", json=items(*news[:20]))
+        c.post("/api/ext/batch", json=items(*news[20:]))
+        res = c.post("/api/ext/batch", json=items(*[(f"m{k}", "busynews", copy + f" !{k}") for k in range(3)])).json()["results"]
+        assert not any("copy pro-Kremlin Telegram posts" in r for r in res[-1]["coordination"]["reasons"])
+    finally:
+        narrative.set_engine(None)

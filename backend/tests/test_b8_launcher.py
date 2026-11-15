@@ -367,16 +367,39 @@ def test_an_up_to_date_build_is_kept(frontend, monkeypatch):
     assert backend.build_frontend(npm="npm") == "current"
 
 
+def _installed(fe, age=0):
+    """node_modules as npm leaves it: a .package-lock.json stamped at install time."""
+    modules = fe / "node_modules"
+    modules.mkdir(exist_ok=True)
+    stamp = modules / ".package-lock.json"
+    stamp.write_text("{}", encoding="utf-8")
+    t = time.time() + age
+    os.utime(stamp, (t, t))
+
+
 def test_an_out_of_date_build_is_rebuilt(frontend, monkeypatch):
     _build(frontend, age=-100)
     calls = []
     monkeypatch.setattr(backend.subprocess, "run", lambda cmd, **k: calls.append(cmd[1:]) or completed())
     assert backend.build_frontend(npm="npm") == "built"
     assert calls == [["ci", "--no-audit", "--no-fund"], ["run", "build"]]  # no node_modules yet
-    (frontend / "node_modules").mkdir()
+    _installed(frontend, age=+100)
     calls.clear()
     assert backend.build_frontend(npm="npm") == "built"
     assert calls == [["run", "build"]]
+
+
+def test_a_dependency_added_since_the_last_install_is_installed_first(frontend, monkeypatch):
+    """Pulling a branch that adds a package leaves a node_modules that can't build."""
+    _build(frontend, age=-100)
+    _installed(frontend, age=-100)
+    lock = frontend / "package-lock.json"
+    lock.write_text("{}", encoding="utf-8")  # written now, so newer than the install
+    assert not backend.packages_are_current()
+    calls = []
+    monkeypatch.setattr(backend.subprocess, "run", lambda cmd, **k: calls.append(cmd[1:]) or completed())
+    assert backend.build_frontend(npm="npm") == "built"
+    assert calls == [["ci", "--no-audit", "--no-fund"], ["run", "build"]]
 
 
 def test_a_changed_source_file_makes_the_build_out_of_date(frontend):
@@ -394,7 +417,7 @@ def test_without_node(frontend):
 
 
 def test_a_failed_build_stops_the_launcher(frontend, monkeypatch):
-    (frontend / "node_modules").mkdir()
+    _installed(frontend, age=+100)
     monkeypatch.setattr(backend.subprocess, "run", lambda *a, **k: completed(1))
     with pytest.raises(ui.StepFailed, match="npm run build"):
         backend.build_frontend(npm="npm")

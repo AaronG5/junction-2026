@@ -1,21 +1,36 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
-/** Header and footer shared by the landing page and the guided walk-through. */
+/**
+ * Masthead and footer shared by the landing page and the guided walk-through.
+ * The wordmark is printed in two plates, deliberately out of register.
+ */
 export function LandingShell({ children }: { children: ReactNode }) {
   return (
     <div className="landing">
       <a href="#main" className="skip-link">Skip to content</a>
-      <header className="landing-head">
-        <Link to="/" className="brand" style={{ padding: 0 }}>
-          <b style={{ fontSize: 17 }}>Veritas Lens</b>
-          <span>Disinformation analysis</span>
-        </Link>
-        <Link to="/dashboard/narratives" className="btn">Open the dashboard →</Link>
+      <header className="masthead">
+        <div className="shell masthead-in">
+          <Link to="/" className="wordmark" aria-label="Veritas Lens, home">
+            <b>Veritas</b>
+            <b>Lens</b>
+          </Link>
+          {/* Short in the masthead, but still "Open the dashboard" to a screen reader. */}
+          <Link to="/dashboard/narratives" className="btn btn-plain">
+            <span className="visually-hidden">Open the </span>Dashboard
+          </Link>
+        </div>
       </header>
       <main id="main" tabIndex={-1} style={{ outline: "none" }}>{children}</main>
       <footer className="landing-foot">
-        <div>Veritas Lens · built at Junction 2026 by Synthetic Logic LAB · open source</div>
+        <div className="shell landing-foot-in">
+          <span>Veritas Lens · Synthetic Logic LAB · Junction 2026</span>
+          <span className="foot-links">
+            <a href="https://github.com/AaronG5/junction-2026">Source code</a>
+            <a href="https://github.com/AaronG5/junction-2026/blob/main/LICENSE">Licence</a>
+            <a href="https://github.com/AaronG5/junction-2026#readme">Run it yourself</a>
+          </span>
+        </div>
       </footer>
     </div>
   );

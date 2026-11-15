@@ -26,8 +26,10 @@ interface FilterBarProps {
   statusLabel?: string;
   dateLabel?: string;
   ranges?: { value: RangePreset; label: string }[];
-  /** Lighter look for the landing page: no card, labels only for screen readers. */
+  /** Lighter look for the landing page: no card around the groups. */
   compact?: boolean;
+  /** Which filter axes to offer. The start page shows one; the dashboard all three. */
+  axes?: ("platform" | "date" | "status")[];
   platformAllLabel?: string;
   statusAllLabel?: string;
 }
@@ -35,7 +37,9 @@ interface FilterBarProps {
 export function FilterBar({
   value, onChange, counts, statusLabel = "Status", dateLabel = "Active between",
   ranges = DEFAULT_RANGES, compact = false, platformAllLabel = "All", statusAllLabel = "All",
+  axes = ["platform", "date", "status"],
 }: FilterBarProps) {
+  const shows = (a: "platform" | "date" | "status") => axes.includes(a);
   const id = useId();
   const set = (patch: Partial<Filters>) => onChange({ ...value, ...patch });
   const range = resolveRange(value);
@@ -49,12 +53,11 @@ export function FilterBar({
     }
   };
 
-  const groupLabel = (text: string, gid: string) =>
-    <span id={gid} className={compact ? "visually-hidden" : "lbl"}>{text}</span>;
+  const groupLabel = (text: string, gid: string) => <span id={gid} className="lbl">{text}</span>;
 
   return (
     <section className={compact ? "fbar fbar-compact" : "card fbar"} aria-label="Filters">
-      <div className="fgroup" role="group" aria-labelledby={`${id}-p`}>
+      {shows("platform") && <div className="fgroup" role="group" aria-labelledby={`${id}-p`}>
         {groupLabel("Platform", `${id}-p`)}
         <div className="fchips">
           {PLATFORMS.map((p) => (
@@ -63,9 +66,9 @@ export function FilterBar({
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
-      <div className="fgroup" role="group" aria-labelledby={`${id}-d`}>
+      {shows("date") && <div className="fgroup" role="group" aria-labelledby={`${id}-d`}>
         {groupLabel(dateLabel, `${id}-d`)}
         <div className="fchips">
           {ranges.map((r) => (
@@ -89,9 +92,9 @@ export function FilterBar({
           </div>
         )}
         {range.invalid && <span className="ferror" role="alert">The start date is after the end date.</span>}
-      </div>
+      </div>}
 
-      <div className="fgroup" role="group" aria-labelledby={`${id}-s`}>
+      {shows("status") && <div className="fgroup" role="group" aria-labelledby={`${id}-s`}>
         {groupLabel(statusLabel, `${id}-s`)}
         <div className="fchips">
           {STATUSES.map((s) => (
@@ -102,7 +105,7 @@ export function FilterBar({
             </button>
           ))}
         </div>
-      </div>
+      </div>}
     </section>
   );
 }

@@ -80,10 +80,14 @@ describe("FilterBar", () => {
     expect(within(group(/status/i)).getAllByRole("button").map((b) => b.textContent)).toEqual(["All7", "True1", "False3", "Misleading2", "Unverified1"]);
   });
 
-  it("compact mode keeps the groups labelled for screen readers", () => {
+  it("compact mode drops the card but keeps every axis labelled on screen", () => {
     render(<Harness initial={defaultFilters("30", TODAY)} compact />);
     expect(group(/platform/i)).toBeInTheDocument();
-    expect(screen.getByText("Platform")).toHaveClass("visually-hidden");
+    // Two filter axes side by side are only readable if each one is named.
+    const label = screen.getByText("Platform");
+    expect(label).toHaveClass("lbl");
+    expect(label).not.toHaveClass("visually-hidden");
+    expect(group(/platform/i)).toHaveAttribute("aria-labelledby", label.id);
   });
 });
 
