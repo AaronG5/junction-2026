@@ -79,7 +79,7 @@ try {
   // overwrite the stub URL set below (read-then-write race), and the test talks to the
   // real default backend instead of the stub.
   await pop.waitForFunction(async () => !!(await chrome.storage.sync.get('baseUrl')).baseUrl, null, { timeout: 5000 });
-  await pop.evaluate((b) => chrome.storage.sync.set({ baseUrl: b, deepUrl: b + '/local', mock: false }), base);
+  await pop.evaluate((b) => chrome.storage.sync.set({ baseUrl: b, deepUrl: b + '/local', savePosts: true }), base);
   // deepUrl = the stub's /local: the posts' local copy (savePosts) lands in the stub, never in a real Providence.
   await pop.close();
 
