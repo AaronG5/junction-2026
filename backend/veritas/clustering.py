@@ -100,18 +100,35 @@ def _libs():
 
 def group(vectors: Sequence[Sequence[float]], seed: int = SEED, min_cluster_size: int | None = None) -> Grouping:
     """Find groups among vectors (the pure part: no database, no AI)."""
+    import os
+    import time
     np, umap, HDBSCAN = _libs()
+    # CLUSTER_PROGRESS=1: phase markers + UMAP's own epoch progress (backend/cluster_run.py sets it).
+    # CLUSTER_FAST=1: UMAP on every CPU core (not bit-for-bit reproducible between runs).
+    verbose = os.environ.get("CLUSTER_PROGRESS") == "1"
+    fast = os.environ.get("CLUSTER_FAST") == "1"
+    t0 = time.time()
+
+    def mark(msg: str) -> None:
+        if verbose:
+            print(f"    [grouping +{int(time.time() - t0)}s] {msg}", flush=True)
+
     x = np.asarray(vectors, dtype=np.float64)
     n = len(x)
     x = x / np.clip(np.linalg.norm(x, axis=1, keepdims=True), 1e-12, None)
     neighbours = max(2, min(15, n - 1))
+    par = {"n_jobs": -1} if fast else {"random_state": seed, "n_jobs": 1}
+    mark(f"phase 1/3: UMAP to 5 dimensions over {n} posts ({'all cores' if fast else '1 core, reproducible'})")
     reduced = umap.UMAP(n_components=min(5, n - 2), n_neighbors=neighbours, min_dist=0.0, metric="cosine",
-                        random_state=seed, n_jobs=1, compatibility_layout=True).fit_transform(x)
+                        compatibility_layout=True, verbose=verbose, **par).fit_transform(x)
     size = min_cluster_size or max(5, min(n // 40, MAX_MIN_CLUSTER))
+    mark(f"phase 2/3: HDBSCAN (smallest group {size} posts)")
     labels = HDBSCAN(min_cluster_size=size, copy=True).fit(reduced).labels_.tolist()
+    mark(f"  {len(set(labels) - {-1})} groups found; phase 3/3: 2-D map for the dashboard")
 
     flat = umap.UMAP(n_components=2, n_neighbors=neighbours, min_dist=0.1, metric="cosine",
-                     random_state=seed, n_jobs=1, compatibility_layout=True).fit_transform(x)
+                     compatibility_layout=True, verbose=verbose, **par).fit_transform(x)
+    mark("grouping done")
     lo, hi = flat.min(axis=0), flat.max(axis=0)
     span = np.where(hi - lo > 1e-9, hi - lo, 1.0)
     scaled = 2 + (flat - lo) / span * 96

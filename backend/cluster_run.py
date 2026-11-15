@@ -4,6 +4,7 @@
   uv run --extra clustering python backend/cluster_run.py --cloud    # names + insights by Gemma 26B on Modal (much faster)
   uv run --extra clustering python backend/cluster_run.py --no-read  # grouping + names only, skip the slow insights
   uv run --extra clustering python backend/cluster_run.py --rebuild  # from scratch
+  add --fast to run UMAP on every CPU core (several times faster on a multi-core machine)
 
 `--extra clustering` installs umap-learn + scikit-learn on the fly (the usual reason grouping "breaks").
 Every step prints a timestamped line, and a heartbeat line every 15 s shows it is still working.
@@ -76,15 +77,27 @@ def preflight(settings, cloud: bool) -> bool:
     except Exception as exc:
         say(f"  FAILED: {exc}")
         ok = False
-    say("PREFLIGHT 4/4  Gemma for names" + (" (cloud, Modal)" if cloud else " (local llama-swap)"))
-    try:
-        ai = make_ai(settings, cloud)
-        ai.check()
-        ai.close()
-        say("  OK" + (" (a cold cloud model can take ~2 min on its first answer)" if cloud else ""))
-    except Exception as exc:
-        say(f"  FAILED: {exc}" + ("" if cloud else "  (try --cloud, or start the local AI with the launcher)"))
+    say("PREFLIGHT 4/4  Gemma for names" + (" (cloud, Modal)" if cloud else " (local llama-swap)") + ", 20 s max")
+    box = {}
+
+    def probe():
+        try:
+            ai = make_ai(settings, cloud)
+            ai.check()
+            ai.close()
+            box["ok"] = True
+        except Exception as exc:  # noqa: BLE001
+            box["err"] = exc
+    t = threading.Thread(target=probe, daemon=True)
+    t.start()
+    t.join(20)
+    if box.get("ok"):
+        say("  OK")
+    elif "err" in box:
+        say(f"  FAILED: {box['err']}" + ("" if cloud else "  (try --cloud, or start the local AI with the launcher)"))
         ok = False
+    else:
+        say("  No answer within 20 s (model still loading / cold start). Continuing: Gemma is only needed after grouping.")
     return ok
 
 
@@ -107,9 +120,14 @@ def main() -> int:
     p.add_argument("--days", type=int, default=None, help="with --rebuild: only the last N days")
     p.add_argument("--no-read", action="store_true", help="skip reading typical posts (the slow insight step)")
     p.add_argument("--cloud", action="store_true", help="use Gemma 26B on Modal for names and insights")
+    p.add_argument("--fast", action="store_true", help="UMAP on every CPU core (faster; not bit-for-bit reproducible)")
     p.add_argument("--skip-preflight", action="store_true")
     args = p.parse_args()
 
+    import os
+    os.environ["CLUSTER_PROGRESS"] = "1"          # phase markers + UMAP epoch progress inside the grouping step
+    if args.fast:
+        os.environ["CLUSTER_FAST"] = "1"
     from veritas.config import Settings
     settings = Settings.load()
     if not args.skip_preflight and not preflight(settings, args.cloud):
