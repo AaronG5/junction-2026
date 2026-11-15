@@ -39,6 +39,16 @@
       "run_at": "document_start"
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": ["fonts/*.woff2"],
+      "matches": [
+        "https://x.com/*", "https://*.x.com/*", "https://twitter.com/*", "https://*.twitter.com/*",
+        "https://www.facebook.com/*", "https://web.facebook.com/*",
+        "file:///*", "http://localhost/*", "http://127.0.0.1/*"
+      ]
+    }
+  ],
   "action": {
     "default_popup": "popup/popup.html",
     "default_title": "Decode the Noise",

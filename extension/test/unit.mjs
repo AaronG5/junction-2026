@@ -187,16 +187,33 @@ await test('popover: content, focus, Esc, feedback; server text is not parsed as
   const root = pop.root;
   const text = root.querySelector('.pop').textContent;
   assert.doesNotMatch(text, /EUvsDisinfo · 93% similar/);
-  assert.match(text, /Narratives/);
-  assert.match(text, /State Media Mentions: 253/);
-  assert.match(text, /@two_majors · 2026-11-13 · 97% similar/);
-  assert.match(text, /same text posted by 6 other accounts/);
+  // Option B: verdict line, the judge's reason, then Narrative / Source / State media / Coordinated.
+  assert.match(root.querySelector('h2#ppg-h').textContent, /Potentially propaganda/);
+  assert.equal(root.querySelector('.reason').textContent, 'One sentence.');
+  same([...root.querySelectorAll('dl.rows dt')].map((d) => d.textContent), ['Narrative', 'Source', 'State media', 'Coordinated']);
+  same([...root.querySelectorAll('dl.rows dd')].map((d) => d.textContent),
+    ['The Kyiv regime is an American puppet', '@two_majors on Telegram', '253 mentions', '6 accounts, same text']);
+  assert.match(root.querySelector('dl.rows dd[title]').title, /2026-11-13 · 97% similar/);
+  // Techniques and the copied Telegram post sit in a collapsed <details>.
+  const more = root.querySelector('details.more');
+  assert.ok(more && !more.open, 'details collapsed');
+  assert.equal(more.querySelector('summary').textContent, 'Techniques and the copied post');
+  assert.match(more.textContent, /loaded language/);
+  assert.equal(more.querySelector('blockquote').textContent, 'snippet');
+  // Removed: the chip row, the per-block headings, the dividers' sections, the two feedback buttons.
+  assert.equal(root.querySelector('.labels'), null, 'no chip row in the popover');
+  assert.equal(root.querySelector('section'), null, 'no per-block sections');
+  assert.doesNotMatch(text, /Reason|Looks right|Report a mistake/);
   assert.match(text, /Not a claim about who is behind this account/);
   assert.equal(root.querySelector('img'), null, 'quote rendered as text');
   assert.equal(root.querySelector('a[href^="javascript"]'), null, 'unsafe link dropped');
   assert.equal(root.querySelector('[role=dialog]').getAttribute('aria-modal'), 'true');
   assert.ok(root.activeElement, 'focus moved into the dialog');
-  root.querySelector('button.primary').click();
+  const wrong = root.querySelector('button.wrong');
+  assert.equal(wrong.textContent, 'Wrong?');
+  assert.match(wrong.getAttribute('aria-label'), /Report a mistake/);
+  wrong.click();
+  assert.match(root.querySelector('.thanks').textContent, /report was sent/);
   same(sent, [{ tweet_id: result.id, verdict_shown: 'source_match+potentially_propaganda+coordinated', user_says: 'wrong' }]);
   w.document.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   assert.equal(pop.isOpen(), false);

@@ -82,6 +82,7 @@ function contentSignal(r, strict, quoted, out) {
     short: preShort + (ppg ? PPG_LABELS.ppg : PPG_LABELS.sourceTiny),
     aria: pre + aria.join('; '),
     signal: 'content',
+    verdict: ppg,   // the chip's words are the judge's verdict (drawn in the verdict colour)
     quoted: quoted,
   });
 }

@@ -105,7 +105,7 @@ try {
   await art('1890412233445000099').locator('ppg-badge button.unavailable').waitFor({ timeout: 5000 });
   check(true, 'missing result -> unavailable');
   await art('1890412233445566771').locator('ppg-badge button').first().click();
-  await page.locator('ppg-popover button.primary').click();
+  await page.locator('ppg-popover button.wrong').click();
   await page.waitForTimeout(500);
   check(log.feedback.length === 1 && log.feedback[0].tweet_id === '1890412233445566771' && log.feedback[0].user_says === 'wrong', 'feedback POSTed');
   check(log.cookies === 0, 'no cookies sent to the backend');

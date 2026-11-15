@@ -57,19 +57,18 @@ Type the base URL in the popup and press **Save**. The popup then pings `GET /ap
 | Checking | A small grey spinner next to the timestamp. |
 | Nothing found | Hidden, or a grey dot with "show all". |
 | Source match | A red chip: "Copies pro-Kremlin Telegram post". It appears from the fast path, before the judge finishes. |
-| Potentially propaganda | An orange chip with the judge's verdict. It is red with a ⧉ icon when a Telegram source match also exists. |
-| Coordinated | A separate purple chip ("Coordinated"), for the account- or cluster-level signal. |
-| Unavailable | A grey outline chip: the backend did not answer, failed, or left the id out. |
+| Potentially propaganda | A square stamp in the dashboard's verdict colour (`--verdict-false`) with the judge's verdict. A red ⧉ mark is added when a Telegram source match also exists (red is the trace colour, never a verdict). |
+| Coordinated | A separate ink stamp ("Coordinated"), for the account- or cluster-level signal: neither a verdict nor a trace. |
+| Unavailable | A quiet outline stamp: the backend did not answer, failed, or left the id out. |
 
 Clicking a chip (or pressing Enter on it) opens a popover with:
-- the labels;
-- the Telegram source post (channel, date, similarity, link, snippet);
-- the matched narrative with its source and similarity;
-- the state-media echo line ("This narrative aired 253× on RT, Jan–Oct 2024");
-- technique tags with quoted phrases;
-- the reason;
-- coordination reasons;
-- the disclaimer footer, with **Report a mistake** and **Looks right**.
+- the verdict line ("Potentially propaganda", or "Nothing found");
+- one sentence: the judge's reason;
+- a compact list, each row only when present: **Narrative** (the claim), **Source** ("@channel on Telegram · open"),
+  **State media** ("253 mentions"), **Coordinated** ("6 accounts, same text");
+- a collapsed "Techniques and the copied post": technique tags with their quotes, and the copied Telegram text;
+- the "Analyze in depth" button (see below);
+- a tiny disclaimer line and a quiet **Wrong?** link, which sends the feedback.
 
 The popover traps focus and closes on Esc or an outside click.
 
@@ -132,7 +131,7 @@ content script (x.com)                     service worker                       
   - time, language, and whether it is a post, repost or quote;
   - the quoted post as its own item.
 - `src/view.js`: result → chips. This is pure logic and holds the wording.
-- `src/ui.js`: badge and popover, both in Shadow DOM, with the Baltic tokens from `frontend/src/styles/tokens.css`. The badge follows X's light or dark theme.
+- `src/ui.js`: badge and popover, both in Shadow DOM, with the dashboard's "RED THREAD" tokens from `frontend/src/styles/tokens.css` (paper, three inks, red only for the trace, a muted verdict scale) and its fonts, Archivo and IBM Plex Mono (`fonts/`, OFL, handed to the page as `FontFace` objects because `@font-face` does not work inside a shadow root). The badge follows X's light or dark theme.
 - `src/content.js`: discovery, dedupe by id, rendering, and SPA and route changes.
 - `src/background.js`: batching, caching (memory and `chrome.storage.session`), polling, error handling and counters.
 - `src/mock.js`: the mock backend.
