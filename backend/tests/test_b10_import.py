@@ -355,3 +355,21 @@ class TestImport:
             counts = load_posts(conn, list(records("telegram", world.files)) + list(records("respublika", world.files)))
         assert counts.total == 4 and counts.accounts == {("telegram", "infalt"), ("web", "respublika.lt")}
         assert "4 posts from 2 accounts" in counts.summary()
+
+
+def test_vector_key_matches_the_embedding_input():
+    from veritas.ai import document_input
+    assert importer.vector_key("Hello world", None) == importer.vector_key("Hello world", "none")
+    assert importer.vector_key("Hello world", "A title") != importer.vector_key("Hello world", None)
+    long = "x" * 9000
+    assert importer.vector_key(long) == importer.vector_key(long[:6000])   # cut at the same point as the model input
+    assert document_input("t", "Title").startswith("title: Title | text: t")
+
+
+def test_precomputed_vectors_file_loads(tmp_path: Path):
+    import numpy as np
+    keys = np.array([importer.vector_key("a"), importer.vector_key("b")])
+    np.savez(tmp_path / "v.npz", keys=keys, vectors=np.ones((2, 768), np.float16))
+    pre = importer.load_precomputed(tmp_path / "v.npz")
+    assert set(pre) == set(keys) and pre[keys[0]].shape == (768,)
+    assert importer.load_precomputed(tmp_path / "missing.npz") == {}

@@ -44,6 +44,13 @@ TITLE_MAX_CHARS = 300
 
 MAX_TOKENS_CEILING = 8192
 
+
+def document_input(text: str, title: str | None = None) -> str:
+    """The exact string EmbeddingGemma embeds for a stored post (document prompt, cut to the opening).
+    Shared with the importer, which uses it as the key for vectors precomputed elsewhere."""
+    return (DOCUMENT_PROMPT.replace("{title}", (title or "none").strip()[:TITLE_MAX_CHARS] or "none")
+            .replace("{text}", text[:EMBED_MAX_CHARS]))
+
 ENGINES = ("local", "modal")
 # Where each engine runs, as the report says it ("... · ran on this computer").
 ENGINE_PLACES = {"local": "ran on this computer", "modal": "ran in the cloud (Modal)"}
@@ -319,10 +326,7 @@ class LocalAI:
         titles = list(titles) if titles is not None else [None] * len(texts)
         if len(titles) != len(texts):
             raise ValueError("Give one title (or None) per text.")
-        inputs = [DOCUMENT_PROMPT.replace("{title}", (t or "none").strip()[:TITLE_MAX_CHARS] or "none")
-                  .replace("{text}", x[:EMBED_MAX_CHARS])
-                  for t, x in zip(titles, texts)]
-        return self._embed(inputs)
+        return self._embed([document_input(x, t) for t, x in zip(titles, texts)])
 
     def embed_query(self, text: str) -> list[float]:
         """A vector for searching (EmbeddingGemma's query prompt)."""
