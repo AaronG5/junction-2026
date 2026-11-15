@@ -298,11 +298,20 @@ def _cluster(conn, qdrant: Qdrant, ai: LocalAI, run_id: int, points, rows: dict[
 
     cluster_ids: dict[int, int] = {}
     summary = []
-    for lab in labels:
+    import os as _os
+    import time as _time
+    show = _os.environ.get("CLUSTER_PROGRESS") == "1"
+    t_name = _time.time()
+    for k, lab in enumerate(labels, 1):
         members = [i for i, v in enumerate(grouping.labels) if v == lab]
         by_rank = sorted(members, key=lambda i: grouping.rank[i])
         member_rows = [rows[post_ids[i]] for i in members]
         name, text = _name(ai, [rows[post_ids[i]]["text"] or "" for i in by_rank[:NAMING_POSTS]])
+        if show:
+            el = _time.time() - t_name
+            eta = el / k * (len(labels) - k)
+            bar = "#" * int(20 * k / len(labels))
+            print(f"    [naming {k}/{len(labels)} {bar:<20} {int(el)}s, ~{int(eta)}s left] {len(members)} posts: {name[:70]}", flush=True)
         platforms = [PLATFORM_NAMES[c] for c, _ in Counter(r["platform"] for r in member_rows).most_common() if c in PLATFORM_NAMES]
         langs = Counter(r["language"] or "xx" for r in member_rows)
         languages = [{"code": c, "name": LANGUAGE_NAMES.get(c, "Other" if c == "xx" else c.upper()),
