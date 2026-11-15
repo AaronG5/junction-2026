@@ -24,6 +24,8 @@ from .clustering import ClusteringUnavailable, _libs, run_clustering
 from .clustering_update import update_clustering
 from .config import Settings
 from .db import DatabaseUnavailable, connect
+from .factcheck import gemini_for
+from .gemini import Gemini, GeminiError, GeminiUnavailable
 from .vectors import Qdrant, VectorStoreError, VectorStoreUnavailable
 
 log = logging.getLogger("veritas")
@@ -32,7 +34,7 @@ MIN_DAYS, MAX_DAYS = 1, 365
 Mode = Literal["update", "rebuild"]
 SERVER_ERROR = "Clustering failed because of a problem on the server. Details are in the backend log."
 PLAIN_ERRORS = (ClusteringUnavailable, DatabaseUnavailable, VectorStoreUnavailable, VectorStoreError,
-                AiUnavailable, AiError)
+                AiUnavailable, AiError, GeminiUnavailable, GeminiError)
 
 
 def _now() -> datetime:
@@ -47,6 +49,11 @@ def summary(result: dict) -> tuple[str, str]:
     """(status, message) for a finished run's report."""
     insight = result.get("insight") or {}
     read = f" Read {insight['posts']} typical posts." if insight.get("posts") else ""
+    checked = insight.get("checked") or {}
+    if checked:
+        order = ("false", "misleading", "true", "unverified")
+        read += f" Fact-checked {sum(checked.values())} claims: " + ", ".join(
+            f"{checked[v]} {v}" for v in order if checked.get(v)) + "."
     if result.get("status") in ("too_few", "up_to_date"):
         return result["status"], (result.get("message") or "") + read
     if result.get("mode") == "update":
@@ -109,14 +116,19 @@ class ClusteringJob:
     def _real_run(self, mode: str, days: int | None, say: Callable[[str], None]) -> dict:
         conn = connect(self.settings, read_timeout=3600)
         try:
-            with Qdrant.from_settings(self.settings) as qdrant, LocalAI.from_settings(self.settings, timeout=300) as ai:
-                return cluster_and_read(conn, qdrant, ai, mode=mode, days=days, say=say)
+            gemini = gemini_for(conn, self.settings)
+            try:
+                with Qdrant.from_settings(self.settings) as qdrant, LocalAI.from_settings(self.settings, timeout=300) as ai:
+                    return cluster_and_read(conn, qdrant, ai, mode=mode, days=days, say=say, gemini=gemini)
+            finally:
+                if gemini is not None:
+                    gemini.close()
         finally:
             conn.close()
 
 
 def cluster_and_read(conn, qdrant: Qdrant, ai: LocalAI, *, mode: str = "update", days: int | None = None,
-                     say: Callable[[str], None] = lambda m: None, read: bool = True) -> dict:
+                     say: Callable[[str], None] = lambda m: None, read: bool = True, gemini: Gemini | None = None) -> dict:
     """One clustering run (update or rebuild), then highlights and claims for the clusters it touched."""
     if mode == "rebuild":
         say("Grouping all posts again from scratch. This can take a few minutes.")
@@ -126,7 +138,7 @@ def cluster_and_read(conn, qdrant: Qdrant, ai: LocalAI, *, mode: str = "update",
         result = update_clustering(conn, qdrant, ai, progress=say)
     if read and result.get("run_id") and result.get("status") in ("done", "up_to_date"):
         # the clusters this run changed, and any whose typical posts weren't read before
-        ids = {c["cluster_id"] for c in result.get("clusters", [])} | set(unread_clusters(conn, result["run_id"]))
+        ids = {c["cluster_id"] for c in result.get("clusters", [])} | set(unread_clusters(conn, result["run_id"], gemini is not None))
         if ids:
-            result["insight"] = enrich_clusters(conn, ai, qdrant, ids, progress=say)
+            result["insight"] = enrich_clusters(conn, ai, qdrant, ids, progress=say, gemini=gemini)
     return result

@@ -287,3 +287,61 @@ def test_clusters_made_before_get_read_on_the_next_update(world):
         assert unread_clusters(conn, result["run_id"]) == []
         again = cluster_and_read(conn, w.qdrant, ai.client())
     assert "insight" not in again and ai.calls["patterns"] == 9
+
+
+class FakeGeminiService:
+    """Gemini: one strict claim per post, and a "false" verdict with one source per check."""
+
+    def __init__(self):
+        self.claims = 0
+        self.checks = 0
+
+    def __call__(self, request):
+        body = json.loads(request.content)
+        text = body["contents"][0]["parts"][0]["text"]
+        if "tools" in body:
+            self.checks += 1
+            payload = {"verdict": "false", "confidence": 0.9, "explanation": "Sources say otherwise."}
+            meta = {"groundingChunks": [{"web": {"uri": "https://lrt.lt/x", "title": "lrt.lt"}}], "groundingSupports": []}
+            candidate = {"content": {"parts": [{"text": json.dumps(payload)}]}, "groundingMetadata": meta}
+        else:
+            self.claims += 1
+            group = text.split("group ", 1)[1].split(" ", 1)[0]
+            payload = {"claims": [{"claim": f"Group {group} did it in 2026.", "quote": f"group {group}",
+                                   "checkworthiness": "high", "topic": "t"}]}
+            candidate = {"content": {"parts": [{"text": json.dumps(payload)}]}}
+        return httpx.Response(200, json={"candidates": [candidate], "modelVersion": "gemini-test"})
+
+    def client(self):
+        from veritas.gemini import Gemini
+        return Gemini("k", "gemini-test", transport=httpx.MockTransport(self), waits=())
+
+
+@pytest.mark.integration
+def test_with_gemini_local_claims_are_replaced_and_checked(world):
+    from veritas.cluster_insight import unread_clusters
+    from veritas.clustering_job import cluster_and_read, summary
+    w, ai, gem = world, FakeAI(), FakeGeminiService()
+    result = first_run(w, ai)
+    ids = [c["cluster_id"] for c in result["clusters"]]
+    with connection(w.settings) as conn:
+        enrich_clusters(conn, ai.client(), w.qdrant, ids)                      # first the local AI's claims
+        assert [r["text"] for r in w.rows("SELECT text FROM claims ORDER BY text")][0] == "Group 0 is behind it"
+        assert unread_clusters(conn, result["run_id"]) == []
+        assert sorted(unread_clusters(conn, result["run_id"], gemini=True)) == sorted(ids)   # Gemini has work to do
+        out = cluster_and_read(conn, w.qdrant, ai.client(), gemini=gem.client())
+    assert gem.claims == 9 and gem.checks == 3                                 # 9 posts; 3 distinct claims, checked once
+    assert summary(out)[1].endswith("Read 9 typical posts. Fact-checked 3 claims: 3 false.")
+    claims = w.rows("SELECT text, verdict, verdict_method, cluster_id, post_count FROM claims ORDER BY text")
+    assert [c["text"] for c in claims] == ["Group 0 did it in 2026.", "Group 1 did it in 2026.", "Group 2 did it in 2026."]
+    assert all(c["verdict"] == "false" and c["verdict_method"] == "gemini-test + Google Search" and c["post_count"] == 3
+               and c["cluster_id"] for c in claims)                            # the local AI's claims are gone
+    assert len(w.rows("SELECT * FROM claim_evidence")) == 3
+    assert w.qdrant.count("claims") == 3
+    assert all(r["main_claim_id"] for r in w.rows("SELECT main_claim_id FROM clusters"))   # 3 posts each make it
+    body = make_client(w.settings).get("/api/narratives").json()
+    assert {c["status"] for c in body["clusters"]} == {"false"}
+    with connection(w.settings) as conn:                                       # nothing left: no more calls
+        assert unread_clusters(conn, result["run_id"], gemini=True) == []
+        cluster_and_read(conn, w.qdrant, ai.client(), gemini=gem.client())
+    assert (gem.claims, gem.checks) == (9, 3) and ai.calls["patterns"] == 9

@@ -285,6 +285,7 @@ def test_cli_explains_missing_packages(monkeypatch, capsys):
     from contextlib import nullcontext
     monkeypatch.setattr(clustering, "_libs", missing)
     monkeypatch.setattr(cluster_cli, "connection", lambda settings, **k: nullcontext())  # no real services needed
+    monkeypatch.setattr(cluster_cli, "gemini_for", lambda conn, settings: None)
     monkeypatch.setattr(cluster_cli.Qdrant, "from_settings", classmethod(lambda cls, s, **k: nullcontext()))
     monkeypatch.setattr(cluster_cli.LocalAI, "from_settings", classmethod(lambda cls, s, **k: nullcontext()))
     from veritas import clustering_job

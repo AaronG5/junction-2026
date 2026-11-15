@@ -22,6 +22,8 @@ from veritas.clustering import ClusteringUnavailable  # noqa: E402
 from veritas.clustering_job import cluster_and_read, summary  # noqa: E402
 from veritas.config import Settings  # noqa: E402
 from veritas.db import DatabaseUnavailable, connection  # noqa: E402
+from veritas.factcheck import gemini_for  # noqa: E402
+from veritas.gemini import GeminiError, GeminiUnavailable  # noqa: E402
 from veritas.vectors import Qdrant, VectorStoreError, VectorStoreUnavailable  # noqa: E402
 
 
@@ -46,10 +48,13 @@ def main(argv: list[str] | None = None) -> int:
         settings = Settings.load()
         with connection(settings, read_timeout=3600) as conn, Qdrant.from_settings(settings) as qdrant, \
                 LocalAI.from_settings(settings, timeout=300) as ai:
+            gemini = gemini_for(conn, settings)
+            print("  Claims and fact checks: " + ("Gemini (" + gemini.model + ")" if gemini else "the local AI, no fact checks"))
             result = cluster_and_read(conn, qdrant, ai, mode="rebuild" if args.rebuild else "update", days=args.days,
-                                      say=lambda message: print(f"  {message}", flush=True), read=not args.no_read)
+                                      say=lambda message: print(f"  {message}", flush=True), read=not args.no_read,
+                                      gemini=gemini)
     except (ClusteringUnavailable, DatabaseUnavailable, VectorStoreUnavailable, VectorStoreError,
-            AiUnavailable, AiError, ValueError) as exc:
+            AiUnavailable, AiError, GeminiUnavailable, GeminiError, ValueError) as exc:
         print(f"Clustering stopped. {exc}", file=sys.stderr)
         return 1
     status, message = summary(result)

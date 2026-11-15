@@ -63,9 +63,11 @@ def test_prompt_files_load_and_use_only_known_placeholders(path: Path):
     name, version = re.match(r"^([a-z_]+)\.(v[0-9]+)\.md$", path.name).groups()
     prompt = load_prompt(name, version)
     assert prompt.label == f"{name}.{version}" and prompt.system and prompt.user
-    allowed = {"text", "language", "category", "description", "target"}
+    allowed = {"text", "language", "category", "description", "target",
+               "published", "source",                       # claims_strict: dates resolved from the post's date
+               "claim", "first_seen", "today", "sources"}   # fact checks (factcheck, verdict)
     assert prompt.placeholders() <= allowed
-    assert "text" in prompt.placeholders()
+    assert prompt.placeholders() & {"text", "claim"}         # every prompt reads a post or a claim
 
 
 def test_the_four_analyzer_prompts_exist():

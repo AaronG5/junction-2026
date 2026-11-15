@@ -75,6 +75,9 @@ class Settings:
     oxylabs_username: str = field(default="", repr=False)
     oxylabs_password: str = field(default="", repr=False)
     context_dev_api_key: str = field(default="", repr=False)
+    # Gemini (claims and fact checks, veritas/gemini.py). Empty key = the local AI does the claims, no fact checks.
+    gemini_api_key: str = field(default="", repr=False)
+    gemini_model: str = "gemini-pro-latest"
     frontend_dist: Path = ROOT / "frontend" / "dist"
     # Host names requests may be addressed to (blocks DNS rebinding). Ports are ignored.
     allowed_hosts: tuple[str, ...] = ("127.0.0.1", "localhost")
@@ -125,5 +128,7 @@ class Settings:
             oxylabs_username=get("OXYLABS_USERNAME", ""),
             oxylabs_password=get("OXYLABS_PASSWORD", ""),
             context_dev_api_key=get("CONTEXT_DEV_API_KEY", ""),
+            gemini_api_key=get("GEMINI_API_KEY", ""),
+            gemini_model=get("GEMINI_MODEL", "") or "gemini-pro-latest",
             frontend_dist=dist_path,
         )
