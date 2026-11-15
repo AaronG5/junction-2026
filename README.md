@@ -29,6 +29,19 @@ Developers: run Python through uv as well, e.g. `uv run python -m local_ai --sta
 | `--host 0.0.0.0` | Serve the dashboard and the AI to the network (what `./launch.sh` does by default) |
 | `--local` | The opposite: this computer only |
 | `--expose-databases` | Publish MySQL and Qdrant on that address too |
+| `--demo-data` | Load the example data (only into an empty database) |
+| `--import-data` | Load the collected data (see below) and make its vectors |
+
+**The collected data**
+
+`data/parsed/` holds what the team's scrapers collected: about 47,000 posts from 70 Telegram channels (`telegram/posts.json`), and the articles of `respublika.lt` and `bukimevieningi.lt`. It is loaded only on request:
+
+```
+./launch.sh --import-data                          # as part of a normal start
+uv run python backend/import_data.py               # by hand; --source telegram, --no-embed, --embed-only, --limit N
+```
+
+The import stores the posts and their accounts in MySQL and makes a vector for each in Qdrant with the local embedding model. The first run embeds everything, which takes a while; it commits as it goes, so stopping it and running it again continues where it left off. Running it again after a new scrape adds only what is new. Once the vectors are there, "Analyze a link" finds copies and translations among the collected posts, and `uv run python backend/cluster.py` groups them into narratives.
 
 **Where it listens**
 

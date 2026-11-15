@@ -120,7 +120,7 @@ Notes:
 
 ## Parsing
 
-All posts go into one file, `data/parsed/telegram/posts.json`. It's a JSON object with one key per channel username, in the order of `telegram_sources.json`. Each value is that channel's posts, newest first, written as UTF-8 with `ensure_ascii=False`.
+All posts go into one file, `data/parsed/telegram/posts.json`. It's a JSON object with one key per channel username, in the order of `telegram_sources.json`. Each value is that channel's posts, newest first, written as UTF-8 with `ensure_ascii=False`. The backend loads this file (and `userSize` from `telegram_sources.json`) with `uv run python backend/import_data.py` (`backend/veritas/importer.py`); after a new scrape, run it again and only the new or changed posts are stored.
 
 ```json
 {
