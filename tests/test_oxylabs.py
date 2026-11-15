@@ -98,6 +98,58 @@ class RequestTests(unittest.TestCase):
         self.assertEqual(transport.calls[0]["payload"]["max_results"], 20)
 
 
+class YouTubeEndpointTests(unittest.TestCase):
+    def test_paths_and_payloads(self):
+        client, transport, _ = make_client(
+            ok(results=[{"json": {"id": "UCx", "videos": []}}], request_id="r1"), ok(), ok())
+        result = client.youtube("channel", "VaidasZemaitisLekstutis", limit=20)
+        client.youtube("subtitles", "2aZ_aDxebwI", language_code="lt", subtitle_origin="auto_generated")
+        client.youtube("metadata", "2aZ_aDxebwI", location="lt")
+        base = "https://webapi.oxylabs.io/v1/scrape/media/youtube/"
+        self.assertEqual([c["url"] for c in transport.calls],
+                         [base + "channel", base + "subtitles", base + "metadata"])
+        self.assertEqual([c["payload"] for c in transport.calls], [
+            {"query": "@VaidasZemaitisLekstutis", "output": ["json"], "limit": 20},
+            {"query": "2aZ_aDxebwI", "language_code": "lt", "subtitle_origin": "auto_generated"},
+            {"query": "2aZ_aDxebwI", "location": "LT"},
+        ])
+        self.assertEqual(transport.calls[0]["headers"]["Authorization"], f"Bearer {DUMMY_KEY}")
+        self.assertEqual((result.request_id, result.json), ("r1", {"id": "UCx", "videos": []}))
+
+    def test_bad_input_sends_nothing(self):
+        client, transport, _ = make_client(ok())
+        bad = [("download", "2aZ_aDxebwI", {}),
+               ("channel", "https://www.youtube.com/@x", {}),
+               ("channel", "@two words", {}),
+               ("channel", "@x", {"limit": -1}),
+               ("metadata", "https://youtu.be/2aZ_aDxebwI", {}),
+               ("subtitles", "short", {}),
+               ("subtitles", "2aZ_aDxebwI", {"language_code": "LT"}),
+               ("subtitles", "2aZ_aDxebwI", {"subtitle_origin": "translated"}),
+               ("metadata", "2aZ_aDxebwI", {"language_code": "lt"}),
+               ("metadata", "2aZ_aDxebwI", {"limit": 5})]
+        for endpoint, query, params in bad:
+            with self.assertRaises(ValueError, msg=(endpoint, query, params)):
+                client.youtube(endpoint, query, **params)
+        self.assertEqual(transport.calls, [])
+
+    def test_retries_and_errors_are_the_same_as_for_scrape(self):
+        client, transport, _ = make_client(problem(503, "UNAVAILABLE"), ok(request_id="r2"))
+        self.assertEqual(client.youtube("metadata", "2aZ_aDxebwI").request_id, "r2")
+        self.assertEqual(len(transport.calls), 2)
+        client, transport, _ = make_client(problem(400, "VALIDATION_ERROR", pointers=["/language_code"]))
+        with self.assertRaises(ValidationError):
+            client.youtube("subtitles", "2aZ_aDxebwI", language_code="xx")
+        self.assertEqual(len(transport.calls), 1)
+        client, _, _ = make_client(problem(401, "UNAUTHORIZED"))
+        with self.assertRaises(AuthenticationError):
+            client.youtube("channel", "@x")
+
+    def test_json_is_none_without_results(self):
+        client, _, _ = make_client(ok())
+        self.assertIsNone(client.youtube("subtitles", "2aZ_aDxebwI").json)
+
+
 class ErrorMappingTests(unittest.TestCase):
     def test_401_raises_authentication_error_without_retry(self):
         client, transport, sleeps = make_client(problem(401, "UNAUTHORIZED"))

@@ -1,0 +1,91 @@
+{
+ "state": "done",
+ "results": [
+  {
+   "json": {
+    "results": {
+     "age_limit": 0,
+     "categories": [
+      "News & Politics"
+     ],
+     "channel_id": "UCeoRphKlraUAXobWli_pvQQ",
+     "channel_url": "https://www.youtube.com/channel/UCeoRphKlraUAXobWli_pvQQ",
+     "comment_count": 60,
+     "description": "(trimmed for the test fixture)",
+     "duration": 1220,
+     "formats": [
+      {
+       "acodec": null,
+       "ext": "webm",
+       "format_id": "271",
+       "format_note": "1440p, MISSING POT",
+       "fps": 30,
+       "resolution": "2560x1440",
+       "url": null,
+       "vcodec": "vp9"
+      }
+     ],
+     "generated_subtitle_languages": [
+      "lt"
+     ],
+     "is_live": false,
+     "is_transcript_available": true,
+     "like_count": 765,
+     "tags": [
+      "Kada baigsis karas Ukrainoje",
+      "Ukrainos karo pabaiga",
+      "derybos",
+      "Kas suderėta",
+      "Kas nutarta derybose"
+     ],
+     "thumbnails": [
+      {
+       "height": 94,
+       "url": "https://i.ytimg.com/vi/2aZ_aDxebwI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBBAkqUmIF4qEFXq4kcSUi65XH2yw",
+       "width": 168
+      }
+     ],
+     "title": "Taigi, kada baigsis karas Ukrainoje?",
+     "upload_date": "20261113",
+     "uploader": "Vaidas Žemaitis Lekstutis",
+     "uploader_id": "@VaidasZemaitisLekstutis",
+     "uploader_url": "https://www.youtube.com/@VaidasZemaitisLekstutis",
+     "video_id": "2aZ_aDxebwI",
+     "view_count": 6683
+    }
+   },
+   "metadata": {
+    "page": 1,
+    "run_js": false,
+    "url": "https://www.youtube.com/watch?v=2aZ_aDxebwI",
+    "statuses": {
+     "http_request": {
+      "code": 200,
+      "tag": "HTTP_OK"
+     },
+     "json_parse": {
+      "code": 12000,
+      "tag": "PARSE_SUCCESS"
+     }
+    }
+   }
+  }
+ ],
+ "params": {
+  "query": "2aZ_aDxebwI",
+  "output": [
+   "json"
+  ],
+  "json": {
+   "schema": null,
+   "prompt": null
+  },
+  "location": null,
+  "device": "desktop",
+  "run_js": null
+ },
+ "metadata": {
+  "timestamp": 1794702165,
+  "request_id": "7527526472748152833"
+ }
+}

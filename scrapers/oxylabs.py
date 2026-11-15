@@ -1,7 +1,9 @@
 """Client for the Oxylabs Web API: web search and page scraping.
 
 Built from https://developers.oxylabs.io/products/web-api/for-agents.md
-(see docs/oxylabs-telegram-scrape.md). Stdlib only, like local_ai/.
+(see docs/oxylabs-telegram-scrape.md), plus the dedicated YouTube scrapers from
+https://developers.oxylabs.io/api-reference/dedicated-scrapers/media-scrapers.md
+(see docs/oxylabs-youtube-scrape.md). Stdlib only, like local_ai/.
 
 - Bearer auth on every call. The key comes from OXYLABS_WEB_API_KEY in the
   environment, then .env. It never appears in logs, errors or reprs.
@@ -33,10 +35,16 @@ ATTEMPTS = 3
 MAX_QUERY_CHARS = 2048
 MAX_SEARCH_RESULTS = 20
 SCRAPE_OUTPUTS = frozenset({"markdown", "html", "json", "screenshot"})
+# Dedicated YouTube scrapers this repo uses (docs/oxylabs-youtube-scrape.md).
+YOUTUBE_ENDPOINTS = frozenset({"channel", "subtitles", "metadata"})
+SUBTITLE_ORIGINS = frozenset({"uploader_provided", "auto_generated"})
 
 log = logging.getLogger(__name__)
 
 _COUNTRY_CODE = re.compile(r"^[A-Z]{2}$")
+_VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
+_HANDLE = re.compile(r"^@?[^\s/?#&@]+$")
+_LANGUAGE_CODE = re.compile(r"^[a-z]{2,3}(-[a-z0-9]+)?$")
 
 
 # ---- errors -----------------------------------------------------------------
@@ -148,6 +156,20 @@ class ScrapeResult:
         return value if isinstance(value, str) else ""
 
 
+@dataclass
+class MediaResult:
+    data: dict                       # the whole response, as received
+    request_id: str | None
+
+    @property
+    def json(self) -> Any:
+        """results[0].json: the parsed data, or None when there is none."""
+        results = self.data.get("results")
+        if isinstance(results, list) and results and isinstance(results[0], dict):
+            return results[0].get("json")
+        return None
+
+
 # ---- client -----------------------------------------------------------------
 
 class WebApiClient:
@@ -209,6 +231,51 @@ class WebApiClient:
         first = (data.get("results") or [{}])[0] or {}
         content = {fmt: first.get(fmt) for fmt in formats if fmt in first}
         return ScrapeResult(content, first.get("url"), request_id, data)
+
+    def youtube(self, endpoint: str, query: str, *, limit: int | None = None,
+                language_code: str | None = None, subtitle_origin: str | None = None,
+                location: str | None = None) -> MediaResult:
+        """POST /v1/scrape/media/youtube/<endpoint> (sync mode), always as parsed JSON.
+
+        channel:   query is a handle (@name); limit is how many of its newest videos to list.
+        subtitles: query is a video id; language_code and subtitle_origin narrow the tracks.
+        metadata:  query is a video id.
+        Input is checked before sending, so a bad value never costs a request.
+        """
+        if endpoint not in YOUTUBE_ENDPOINTS:
+            raise ValueError(f"endpoint must be one of {sorted(YOUTUBE_ENDPOINTS)}, got {endpoint!r}")
+        query = (query or "").strip()
+        if endpoint == "channel":
+            if not _HANDLE.match(query):
+                raise ValueError(f"query must be a channel handle such as '@name', got {query!r}")
+            query = query if query.startswith("@") else "@" + query
+        elif not _VIDEO_ID.match(query):
+            raise ValueError(f"query must be an 11-character video id, got {query!r}")
+        payload: dict[str, Any] = {"query": query}
+        if endpoint == "channel":
+            payload["output"] = ["json"]          # the endpoint's default is the page's HTML
+            if limit is not None:
+                if int(limit) < 0:
+                    raise ValueError("limit must be 0 or more")
+                payload["limit"] = int(limit)
+        elif limit is not None:
+            raise ValueError("limit is only for the channel endpoint")
+        if endpoint == "subtitles":
+            if language_code is not None:
+                if not _LANGUAGE_CODE.match(language_code):
+                    raise ValueError(f"language_code must be a lowercase code such as 'lt', "
+                                     f"got {language_code!r}")
+                payload["language_code"] = language_code
+            if subtitle_origin is not None:
+                if subtitle_origin not in SUBTITLE_ORIGINS:
+                    raise ValueError(f"subtitle_origin must be one of {sorted(SUBTITLE_ORIGINS)}")
+                payload["subtitle_origin"] = subtitle_origin
+        elif language_code is not None or subtitle_origin is not None:
+            raise ValueError("language_code and subtitle_origin are only for the subtitles endpoint")
+        if location is not None:
+            payload["location"] = _country_code(location)
+        data, request_id = self._post(f"/v1/scrape/media/youtube/{endpoint}", payload)
+        return MediaResult(data, request_id)
 
     def _post(self, path: str, payload: dict) -> tuple[dict, str | None]:
         url = self._base_url + path

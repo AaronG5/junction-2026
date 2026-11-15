@@ -1,0 +1,312 @@
+{
+ "state": "done",
+ "results": [
+  {
+   "json": {
+    "auto_generated": {
+     "lt": {
+      "wireMagic": "pb3",
+      "pens": [
+       {}
+      ],
+      "wsWinStyles": [
+       {},
+       {
+        "mhModeHint": 2,
+        "juJustifCode": 0,
+        "sdScrollDir": 3
+       }
+      ],
+      "wpWinPositions": [
+       {},
+       {
+        "apPoint": 6,
+        "ahHorPos": 20,
+        "avVerPos": 100,
+        "rcRows": 2,
+        "ccCols": 40
+       }
+      ],
+      "events": [
+       {
+        "tStartMs": 0,
+        "dDurationMs": 1221003,
+        "id": 1,
+        "wpWinPosId": 1,
+        "wsWinStyleId": 1
+       },
+       {
+        "tStartMs": 300,
+        "dDurationMs": 6700,
+        "wWinId": 1,
+        "segs": [
+         {
+          "utf8": "Sveiki"
+         },
+         {
+          "utf8": " gyvi.",
+          "tOffsetMs": 300
+         },
+         {
+          "utf8": " Pakalbėsim",
+          "tOffsetMs": 1000
+         },
+         {
+          "utf8": " apie",
+          "tOffsetMs": 1700
+         },
+         {
+          "utf8": " Ukrainos",
+          "tOffsetMs": 2300
+         }
+        ]
+       },
+       {
+        "tStartMs": 3290,
+        "dDurationMs": 3710,
+        "wWinId": 1,
+        "aAppend": 1,
+        "segs": [
+         {
+          "utf8": "\n"
+         }
+        ]
+       },
+       {
+        "tStartMs": 3300,
+        "dDurationMs": 6500,
+        "wWinId": 1,
+        "segs": [
+         {
+          "utf8": "karą."
+         },
+         {
+          "utf8": " Ir",
+          "tOffsetMs": 900
+         },
+         {
+          "utf8": " Ukrainos",
+          "tOffsetMs": 1200
+         },
+         {
+          "utf8": " karą,",
+          "tOffsetMs": 1900
+         },
+         {
+          "utf8": " pabaigą,",
+          "tOffsetMs": 2500
+         }
+        ]
+       },
+       {
+        "tStartMs": 6990,
+        "dDurationMs": 2810,
+        "wWinId": 1,
+        "aAppend": 1,
+        "segs": [
+         {
+          "utf8": "\n"
+         }
+        ]
+       },
+       {
+        "tStartMs": 7000,
+        "dDurationMs": 6100,
+        "wWinId": 1,
+        "segs": [
+         {
+          "utf8": "kurių"
+         },
+         {
+          "utf8": " laukia",
+          "tOffsetMs": 400
+         },
+         {
+          "utf8": " bemaž",
+          "tOffsetMs": 900
+         },
+         {
+          "utf8": " pusė",
+          "tOffsetMs": 1400
+         },
+         {
+          "utf8": " pasaulio.",
+          "tOffsetMs": 1700
+         }
+        ]
+       },
+       {
+        "tStartMs": 9790,
+        "dDurationMs": 3310,
+        "wWinId": 1,
+        "aAppend": 1,
+        "segs": [
+         {
+          "utf8": "\n"
+         }
+        ]
+       },
+       {
+        "tStartMs": 9800,
+        "dDurationMs": 6700,
+        "wWinId": 1,
+        "segs": [
+         {
+          "utf8": "Nes"
+         },
+         {
+          "utf8": " tai",
+          "tOffsetMs": 300
+         },
+         {
+          "utf8": " įtakoja",
+          "tOffsetMs": 500
+         },
+         {
+          "utf8": " ir",
+          "tOffsetMs": 1200
+         },
+         {
+          "utf8": " kainas,",
+          "tOffsetMs": 1300
+         },
+         {
+          "utf8": " m,",
+          "tOffsetMs": 2300
+         },
+         {
+          "utf8": " dabar",
+          "tOffsetMs": 2800
+         }
+        ]
+       },
+       {
+        "tStartMs": 13090,
+        "dDurationMs": 3410,
+        "wWinId": 1,
+        "aAppend": 1,
+        "segs": [
+         {
+          "utf8": "\n"
+         }
+        ]
+       },
+       {
+        "tStartMs": 13100,
+        "dDurationMs": 6400,
+        "wWinId": 1,
+        "segs": [
+         {
+          "utf8": "esančių"
+         },
+         {
+          "utf8": " kuro",
+          "tOffsetMs": 600
+         },
+         {
+          "utf8": " kainas,",
+          "tOffsetMs": 1000
+         },
+         {
+          "utf8": " dujų",
+          "tOffsetMs": 2000
+         },
+         {
+          "utf8": " kainas",
+          "tOffsetMs": 2500
+         },
+         {
+          "utf8": " ir",
+          "tOffsetMs": 3000
+         },
+         {
+          "utf8": " visa",
+          "tOffsetMs": 3199
+         }
+        ]
+       },
+       {
+        "tStartMs": 16490,
+        "dDurationMs": 3010,
+        "wWinId": 1,
+        "aAppend": 1,
+        "segs": [
+         {
+          "utf8": "\n"
+         }
+        ]
+       },
+       {
+        "tStartMs": 16500,
+        "dDurationMs": 5700,
+        "wWinId": 1,
+        "segs": [
+         {
+          "utf8": "kitą."
+         },
+         {
+          "utf8": " Nes",
+          "tOffsetMs": 500
+         },
+         {
+          "utf8": " į",
+          "tOffsetMs": 900
+         },
+         {
+          "utf8": " tą",
+          "tOffsetMs": 1000
+         },
+         {
+          "utf8": " karą",
+          "tOffsetMs": 1100
+         },
+         {
+          "utf8": " įsivėlus",
+          "tOffsetMs": 1500
+         },
+         {
+          "utf8": " yra",
+          "tOffsetMs": 2100
+         },
+         {
+          "utf8": " yra",
+          "tOffsetMs": 2600
+         }
+        ]
+       }
+      ]
+     }
+    }
+   },
+   "metadata": {
+    "page": 1,
+    "run_js": false,
+    "url": "https://www.youtube.com/watch?v=2aZ_aDxebwI",
+    "statuses": {
+     "http_request": {
+      "code": 200,
+      "tag": "HTTP_OK"
+     }
+    }
+   }
+  }
+ ],
+ "params": {
+  "query": "2aZ_aDxebwI",
+  "output": [
+   "json"
+  ],
+  "json": {
+   "schema": null,
+   "prompt": null
+  },
+  "location": null,
+  "device": "desktop",
+  "language_code": null,
+  "subtitle_origin": null
+ },
+ "metadata": {
+  "timestamp": 1794702165,
+  "request_id": "7527526472735528961"
+ }
+}

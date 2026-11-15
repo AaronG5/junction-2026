@@ -1,0 +1,89 @@
+{
+ "state": "done",
+ "results": [
+  {
+   "json": {
+    "avatar_url": "https://yt3.googleusercontent.com/tBreB2opT3Ik8jEWDUSWvE0oTROs7-m5hUWgGhenSxn1YnhxFxLRHcS2N8zFzgN-1G_F4QzL0g=s900-c-k-c0x00ffffff-no-rj",
+    "country": "Latvia",
+    "description": "Tai yra Vaido Žemaičio Lekstučio YouTube kanalas.",
+    "id": "UCeoRphKlraUAXobWli_pvQQ",
+    "joined_date": "Sep 30 2023",
+    "links": [],
+    "name": "Vaidas Žemaitis Lekstutis",
+    "subscriber_count": "11.6K",
+    "video_count": 682,
+    "videos": [
+     {
+      "pos": 1,
+      "title": "Taigi, kada baigsis karas Ukrainoje?",
+      "upload_date_relative": "1d ago",
+      "url": "https://www.youtube.com/watch?v=2aZ_aDxebwI",
+      "view_count": "6600"
+     },
+     {
+      "pos": 2,
+      "title": "Santykiai su Kinija: Lietuva keičia kursą + Nauji Putino draudimai dėl įsivaikinimo",
+      "upload_date_relative": "5d ago",
+      "url": "https://www.youtube.com/watch?v=oMmfc2ed0ac",
+      "view_count": "13000"
+     },
+     {
+      "pos": 3,
+      "title": "Ar nepavargote būti Ukraina?",
+      "upload_date_relative": "8d ago",
+      "url": "https://www.youtube.com/watch?v=mhcV-nvCzIQ",
+      "view_count": "9500"
+     },
+     {
+      "pos": 4,
+      "title": "5 NAUJIENOS",
+      "upload_date_relative": "9d ago",
+      "url": "https://www.youtube.com/watch?v=uvH18mgHGWM",
+      "view_count": "14000"
+     },
+     {
+      "pos": 5,
+      "title": "Kokią Lietuvą matysime ateityje?",
+      "upload_date_relative": "11d ago",
+      "url": "https://www.youtube.com/watch?v=A-w2ljy36nI",
+      "view_count": "21000"
+     }
+    ],
+    "view_count": "6,092,123"
+   },
+   "metadata": {
+    "page": 1,
+    "run_js": false,
+    "url": "https://www.youtube.com/@VaidasZemaitisLekstutis/videos?view=0&flow=grid",
+    "statuses": {
+     "http_request": {
+      "code": 200,
+      "tag": "HTTP_OK"
+     },
+     "json_parse": {
+      "code": 12000,
+      "tag": "PARSE_SUCCESS"
+     }
+    }
+   }
+  }
+ ],
+ "params": {
+  "output": [
+   "json"
+  ],
+  "json": {
+   "schema": null,
+   "prompt": null
+  },
+  "location": null,
+  "device": "desktop",
+  "run_js": null,
+  "limit": 5,
+  "query": "@VaidasZemaitisLekstutis"
+ },
+ "metadata": {
+  "timestamp": 1794702147,
+  "request_id": "7527526397762356225"
+ }
+}
